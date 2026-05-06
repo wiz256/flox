@@ -1,0 +1,4582 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="High-performance trading framework with Python, Node.js, Codon, and C++ bindings">
+      
+      
+      
+        <link rel="canonical" href="https://flox-foundation.github.io/flox/reference/python/_api_index/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../engine/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Full API index - FLOX</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#python-api-index" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="FLOX" class="md-header__button md-logo" aria-label="FLOX" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 3a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2H3v2h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2v-2H8v-5a2 2 0 0 0-2-2 2 2 0 0 0 2-2V5h2V3m6 0a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1v2h-1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2v-2h2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5h-2V3z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            FLOX
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Full API index
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FLOX-Foundation/flox" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FLOX-Foundation/flox
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../tutorials/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../bindings/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Bindings
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../how-to/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  How-To Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../explanation/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Explanation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="FLOX" class="md-nav__button md-logo" aria-label="FLOX" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 3a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2H3v2h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2v-2H8v-5a2 2 0 0 0-2-2 2 2 0 0 0 2-2V5h2V3m6 0a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1v2h-1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2v-2h2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5h-2V3z"/></svg>
+
+    </a>
+    FLOX
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FLOX-Foundation/flox" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FLOX-Foundation/flox
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../tutorials/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../bindings/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bindings
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../how-to/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-To Guides
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../explanation/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Python
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Full API index
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Full API index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#flox_py" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        flox_py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="flox_py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#constants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constants
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-atr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ATR
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-autocorrelation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class AutoCorrelation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-backtestresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class BacktestResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-backtestrunner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class BacktestRunner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-bardata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class BarData
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-bollinger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Bollinger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-cci" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class CCI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-compositebookmatrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class CompositeBookMatrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-correlation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Correlation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-dema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class DEMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-datareader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class DataReader
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-datarecorder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class DataRecorder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-datawriter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class DataWriter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-ema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class EMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-exchangecapabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ExchangeCapabilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-executionlistener" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ExecutionListener
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-executor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Executor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-floxerrorexception" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class FloxError(Exception)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-footprintbar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class FootprintBar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-gridsearch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class GridSearch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-indicatorgraph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class IndicatorGraph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-kama" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class KAMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-killswitch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class KillSwitch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-kurtosis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Kurtosis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-l3book" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class L3Book
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-macd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class MACD
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-marketdatarecorderhook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class MarketDataRecorderHook
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-marketprofile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class MarketProfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Order
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-orderbook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class OrderBook
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-ordertracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class OrderTracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-ordervalidator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class OrderValidator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-parkinsonvol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ParkinsonVol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-partitioner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Partitioner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-pnltracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class PnLTracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-positiongrouptracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class PositionGroupTracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-positiontracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class PositionTracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-rma" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class RMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-rsi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class RSI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-replayevent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ReplayEvent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-replaysource" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ReplaySource
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-riskmanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class RiskManager
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-rogerssatchellvol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class RogersSatchellVol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-rollingzscore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class RollingZScore
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-runner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Runner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-sma" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class SMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-shannonentropy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ShannonEntropy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-signal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Signal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-signalbuilder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class SignalBuilder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-simulatedexecutor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class SimulatedExecutor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-skewness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Skewness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-slope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Slope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-stats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Stats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-stochastic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Stochastic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-storagesink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class StorageSink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-symbol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Symbol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-symbolcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class SymbolContext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-symbolregistry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class SymbolRegistry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-tema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class TEMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-tradedata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class TradeData
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-volumeprofile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class VolumeProfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-walkforwardrunner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class WalkForwardRunner
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flox_pytargets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        flox_py.targets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="flox_py.targets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#functions_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine & Backtest
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../indicators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Indicators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../aggregators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aggregators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../books/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Order Books
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../profiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../positions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Positions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../segment_ops/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Segment Ops
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backtest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backtest Components
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../optimizer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimizer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Strategy Class
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../node/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node.js
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../codon/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codon
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../quickjs/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JavaScript (embedded)
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/capi/flox_capi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../errors/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../api/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (C++ internals)
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#flox_py" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        flox_py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="flox_py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#constants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constants
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-atr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ATR
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-autocorrelation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class AutoCorrelation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-backtestresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class BacktestResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-backtestrunner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class BacktestRunner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-bardata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class BarData
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-bollinger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Bollinger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-cci" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class CCI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-compositebookmatrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class CompositeBookMatrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-correlation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Correlation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-dema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class DEMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-datareader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class DataReader
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-datarecorder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class DataRecorder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-datawriter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class DataWriter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-ema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class EMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-exchangecapabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ExchangeCapabilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-executionlistener" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ExecutionListener
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-executor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Executor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-floxerrorexception" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class FloxError(Exception)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-footprintbar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class FootprintBar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-gridsearch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class GridSearch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-indicatorgraph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class IndicatorGraph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-kama" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class KAMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-killswitch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class KillSwitch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-kurtosis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Kurtosis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-l3book" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class L3Book
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-macd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class MACD
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-marketdatarecorderhook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class MarketDataRecorderHook
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-marketprofile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class MarketProfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Order
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-orderbook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class OrderBook
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-ordertracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class OrderTracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-ordervalidator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class OrderValidator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-parkinsonvol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ParkinsonVol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-partitioner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Partitioner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-pnltracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class PnLTracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-positiongrouptracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class PositionGroupTracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-positiontracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class PositionTracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-rma" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class RMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-rsi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class RSI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-replayevent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ReplayEvent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-replaysource" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ReplaySource
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-riskmanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class RiskManager
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-rogerssatchellvol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class RogersSatchellVol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-rollingzscore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class RollingZScore
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-runner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Runner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-sma" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class SMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-shannonentropy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ShannonEntropy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-signal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Signal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-signalbuilder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class SignalBuilder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-simulatedexecutor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class SimulatedExecutor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-skewness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Skewness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-slope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Slope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-stats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Stats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-stochastic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Stochastic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-storagesink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class StorageSink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-symbol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class Symbol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-symbolcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class SymbolContext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-symbolregistry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class SymbolRegistry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-tema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class TEMA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-tradedata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class TradeData
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-volumeprofile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class VolumeProfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class-walkforwardrunner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class WalkForwardRunner
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flox_pytargets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        flox_py.targets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="flox_py.targets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#functions_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="python-api-index">Python API index<a class="headerlink" href="#python-api-index" title="Permanent link">&para;</a></h1>
+<p>Auto-generated alphabetical index of every public symbol exported
+by the FLOX Python binding (<code>flox_py</code>). Each entry shows the exact
+signature derived from the committed <code>.pyi</code> stubs.</p>
+<p>For narrative-style "how to use this" docs, see the
+<a href="../engine/">Engine &amp; Backtest</a>, <a href="../indicators/">Indicators</a>, and
+other curated reference pages. This page is the flat appendix that
+AI agents grep when searching for a specific symbol.</p>
+<p>Generated by <code>scripts/gen_api_index.py</code> from
+<code>python/flox_py/_flox_py/__init__.pyi</code>.</p>
+<h2 id="flox_py">flox_py<a class="headerlink" href="#flox_py" title="Permanent link">&para;</a></h2>
+<p>Module: <code>flox_py</code></p>
+<p>Surface: 64 classes, 56 functions, 11 constants.</p>
+<h3 id="constants">Constants<a class="headerlink" href="#constants" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>PRICE_SCALE: int = 100000000</code></li>
+<li><code>QUANTITY_SCALE: int = 100000000</code></li>
+<li><code>QUEUE_FULL: int = 2</code></li>
+<li><code>QUEUE_NONE: int = 0</code></li>
+<li><code>QUEUE_TOB: int = 1</code></li>
+<li><code>SLIPPAGE_FIXED_BPS: int = 2</code></li>
+<li><code>SLIPPAGE_FIXED_TICKS: int = 1</code></li>
+<li><code>SLIPPAGE_NONE: int = 0</code></li>
+<li><code>SLIPPAGE_VOLUME_IMPACT: int = 3</code></li>
+<li><code>StreamingIndicatorGraph = IndicatorGraph</code></li>
+<li><code>VOLUME_SCALE: int = 100000000</code></li>
+</ul>
+<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>adf(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], max_lag: typing.SupportsInt | typing.SupportsIndex = 4, regression: str = 'c') -&gt; dict</code></li>
+<li><code>adx(high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex = 14) -&gt; dict</code></li>
+<li><code>aggregate_heikin_ashi_bars(timestamps: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], is_buy: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8], interval_seconds: typing.SupportsFloat | typing.SupportsIndex) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code> — Aggregate trades into Heikin-Ashi bars</li>
+<li><code>aggregate_range_bars(timestamps: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], is_buy: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8], range_size: typing.SupportsFloat | typing.SupportsIndex) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code> — Aggregate trades into range bars</li>
+<li><code>aggregate_renko_bars(timestamps: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], is_buy: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8], brick_size: typing.SupportsFloat | typing.SupportsIndex) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code> — Aggregate trades into renko bars</li>
+<li><code>aggregate_tick_bars(timestamps: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], is_buy: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8], tick_count: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code> — Aggregate trades into tick bars</li>
+<li><code>aggregate_time_bars(timestamps: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], is_buy: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8], interval_seconds: typing.SupportsFloat | typing.SupportsIndex) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code> — Aggregate trades into time bars</li>
+<li><code>aggregate_volume_bars(timestamps: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], is_buy: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8], volume_threshold: typing.SupportsFloat | typing.SupportsIndex) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code> — Aggregate trades into volume bars</li>
+<li><code>atr(high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>autocorrelation(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], window: typing.SupportsInt | typing.SupportsIndex, lag: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>bar_returns(signal_long: typing.Annotated[numpy.typing.ArrayLike, numpy.int8], signal_short: typing.Annotated[numpy.typing.ArrayLike, numpy.int8], log_returns: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>bollinger(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex = 20, stddev: typing.SupportsFloat | typing.SupportsIndex = 2.0) -&gt; dict</code></li>
+<li><code>bootstrap_ci(data: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], confidence: typing.SupportsFloat | typing.SupportsIndex = 0.95, num_samples: typing.SupportsInt | typing.SupportsIndex = 10000) -&gt; tuple[float, float, float]</code> — Bootstrap confidence interval, returns (lower, median, upper)</li>
+<li><code>cci(high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex = 20) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>chop(high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex = 14) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>correlation(x: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], y: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; float</code> — Pearson correlation coefficient</li>
+<li><code>cvd(open: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], volume: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>dema(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>ema(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>export_data(input_path: str, output_path: str, format: str = 'csv', from_ns: typing.Any = None, to_ns: typing.Any = None, symbols: typing.Any = None) -&gt; dict</code></li>
+<li><code>extract_symbols(input_path: str, output_path: str, symbols: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -&gt; int</code></li>
+<li><code>extract_time_range(input_path: str, output_path: str, from_ns: typing.SupportsInt | typing.SupportsIndex, to_ns: typing.SupportsInt | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>inspect(data_dir: str) -&gt; dict</code> — Inspect a data directory and return summary statistics</li>
+<li><code>kama(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex = 10) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>kurtosis(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>list_indicators() -&gt; list</code> — Return the list of indicator names registered in this build (both batch compute() and streaming update()/value on each).</li>
+<li><code>macd(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], fast: typing.SupportsInt | typing.SupportsIndex = 12, slow: typing.SupportsInt | typing.SupportsIndex = 26, signal: typing.SupportsInt | typing.SupportsIndex = 9) -&gt; dict</code></li>
+<li><code>merge(input_paths: collections.abc.Sequence[str], output_dir: str, output_name: str = 'merged', compression: str = 'none', sort: bool = True) -&gt; dict</code></li>
+<li><code>merge_dir(input_dir: str, output_dir: str) -&gt; dict</code></li>
+<li><code>obv(close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], volume: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>parkinson_vol(high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>permutation_test(group1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], group2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], num_permutations: typing.SupportsInt | typing.SupportsIndex = 10000) -&gt; float</code> — Two-sample permutation test, returns p-value</li>
+<li><code>prices_to_double(raw: typing.Annotated[numpy.typing.ArrayLike, numpy.int64]) -&gt; numpy.typing.NDArray[numpy.float64]</code> — Convert raw int64 price array to float64 array (divides by PRICE_SCALE).</li>
+<li><code>profit_factor(returns: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; float</code></li>
+<li><code>quantities_to_double(raw: typing.Annotated[numpy.typing.ArrayLike, numpy.int64]) -&gt; numpy.typing.NDArray[numpy.float64]</code> — Convert raw int64 quantity array to float64 array (divides by QUANTITY_SCALE).</li>
+<li><code>recompress(input_path: str, output_path: str, compression: str = 'lz4') -&gt; bool</code></li>
+<li><code>rma(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>rogers_satchell_vol(open: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>rolling_correlation(x: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], y: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>rolling_zscore(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>rsi(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>set_log_callback(callback: typing.Any) -&gt; None</code> — Install a Python callable as the global log sink. Pass None to detach. Callable receives (level: int, msg: str); level: 0=info, 1=warn, 2=error.</li>
+<li><code>shannon_entropy(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex, bins: typing.SupportsInt | typing.SupportsIndex = 10) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>skewness(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>slope(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], length: typing.SupportsInt | typing.SupportsIndex = 1) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>sma(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>split(input_path: str, output_dir: str, mode: str = 'time', time_interval_ns: typing.SupportsInt | typing.SupportsIndex = 3600000000000, events_per_file: typing.SupportsInt | typing.SupportsIndex = 1000000) -&gt; dict</code></li>
+<li><code>stochastic(high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], k_period: typing.SupportsInt | typing.SupportsIndex = 14, d_period: typing.SupportsInt | typing.SupportsIndex = 3) -&gt; dict</code></li>
+<li><code>tema(input: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], period: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>trade_pnl(signal_long: typing.Annotated[numpy.typing.ArrayLike, numpy.int8], signal_short: typing.Annotated[numpy.typing.ArrayLike, numpy.int8], log_returns: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>validate(segment_path: str, verify_crc: bool = True, verify_timestamps: bool = True) -&gt; dict</code></li>
+<li><code>validate_dataset(data_dir: str) -&gt; dict</code></li>
+<li><code>volumes_to_double(raw: typing.Annotated[numpy.typing.ArrayLike, numpy.int64]) -&gt; numpy.typing.NDArray[numpy.float64]</code> — Convert raw int64 volume array to float64 array (divides by VOLUME_SCALE).</li>
+<li><code>vwap(close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], volume: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], window: typing.SupportsInt | typing.SupportsIndex = 96) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>whites_reality_check(returns: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], num_bootstrap: typing.SupportsInt | typing.SupportsIndex = 10000, avg_block_size: typing.SupportsFloat | typing.SupportsIndex = 0.0, seed: typing.SupportsInt | typing.SupportsIndex = 42) -&gt; dict</code> — White's reality check (Stationary Bootstrap). Tests whether the</li>
+<li><code>win_rate(trade_pnls: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; float</code></li>
+</ul>
+<h3 id="classes">Classes<a class="headerlink" href="#classes" title="Permanent link">&para;</a></h3>
+<h3 id="class-atr"><code>class ATR</code><a class="headerlink" href="#class-atr" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>ATR(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, high: typing.SupportsFloat | typing.SupportsIndex, low: typing.SupportsFloat | typing.SupportsIndex, close: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-autocorrelation"><code>class AutoCorrelation</code><a class="headerlink" href="#class-autocorrelation" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>AutoCorrelation(window: typing.SupportsInt | typing.SupportsIndex, lag: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-backtestresult"><code>class BacktestResult</code><a class="headerlink" href="#class-backtestresult" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>BacktestResult(initial_capital: typing.SupportsFloat | typing.SupportsIndex = 100000.0, fee_rate: typing.SupportsFloat | typing.SupportsIndex = 0.0001, use_percentage_fee: bool = True, fixed_fee_per_trade: typing.SupportsFloat | typing.SupportsIndex = 0.0, risk_free_rate: typing.SupportsFloat | typing.SupportsIndex = 0.0, annualization_factor: typing.SupportsFloat | typing.SupportsIndex = 252.0) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>equity_curve(self) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code></li>
+<li><code>ingest_executor(self, executor: SimulatedExecutor) -&gt; None</code></li>
+<li><code>record_fill(self, order_id: typing.SupportsInt | typing.SupportsIndex, symbol: typing.SupportsInt | typing.SupportsIndex, side: str, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex, timestamp_ns: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>stats(self) -&gt; dict</code></li>
+<li><code>trades(self) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code></li>
+<li><code>write_equity_curve_csv(self, path: str) -&gt; bool</code></li>
+</ul>
+<h3 id="class-backtestrunner"><code>class BacktestRunner</code><a class="headerlink" href="#class-backtestrunner" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>BacktestRunner(registry: SymbolRegistry, fee_rate: typing.SupportsFloat | typing.SupportsIndex = 0.0004, initial_capital: typing.SupportsFloat | typing.SupportsIndex = 100000.0) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>add_execution_listener(self, listener: ExecutionListener) -&gt; None</code></li>
+<li><code>equity_curve(self) -&gt; typing.Any</code></li>
+<li><code>run_bars(self, start_time_ns: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], end_time_ns: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], open: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], volume: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], symbol: str = '', bar_type: typing.SupportsInt | typing.SupportsIndex = 0, bar_type_param: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; typing.Any</code></li>
+<li><code>run_csv(self, path: str, symbol: str = '') -&gt; typing.Any</code></li>
+<li><code>run_ohlcv(self, ts: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], symbol: str = '') -&gt; typing.Any</code></li>
+<li><code>set_executor(self, executor: Executor) -&gt; None</code></li>
+<li><code>set_strategy(self, strategy: Strategy) -&gt; None</code></li>
+<li><code>trades(self) -&gt; typing.Any</code></li>
+</ul>
+<h3 id="class-bardata"><code>class BarData</code><a class="headerlink" href="#class-bardata" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>BarData() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><em>attr</em> <code>symbol_name: str</code></li>
+<li><em>property</em> <code>bar_type: int</code></li>
+<li><em>property</em> <code>bar_type: None</code></li>
+<li><em>property</em> <code>bar_type_param: int</code></li>
+<li><em>property</em> <code>bar_type_param: None</code></li>
+<li><em>property</em> <code>buy_volume: float</code></li>
+<li><em>property</em> <code>buy_volume: None</code></li>
+<li><em>property</em> <code>close: float</code></li>
+<li><em>property</em> <code>close: None</code></li>
+<li><em>property</em> <code>close_reason: int</code></li>
+<li><em>property</em> <code>close_reason: None</code></li>
+<li><em>property</em> <code>end_time_ns: int</code></li>
+<li><em>property</em> <code>end_time_ns: None</code></li>
+<li><em>property</em> <code>high: float</code></li>
+<li><em>property</em> <code>high: None</code></li>
+<li><em>property</em> <code>low: float</code></li>
+<li><em>property</em> <code>low: None</code></li>
+<li><em>property</em> <code>open: float</code></li>
+<li><em>property</em> <code>open: None</code></li>
+<li><em>property</em> <code>start_time_ns: int</code></li>
+<li><em>property</em> <code>start_time_ns: None</code></li>
+<li><em>property</em> <code>symbol: int</code></li>
+<li><em>property</em> <code>symbol: None</code></li>
+<li><em>property</em> <code>volume: float</code></li>
+<li><em>property</em> <code>volume: None</code></li>
+</ul>
+<h3 id="class-bollinger"><code>class Bollinger</code><a class="headerlink" href="#class-bollinger" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Bollinger(period: typing.SupportsInt | typing.SupportsIndex = 20, multiplier: typing.SupportsFloat | typing.SupportsIndex = 2.0) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; dict</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>lower: float | None</code></li>
+<li><em>property</em> <code>middle: float | None</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>upper: float | None</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-cci"><code>class CCI</code><a class="headerlink" href="#class-cci" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>CCI(period: typing.SupportsInt | typing.SupportsIndex = 20) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, high: typing.SupportsFloat | typing.SupportsIndex, low: typing.SupportsFloat | typing.SupportsIndex, close: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-compositebookmatrix"><code>class CompositeBookMatrix</code><a class="headerlink" href="#class-compositebookmatrix" title="Permanent link">&para;</a></h3>
+<p>Cross-exchange composite order book. Tracks best bid/ask across up to 4 exchanges per symbol.</p>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>CompositeBookMatrix(staleness_threshold_ms: typing.SupportsInt | typing.SupportsIndex = 5000) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>ask_for_exchange(self, symbol: typing.SupportsInt | typing.SupportsIndex, exchange: typing.SupportsInt | typing.SupportsIndex) -&gt; typing.Any</code></li>
+<li><code>best_ask(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; typing.Any</code></li>
+<li><code>best_bid(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; typing.Any</code></li>
+<li><code>bid_for_exchange(self, symbol: typing.SupportsInt | typing.SupportsIndex, exchange: typing.SupportsInt | typing.SupportsIndex) -&gt; typing.Any</code></li>
+<li><code>check_staleness(self, now_ns: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>has_arbitrage_opportunity(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; bool</code></li>
+<li><code>mark_exchange_stale(self, exchange: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>mark_stale(self, exchange: typing.SupportsInt | typing.SupportsIndex, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>spread(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; typing.Any</code></li>
+<li><code>update_book(self, exchange: typing.SupportsInt | typing.SupportsIndex, symbol: typing.SupportsInt | typing.SupportsIndex, bid_prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], bid_quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], ask_prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], ask_quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], recv_ns: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; None</code></li>
+</ul>
+<h3 id="class-correlation"><code>class Correlation</code><a class="headerlink" href="#class-correlation" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Correlation(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-dema"><code>class DEMA</code><a class="headerlink" href="#class-dema" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>DEMA(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-datareader"><code>class DataReader</code><a class="headerlink" href="#class-datareader" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>DataReader(data_dir: str, from_ns: typing.Any = None, to_ns: typing.Any = None, symbols: typing.Any = None) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>count(self) -&gt; int</code></li>
+<li><code>read_bbo(self) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code></li>
+<li><code>read_bbo_from(self, start_ts_ns: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code></li>
+<li><code>read_book_updates(self) -&gt; tuple</code></li>
+<li><code>read_book_updates_from(self, start_ts_ns: typing.SupportsInt | typing.SupportsIndex) -&gt; tuple</code></li>
+<li><code>read_trades(self) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code></li>
+<li><code>read_trades_from(self, start_ts_ns: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code></li>
+<li><code>segment_files(self) -&gt; list</code></li>
+<li><code>segments(self) -&gt; list</code></li>
+<li><code>stats(self) -&gt; dict</code></li>
+<li><code>summary(self) -&gt; dict</code></li>
+<li><code>symbols(self) -&gt; set</code></li>
+<li><code>time_range(self) -&gt; typing.Any</code></li>
+</ul>
+<h3 id="class-datarecorder"><code>class DataRecorder</code><a class="headerlink" href="#class-datarecorder" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>DataRecorder(output_dir: str, exchange_name: str, max_segment_mb: typing.SupportsInt | typing.SupportsIndex = 256) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>add_symbol(self, symbol_id: typing.SupportsInt | typing.SupportsIndex, name: str, base: str = '', quote: str = '', price_precision: typing.SupportsInt | typing.SupportsIndex = 8, qty_precision: typing.SupportsInt | typing.SupportsIndex = 8) -&gt; None</code></li>
+<li><code>flush(self) -&gt; None</code></li>
+<li><code>is_recording(self) -&gt; bool</code></li>
+<li><code>start(self) -&gt; None</code></li>
+<li><code>stats(self) -&gt; dict</code></li>
+<li><code>stop(self) -&gt; None</code></li>
+</ul>
+<h3 id="class-datawriter"><code>class DataWriter</code><a class="headerlink" href="#class-datawriter" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>DataWriter(output_dir: str, max_segment_mb: typing.SupportsInt | typing.SupportsIndex = 256, exchange_id: typing.SupportsInt | typing.SupportsIndex = 0, compression: str = 'none') -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>close(self) -&gt; None</code></li>
+<li><code>current_segment_path(self) -&gt; str</code></li>
+<li><code>flush(self) -&gt; None</code></li>
+<li><code>stats(self) -&gt; dict</code></li>
+<li><code>write_trade(self, exchange_ts_ns: typing.SupportsInt | typing.SupportsIndex, recv_ts_ns: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, trade_id: typing.SupportsInt | typing.SupportsIndex, symbol_id: typing.SupportsInt | typing.SupportsIndex, side: typing.SupportsInt | typing.SupportsIndex) -&gt; bool</code></li>
+<li><code>write_trades(self, exchange_ts_ns: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], recv_ts_ns: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], trade_ids: typing.Annotated[numpy.typing.ArrayLike, numpy.uint64], symbol_ids: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32], sides: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8]) -&gt; int</code></li>
+</ul>
+<h3 id="class-ema"><code>class EMA</code><a class="headerlink" href="#class-ema" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>EMA(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-engine"><code>class Engine</code><a class="headerlink" href="#class-engine" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Engine(initial_capital: typing.SupportsFloat | typing.SupportsIndex = 100000.0, fee_rate: typing.SupportsFloat | typing.SupportsIndex = 0.0001) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>bar_count(self, symbol: str = '') -&gt; int</code></li>
+<li><code>close(self, symbol: str = '') -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>high(self, symbol: str = '') -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>load_csv(self, path: str, symbol: str = '') -&gt; None</code></li>
+<li><code>load_df(self, df: typing.Any, symbol: str = '') -&gt; None</code></li>
+<li><code>load_ohlcv(self, data: dict, symbol: str = '') -&gt; None</code></li>
+<li><code>low(self, symbol: str = '') -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>open(self, symbol: str = '') -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>resample(self, symbol: str, target: str, interval: str) -&gt; None</code></li>
+<li><code>run(self, signals: SignalBuilder, default_symbol: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; Stats</code></li>
+<li><code>ts(self, symbol: str = '') -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>volume(self, symbol: str = '') -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><em>property</em> <code>symbols: list</code></li>
+</ul>
+<h3 id="class-exchangecapabilities"><code>class ExchangeCapabilities</code><a class="headerlink" href="#class-exchangecapabilities" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>ExchangeCapabilities() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><em>attr</em> <code>close_position: bool</code></li>
+<li><em>attr</em> <code>fok: bool</code></li>
+<li><em>attr</em> <code>gtc: bool</code></li>
+<li><em>attr</em> <code>gtd: bool</code></li>
+<li><em>attr</em> <code>iceberg: bool</code></li>
+<li><em>attr</em> <code>ioc: bool</code></li>
+<li><em>attr</em> <code>oco: bool</code></li>
+<li><em>attr</em> <code>post_only: bool</code></li>
+<li><em>attr</em> <code>reduce_only: bool</code></li>
+<li><em>attr</em> <code>stop_limit: bool</code></li>
+<li><em>attr</em> <code>stop_market: bool</code></li>
+<li><em>attr</em> <code>take_profit_limit: bool</code></li>
+<li><em>attr</em> <code>take_profit_market: bool</code></li>
+<li><em>attr</em> <code>trailing_stop: bool</code></li>
+</ul>
+<h3 id="class-executionlistener"><code>class ExecutionListener</code><a class="headerlink" href="#class-executionlistener" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>ExecutionListener() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>on_accepted(self, arg0: Order) -&gt; None</code></li>
+<li><code>on_canceled(self, arg0: Order) -&gt; None</code></li>
+<li><code>on_expired(self, arg0: Order) -&gt; None</code></li>
+<li><code>on_filled(self, arg0: Order) -&gt; None</code></li>
+<li><code>on_partially_filled(self, order: Order, fill_qty: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>on_pending_cancel(self, arg0: Order) -&gt; None</code></li>
+<li><code>on_pending_trigger(self, arg0: Order) -&gt; None</code></li>
+<li><code>on_rejected(self, order: Order, reason: str) -&gt; None</code></li>
+<li><code>on_replaced(self, old_order: Order, new_order: Order) -&gt; None</code></li>
+<li><code>on_submitted(self, arg0: Order) -&gt; None</code></li>
+<li><code>on_trailing_stop_updated(self, order: Order, new_trigger: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>on_triggered(self, arg0: Order) -&gt; None</code></li>
+</ul>
+<h3 id="class-executor"><code>class Executor</code><a class="headerlink" href="#class-executor" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Executor() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>cancel(self, order_id: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>cancel_all(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>capabilities(self) -&gt; ExchangeCapabilities</code></li>
+<li><code>on_start(self) -&gt; None</code></li>
+<li><code>on_stop(self) -&gt; None</code></li>
+<li><code>replace(self, old_order_id: typing.SupportsInt | typing.SupportsIndex, new_order: Order) -&gt; None</code></li>
+<li><code>submit(self, order: Order) -&gt; None</code></li>
+<li><code>submit_oco(self, order1: Order, order2: Order) -&gt; None</code></li>
+</ul>
+<h3 id="class-floxerrorexception"><code>class FloxError(Exception)</code><a class="headerlink" href="#class-floxerrorexception" title="Permanent link">&para;</a></h3>
+<h3 id="class-footprintbar"><code>class FootprintBar</code><a class="headerlink" href="#class-footprintbar" title="Permanent link">&para;</a></h3>
+<p>Footprint bar for order flow analysis. Tracks bid/ask volume at each price level.</p>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>FootprintBar(tick_size: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>add_trade(self, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex, is_buy: bool) -&gt; None</code></li>
+<li><code>add_trades(self, prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], is_buy: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8]) -&gt; None</code></li>
+<li><code>clear(self) -&gt; None</code></li>
+<li><code>highest_buying_pressure(self) -&gt; float</code></li>
+<li><code>highest_selling_pressure(self) -&gt; float</code></li>
+<li><code>levels(self) -&gt; list</code></li>
+<li><code>num_levels(self) -&gt; int</code></li>
+<li><code>strongest_imbalance(self, threshold: typing.SupportsFloat | typing.SupportsIndex = 0.7) -&gt; typing.Any</code></li>
+<li><code>total_delta(self) -&gt; float</code></li>
+<li><code>total_volume(self) -&gt; float</code></li>
+</ul>
+<h3 id="class-gridsearch"><code>class GridSearch</code><a class="headerlink" href="#class-gridsearch" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>GridSearch() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>add_axis(self, values: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex]) -&gt; None</code></li>
+<li><code>params_for_index(self, index: typing.SupportsInt | typing.SupportsIndex) -&gt; list[float]</code></li>
+<li><code>run(self) -&gt; list</code></li>
+<li><code>set_factory(self, factory: typing.Any) -&gt; None</code></li>
+<li><code>total(self) -&gt; int</code></li>
+</ul>
+<h3 id="class-indicatorgraph"><code>class IndicatorGraph</code><a class="headerlink" href="#class-indicatorgraph" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>IndicatorGraph() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>add_node(self, name: str, deps: collections.abc.Sequence[str], fn: typing.Any) -&gt; None</code></li>
+<li><code>bar_count(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>close(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>current(self, symbol: typing.SupportsInt | typing.SupportsIndex, name: str) -&gt; float</code></li>
+<li><code>get(self, symbol: typing.SupportsInt | typing.SupportsIndex, name: str) -&gt; typing.Any</code></li>
+<li><code>high(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>indicator(self, name: str, indicator: typing.Any, source: str = 'close') -&gt; None</code></li>
+<li><code>invalidate(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>invalidate_all(self) -&gt; None</code></li>
+<li><code>low(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>require(self, symbol: typing.SupportsInt | typing.SupportsIndex, name: str) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>reset_all(self) -&gt; None</code></li>
+<li><code>set_bars(self, symbol: typing.SupportsInt | typing.SupportsIndex, close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64] | None = None, low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64] | None = None, volume: typing.Annotated[numpy.typing.ArrayLike, numpy.float64] | None = None) -&gt; None</code></li>
+<li><code>step(self, symbol: typing.SupportsInt | typing.SupportsIndex, close: typing.SupportsFloat | typing.SupportsIndex, high: typing.SupportsFloat | typing.SupportsIndex | None = None, low: typing.SupportsFloat | typing.SupportsIndex | None = None, volume: typing.SupportsFloat | typing.SupportsIndex | None = None) -&gt; None</code></li>
+<li><code>volume(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+</ul>
+<h3 id="class-kama"><code>class KAMA</code><a class="headerlink" href="#class-kama" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>KAMA(period: typing.SupportsInt | typing.SupportsIndex, fast: typing.SupportsInt | typing.SupportsIndex = 2, slow: typing.SupportsInt | typing.SupportsIndex = 30) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-killswitch"><code>class KillSwitch</code><a class="headerlink" href="#class-killswitch" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>KillSwitch() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>check(self, signal: Signal) -&gt; bool</code></li>
+</ul>
+<h3 id="class-kurtosis"><code>class Kurtosis</code><a class="headerlink" href="#class-kurtosis" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Kurtosis(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-l3book"><code>class L3Book</code><a class="headerlink" href="#class-l3book" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>L3Book() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>add_order(self, order_id: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex, side: str) -&gt; str</code></li>
+<li><code>ask_at_price(self, price: typing.SupportsFloat | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>best_ask(self) -&gt; typing.Any</code></li>
+<li><code>best_bid(self) -&gt; typing.Any</code></li>
+<li><code>bid_at_price(self, price: typing.SupportsFloat | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>build_from_snapshot(self, orders: list) -&gt; None</code></li>
+<li><code>export_snapshot(self) -&gt; list</code></li>
+<li><code>modify_order(self, order_id: typing.SupportsInt | typing.SupportsIndex, new_quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; str</code></li>
+<li><code>remove_order(self, order_id: typing.SupportsInt | typing.SupportsIndex) -&gt; str</code></li>
+</ul>
+<h3 id="class-macd"><code>class MACD</code><a class="headerlink" href="#class-macd" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>MACD(fast: typing.SupportsInt | typing.SupportsIndex = 12, slow: typing.SupportsInt | typing.SupportsIndex = 26, signal: typing.SupportsInt | typing.SupportsIndex = 9) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; dict</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>histogram: float | None</code></li>
+<li><em>property</em> <code>line: float | None</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>signal: float | None</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-marketdatarecorderhook"><code>class MarketDataRecorderHook</code><a class="headerlink" href="#class-marketdatarecorderhook" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>MarketDataRecorderHook() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>on_book_update(self, symbol: typing.SupportsInt | typing.SupportsIndex, is_snapshot: bool, bids: collections.abc.Sequence[tuple[typing.SupportsFloat | typing.SupportsIndex, typing.SupportsFloat | typing.SupportsIndex]], asks: collections.abc.Sequence[tuple[typing.SupportsFloat | typing.SupportsIndex, typing.SupportsFloat | typing.SupportsIndex]], ts_ns: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>on_start(self) -&gt; None</code></li>
+<li><code>on_stop(self) -&gt; None</code></li>
+<li><code>on_trade(self, arg0: TradeData) -&gt; None</code></li>
+</ul>
+<h3 id="class-marketprofile"><code>class MarketProfile</code><a class="headerlink" href="#class-marketprofile" title="Permanent link">&para;</a></h3>
+<p>Market Profile (TPO) aggregator. Tracks price activity across time periods.</p>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>MarketProfile(tick_size: typing.SupportsFloat | typing.SupportsIndex, period_minutes: typing.SupportsInt | typing.SupportsIndex, session_start_ns: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>add_trade(self, timestamp_ns: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex, is_buy: bool) -&gt; None</code></li>
+<li><code>add_trades(self, timestamps_ns: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], is_buy: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8]) -&gt; None</code></li>
+<li><code>clear(self) -&gt; None</code></li>
+<li><code>current_period(self) -&gt; int</code></li>
+<li><code>initial_balance_high(self) -&gt; float</code></li>
+<li><code>initial_balance_low(self) -&gt; float</code></li>
+<li><code>is_poor_high(self) -&gt; bool</code></li>
+<li><code>is_poor_low(self) -&gt; bool</code></li>
+<li><code>levels(self) -&gt; list</code></li>
+<li><code>num_levels(self) -&gt; int</code></li>
+<li><code>poc(self) -&gt; float</code></li>
+<li><code>single_prints(self) -&gt; list</code></li>
+<li><code>value_area_high(self) -&gt; float</code></li>
+<li><code>value_area_low(self) -&gt; float</code></li>
+</ul>
+<h3 id="class-order"><code>class Order</code><a class="headerlink" href="#class-order" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Order() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><em>attr</em> <code>close_position: bool</code></li>
+<li><em>attr</em> <code>order_type: str</code></li>
+<li><em>attr</em> <code>post_only: bool</code></li>
+<li><em>attr</em> <code>reduce_only: bool</code></li>
+<li><em>attr</em> <code>side: str</code></li>
+<li><em>attr</em> <code>time_in_force: str</code></li>
+<li><em>property</em> <code>client_order_id: int</code></li>
+<li><em>property</em> <code>client_order_id: None</code></li>
+<li><em>property</em> <code>created_at_ns: int</code></li>
+<li><em>property</em> <code>created_at_ns: None</code></li>
+<li><em>property</em> <code>exchange_ts_ns: int</code></li>
+<li><em>property</em> <code>exchange_ts_ns: None</code></li>
+<li><em>property</em> <code>filled_quantity: float</code></li>
+<li><em>property</em> <code>filled_quantity: None</code></li>
+<li><em>property</em> <code>id: int</code></li>
+<li><em>property</em> <code>id: None</code></li>
+<li><em>property</em> <code>order_tag: int</code></li>
+<li><em>property</em> <code>order_tag: None</code></li>
+<li><em>property</em> <code>price: float</code></li>
+<li><em>property</em> <code>price: None</code></li>
+<li><em>property</em> <code>quantity: float</code></li>
+<li><em>property</em> <code>quantity: None</code></li>
+<li><em>property</em> <code>strategy_id: int</code></li>
+<li><em>property</em> <code>strategy_id: None</code></li>
+<li><em>property</em> <code>symbol: int</code></li>
+<li><em>property</em> <code>symbol: None</code></li>
+<li><em>property</em> <code>trailing_offset: float</code></li>
+<li><em>property</em> <code>trailing_offset: None</code></li>
+<li><em>property</em> <code>trigger_price: float</code></li>
+<li><em>property</em> <code>trigger_price: None</code></li>
+</ul>
+<h3 id="class-orderbook"><code>class OrderBook</code><a class="headerlink" href="#class-orderbook" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>OrderBook(tick_size: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>apply_delta(self, bid_prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], bid_quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], ask_prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], ask_quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; None</code></li>
+<li><code>apply_snapshot(self, bid_prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], bid_quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], ask_prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], ask_quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; None</code></li>
+<li><code>ask_at_price(self, price: typing.SupportsFloat | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>best_ask(self) -&gt; typing.Any</code></li>
+<li><code>best_bid(self) -&gt; typing.Any</code></li>
+<li><code>bid_at_price(self, price: typing.SupportsFloat | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>clear(self) -&gt; None</code></li>
+<li><code>consume_asks(self, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; tuple</code></li>
+<li><code>consume_bids(self, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; tuple</code></li>
+<li><code>get_asks(self, max_levels: typing.SupportsInt | typing.SupportsIndex = 20) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>get_bids(self, max_levels: typing.SupportsInt | typing.SupportsIndex = 20) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>is_crossed(self) -&gt; bool</code></li>
+<li><code>mid(self) -&gt; typing.Any</code></li>
+<li><code>spread(self) -&gt; typing.Any</code></li>
+</ul>
+<h3 id="class-ordertracker"><code>class OrderTracker</code><a class="headerlink" href="#class-ordertracker" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>OrderTracker() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>active_count(self) -&gt; int</code></li>
+<li><code>get(self, order_id: typing.SupportsInt | typing.SupportsIndex) -&gt; typing.Any</code></li>
+<li><code>is_active(self, order_id: typing.SupportsInt | typing.SupportsIndex) -&gt; bool</code></li>
+<li><code>on_canceled(self, order_id: typing.SupportsInt | typing.SupportsIndex) -&gt; bool</code></li>
+<li><code>on_filled(self, order_id: typing.SupportsInt | typing.SupportsIndex, fill_quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; bool</code></li>
+<li><code>on_rejected(self, order_id: typing.SupportsInt | typing.SupportsIndex, reason: str) -&gt; bool</code></li>
+<li><code>on_submitted(self, order_id: typing.SupportsInt | typing.SupportsIndex, exchange_order_id: str, client_order_id: str = '') -&gt; bool</code></li>
+<li><code>prune_terminal(self) -&gt; None</code></li>
+<li><code>total_count(self) -&gt; int</code></li>
+</ul>
+<h3 id="class-ordervalidator"><code>class OrderValidator</code><a class="headerlink" href="#class-ordervalidator" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>OrderValidator() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>validate(self, signal: Signal) -&gt; bool</code></li>
+</ul>
+<h3 id="class-parkinsonvol"><code>class ParkinsonVol</code><a class="headerlink" href="#class-parkinsonvol" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>ParkinsonVol(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, high: typing.SupportsFloat | typing.SupportsIndex, low: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-partitioner"><code>class Partitioner</code><a class="headerlink" href="#class-partitioner" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Partitioner(data_dir: str) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>partition_by_calendar(self, unit: str, warmup_ns: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; list</code></li>
+<li><code>partition_by_duration(self, duration_ns: typing.SupportsInt | typing.SupportsIndex, warmup_ns: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; list</code></li>
+<li><code>partition_by_event_count(self, num_partitions: typing.SupportsInt | typing.SupportsIndex) -&gt; list</code></li>
+<li><code>partition_by_symbol(self, num_partitions: typing.SupportsInt | typing.SupportsIndex) -&gt; list</code></li>
+<li><code>partition_by_time(self, num_partitions: typing.SupportsInt | typing.SupportsIndex, warmup_ns: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; list</code></li>
+<li><code>partition_per_symbol(self) -&gt; list</code></li>
+</ul>
+<h3 id="class-pnltracker"><code>class PnLTracker</code><a class="headerlink" href="#class-pnltracker" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>PnLTracker() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>on_signal(self, signal: Signal) -&gt; None</code></li>
+</ul>
+<h3 id="class-positiongrouptracker"><code>class PositionGroupTracker</code><a class="headerlink" href="#class-positiongrouptracker" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>PositionGroupTracker() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>assign_to_group(self, position_id: typing.SupportsInt | typing.SupportsIndex, group_id: typing.SupportsInt | typing.SupportsIndex) -&gt; bool</code></li>
+<li><code>close_position(self, position_id: typing.SupportsInt | typing.SupportsIndex, exit_price: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>create_group(self, parent_id: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; int</code></li>
+<li><code>get_position(self, position_id: typing.SupportsInt | typing.SupportsIndex) -&gt; typing.Any</code></li>
+<li><code>group_net_position(self, group_id: typing.SupportsInt | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>group_realized_pnl(self, group_id: typing.SupportsInt | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>group_unrealized_pnl(self, group_id: typing.SupportsInt | typing.SupportsIndex, current_price: typing.SupportsFloat | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>net_position(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>open_position(self, order_id: typing.SupportsInt | typing.SupportsIndex, symbol: typing.SupportsInt | typing.SupportsIndex, side: str, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>open_position_count(self, symbol: typing.Any = None) -&gt; int</code></li>
+<li><code>open_positions(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; list</code></li>
+<li><code>partial_close(self, position_id: typing.SupportsInt | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex, exit_price: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>prune_closed(self) -&gt; None</code></li>
+<li><code>realized_pnl(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>total_realized_pnl(self) -&gt; float</code></li>
+</ul>
+<h3 id="class-positiontracker"><code>class PositionTracker</code><a class="headerlink" href="#class-positiontracker" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>PositionTracker(cost_basis: str = 'fifo') -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>avg_entry_price(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>on_fill(self, symbol: typing.SupportsInt | typing.SupportsIndex, side: str, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>position(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>realized_pnl(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; float</code></li>
+<li><code>total_realized_pnl(self) -&gt; float</code></li>
+</ul>
+<h3 id="class-rma"><code>class RMA</code><a class="headerlink" href="#class-rma" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>RMA(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-rsi"><code>class RSI</code><a class="headerlink" href="#class-rsi" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>RSI(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-replayevent"><code>class ReplayEvent</code><a class="headerlink" href="#class-replayevent" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>ReplayEvent() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><em>attr</em> <code>trade_is_buy: bool</code></li>
+<li><em>attr</em> <code>type: str</code></li>
+<li><em>property</em> <code>asks: list[tuple[float, float]]</code></li>
+<li><em>property</em> <code>asks: None</code></li>
+<li><em>property</em> <code>bids: list[tuple[float, float]]</code></li>
+<li><em>property</em> <code>bids: None</code></li>
+<li><em>property</em> <code>book_symbol: int</code></li>
+<li><em>property</em> <code>book_symbol: None</code></li>
+<li><em>property</em> <code>timestamp_ns: int</code></li>
+<li><em>property</em> <code>timestamp_ns: None</code></li>
+<li><em>property</em> <code>trade_price: float</code></li>
+<li><em>property</em> <code>trade_price: None</code></li>
+<li><em>property</em> <code>trade_quantity: float</code></li>
+<li><em>property</em> <code>trade_quantity: None</code></li>
+<li><em>property</em> <code>trade_symbol: int</code></li>
+<li><em>property</em> <code>trade_symbol: None</code></li>
+</ul>
+<h3 id="class-replaysource"><code>class ReplaySource</code><a class="headerlink" href="#class-replaysource" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>ReplaySource() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>next(self) -&gt; flox_py._flox_py.ReplayEvent | None</code></li>
+<li><code>on_start(self) -&gt; None</code></li>
+<li><code>on_stop(self) -&gt; None</code></li>
+<li><code>seek_to(self, ts_ns: typing.SupportsInt | typing.SupportsIndex) -&gt; bool</code></li>
+</ul>
+<h3 id="class-riskmanager"><code>class RiskManager</code><a class="headerlink" href="#class-riskmanager" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>RiskManager() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>allow(self, signal: Signal) -&gt; bool</code></li>
+</ul>
+<h3 id="class-rogerssatchellvol"><code>class RogersSatchellVol</code><a class="headerlink" href="#class-rogerssatchellvol" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>RogersSatchellVol(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, open: typing.SupportsFloat | typing.SupportsIndex, high: typing.SupportsFloat | typing.SupportsIndex, low: typing.SupportsFloat | typing.SupportsIndex, close: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-rollingzscore"><code>class RollingZScore</code><a class="headerlink" href="#class-rollingzscore" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>RollingZScore(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-runner"><code>class Runner</code><a class="headerlink" href="#class-runner" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Runner(registry: SymbolRegistry, on_signal: typing.Any, threaded: bool = False) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>add_strategy(self, strategy: Strategy) -&gt; None</code></li>
+<li><code>on_bar(self, symbol: typing.Any, open: typing.SupportsFloat | typing.SupportsIndex, high: typing.SupportsFloat | typing.SupportsIndex, low: typing.SupportsFloat | typing.SupportsIndex, close: typing.SupportsFloat | typing.SupportsIndex, volume: typing.SupportsFloat | typing.SupportsIndex = 0.0, buy_volume: typing.SupportsFloat | typing.SupportsIndex = 0.0, start_time_ns: typing.SupportsInt | typing.SupportsIndex = 0, end_time_ns: typing.SupportsInt | typing.SupportsIndex = 0, bar_type: typing.SupportsInt | typing.SupportsIndex = 0, bar_type_param: typing.SupportsInt | typing.SupportsIndex = 0, close_reason: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; None</code></li>
+<li><code>on_book_snapshot(self, symbol: typing.Any, bid_prices: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex], bid_qtys: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex], ask_prices: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex], ask_qtys: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex], ts_ns: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; None</code></li>
+<li><code>on_trade(self, symbol: typing.Any, price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, is_buy: bool, ts_ns: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; None</code></li>
+<li><code>set_executor(self, executor: Executor) -&gt; None</code></li>
+<li><code>set_kill_switch(self, ks: KillSwitch) -&gt; None</code></li>
+<li><code>set_market_data_recorder(self, recorder: MarketDataRecorderHook) -&gt; None</code></li>
+<li><code>set_order_validator(self, ov: OrderValidator) -&gt; None</code></li>
+<li><code>set_pnl_tracker(self, tracker: PnLTracker) -&gt; None</code></li>
+<li><code>set_risk_manager(self, rm: RiskManager) -&gt; None</code></li>
+<li><code>set_storage_sink(self, sink: StorageSink) -&gt; None</code></li>
+<li><code>start(self) -&gt; None</code></li>
+<li><code>stop(self) -&gt; None</code></li>
+</ul>
+<h3 id="class-sma"><code>class SMA</code><a class="headerlink" href="#class-sma" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>SMA(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-shannonentropy"><code>class ShannonEntropy</code><a class="headerlink" href="#class-shannonentropy" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>ShannonEntropy(period: typing.SupportsInt | typing.SupportsIndex, bins: typing.SupportsInt | typing.SupportsIndex = 10) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-signal"><code>class Signal</code><a class="headerlink" href="#class-signal" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Signal() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><em>attr</em> <code>order_type: str</code></li>
+<li><em>attr</em> <code>side: str</code></li>
+<li><em>property</em> <code>new_price: float</code></li>
+<li><em>property</em> <code>new_price: None</code></li>
+<li><em>property</em> <code>new_quantity: float</code></li>
+<li><em>property</em> <code>new_quantity: None</code></li>
+<li><em>property</em> <code>order_id: int</code></li>
+<li><em>property</em> <code>order_id: None</code></li>
+<li><em>property</em> <code>price: float</code></li>
+<li><em>property</em> <code>price: None</code></li>
+<li><em>property</em> <code>quantity: float</code></li>
+<li><em>property</em> <code>quantity: None</code></li>
+<li><em>property</em> <code>symbol: int</code></li>
+<li><em>property</em> <code>symbol: None</code></li>
+<li><em>property</em> <code>trailing_bps: int</code></li>
+<li><em>property</em> <code>trailing_bps: None</code></li>
+<li><em>property</em> <code>trailing_offset: float</code></li>
+<li><em>property</em> <code>trailing_offset: None</code></li>
+<li><em>property</em> <code>trigger_price: float</code></li>
+<li><em>property</em> <code>trigger_price: None</code></li>
+</ul>
+<h3 id="class-signalbuilder"><code>class SignalBuilder</code><a class="headerlink" href="#class-signalbuilder" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>SignalBuilder() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>buy(self, ts: typing.SupportsInt | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str = '') -&gt; None</code></li>
+<li><code>clear(self) -&gt; None</code></li>
+<li><code>limit_buy(self, ts: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str = '') -&gt; None</code></li>
+<li><code>limit_sell(self, ts: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str = '') -&gt; None</code></li>
+<li><code>sell(self, ts: typing.SupportsInt | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str = '') -&gt; None</code></li>
+</ul>
+<h3 id="class-simulatedexecutor"><code>class SimulatedExecutor</code><a class="headerlink" href="#class-simulatedexecutor" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>SimulatedExecutor() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>advance_clock(self, timestamp_ns: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>cancel_all(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>cancel_order(self, order_id: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>fills(self) -&gt; numpy.ndarray[typing.Any, numpy.dtype[numpy.void]]</code></li>
+<li><code>fills_list(self) -&gt; list</code></li>
+<li><code>on_bar(self, symbol: typing.SupportsInt | typing.SupportsIndex, close_price: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>on_best_levels(self, symbol: typing.SupportsInt | typing.SupportsIndex, bid_price: typing.SupportsFloat | typing.SupportsIndex, bid_qty: typing.SupportsFloat | typing.SupportsIndex, ask_price: typing.SupportsFloat | typing.SupportsIndex, ask_qty: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>on_book_snapshot(self, symbol: typing.SupportsInt | typing.SupportsIndex, bid_levels: collections.abc.Sequence[tuple[typing.SupportsFloat | typing.SupportsIndex, typing.SupportsFloat | typing.SupportsIndex]], ask_levels: collections.abc.Sequence[tuple[typing.SupportsFloat | typing.SupportsIndex, typing.SupportsFloat | typing.SupportsIndex]]) -&gt; None</code></li>
+<li><code>on_trade(self, symbol: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, is_buy: bool) -&gt; None</code></li>
+<li><code>on_trade_qty(self, symbol: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex, is_buy: bool) -&gt; None</code></li>
+<li><code>set_default_slippage(self, model: str, ticks: typing.SupportsInt | typing.SupportsIndex = 0, tick_size: typing.SupportsFloat | typing.SupportsIndex = 0.0, bps: typing.SupportsFloat | typing.SupportsIndex = 0.0, impact_coeff: typing.SupportsFloat | typing.SupportsIndex = 0.0) -&gt; None</code></li>
+<li><code>set_queue_model(self, model: str, depth: typing.SupportsInt | typing.SupportsIndex = 1) -&gt; None</code></li>
+<li><code>set_symbol_slippage(self, symbol: typing.SupportsInt | typing.SupportsIndex, model: str, ticks: typing.SupportsInt | typing.SupportsIndex = 0, tick_size: typing.SupportsFloat | typing.SupportsIndex = 0.0, bps: typing.SupportsFloat | typing.SupportsIndex = 0.0, impact_coeff: typing.SupportsFloat | typing.SupportsIndex = 0.0) -&gt; None</code></li>
+<li><code>submit_order(self, id: typing.SupportsInt | typing.SupportsIndex, side: str, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex, type: str = 'market', symbol: typing.SupportsInt | typing.SupportsIndex = 1) -&gt; None</code></li>
+<li><em>property</em> <code>fill_count: int</code></li>
+</ul>
+<h3 id="class-skewness"><code>class Skewness</code><a class="headerlink" href="#class-skewness" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Skewness(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-slope"><code>class Slope</code><a class="headerlink" href="#class-slope" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Slope(length: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-stats"><code>class Stats</code><a class="headerlink" href="#class-stats" title="Permanent link">&para;</a></h3>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>to_dict(self) -&gt; dict</code></li>
+<li><em>property</em> <code>avg_loss: float</code></li>
+<li><em>property</em> <code>avg_win: float</code></li>
+<li><em>property</em> <code>calmar: float</code></li>
+<li><em>property</em> <code>final_capital: float</code></li>
+<li><em>property</em> <code>gross_loss: float</code></li>
+<li><em>property</em> <code>gross_profit: float</code></li>
+<li><em>property</em> <code>initial_capital: float</code></li>
+<li><em>property</em> <code>losing_trades: int</code></li>
+<li><em>property</em> <code>max_drawdown: float</code></li>
+<li><em>property</em> <code>max_drawdown_pct: float</code></li>
+<li><em>property</em> <code>net_pnl: float</code></li>
+<li><em>property</em> <code>profit_factor: float</code></li>
+<li><em>property</em> <code>return_pct: float</code></li>
+<li><em>property</em> <code>sharpe: float</code></li>
+<li><em>property</em> <code>sortino: float</code></li>
+<li><em>property</em> <code>total_fees: float</code></li>
+<li><em>property</em> <code>total_pnl: float</code></li>
+<li><em>property</em> <code>total_trades: int</code></li>
+<li><em>property</em> <code>win_rate: float</code></li>
+<li><em>property</em> <code>winning_trades: int</code></li>
+</ul>
+<h3 id="class-stochastic"><code>class Stochastic</code><a class="headerlink" href="#class-stochastic" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Stochastic(k_period: typing.SupportsInt | typing.SupportsIndex = 14, d_period: typing.SupportsInt | typing.SupportsIndex = 3) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; dict</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, high: typing.SupportsFloat | typing.SupportsIndex, low: typing.SupportsFloat | typing.SupportsIndex, close: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>d: float | None</code></li>
+<li><em>property</em> <code>k: float | None</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-storagesink"><code>class StorageSink</code><a class="headerlink" href="#class-storagesink" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>StorageSink() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>store(self, signal: Signal) -&gt; None</code></li>
+</ul>
+<h3 id="class-strategy"><code>class Strategy</code><a class="headerlink" href="#class-strategy" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>Strategy(symbols: list) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>best_ask(self, symbol: str | None = None) -&gt; float</code></li>
+<li><code>best_bid(self, symbol: str | None = None) -&gt; float</code></li>
+<li><code>cancel_all_orders(self, symbol: str | None = None) -&gt; None</code></li>
+<li><code>cancel_order(self, order_id: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>close_position(self, symbol: str | None = None) -&gt; int</code></li>
+<li><code>ctx(self, symbol: typing.SupportsInt | typing.SupportsIndex | None = None) -&gt; SymbolContext</code></li>
+<li><code>emit_cancel(self, order_id: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>emit_cancel_all(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>emit_close_position(self, symbol: typing.SupportsInt | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>emit_limit_buy(self, symbol: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>emit_limit_buy_tif(self, symbol: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex, tif: str = 'gtc') -&gt; int</code></li>
+<li><code>emit_limit_sell(self, symbol: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>emit_limit_sell_tif(self, symbol: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex, tif: str = 'gtc') -&gt; int</code></li>
+<li><code>emit_market_buy(self, symbol: typing.SupportsInt | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>emit_market_sell(self, symbol: typing.SupportsInt | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>emit_modify(self, order_id: typing.SupportsInt | typing.SupportsIndex, new_price: typing.SupportsFloat | typing.SupportsIndex, new_quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>emit_stop_limit(self, symbol: typing.SupportsInt | typing.SupportsIndex, side: str, trigger: typing.SupportsFloat | typing.SupportsIndex, limit_price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>emit_stop_market(self, symbol: typing.SupportsInt | typing.SupportsIndex, side: str, trigger: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>emit_take_profit_limit(self, symbol: typing.SupportsInt | typing.SupportsIndex, side: str, trigger: typing.SupportsFloat | typing.SupportsIndex, limit_price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>emit_take_profit_market(self, symbol: typing.SupportsInt | typing.SupportsIndex, side: str, trigger: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>emit_trailing_stop(self, symbol: typing.SupportsInt | typing.SupportsIndex, side: str, offset: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>emit_trailing_stop_percent(self, symbol: typing.SupportsInt | typing.SupportsIndex, side: str, callback_bps: typing.SupportsInt | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>get_order_status(self, order_id: typing.SupportsInt | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>last_price(self, symbol: str | None = None) -&gt; float</code></li>
+<li><code>limit_buy(self, price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str | None = None, tif: str = 'gtc') -&gt; int</code></li>
+<li><code>limit_sell(self, price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str | None = None, tif: str = 'gtc') -&gt; int</code></li>
+<li><code>market_buy(self, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str | None = None) -&gt; int</code></li>
+<li><code>market_sell(self, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str | None = None) -&gt; int</code></li>
+<li><code>mid_price(self, symbol: str | None = None) -&gt; float</code></li>
+<li><code>modify_order(self, order_id: typing.SupportsInt | typing.SupportsIndex, new_price: typing.SupportsFloat | typing.SupportsIndex, new_qty: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+<li><code>on_bar(self, ctx: SymbolContext, bar: BarData) -&gt; None</code></li>
+<li><code>on_book_update(self, ctx: SymbolContext) -&gt; None</code></li>
+<li><code>on_start(self) -&gt; None</code></li>
+<li><code>on_stop(self) -&gt; None</code></li>
+<li><code>on_trade(self, ctx: SymbolContext, trade: TradeData) -&gt; None</code></li>
+<li><code>order_status(self, order_id: typing.SupportsInt | typing.SupportsIndex) -&gt; int</code></li>
+<li><code>pos(self, symbol: str | None = None) -&gt; float</code></li>
+<li><code>position(self, symbol: typing.SupportsInt | typing.SupportsIndex | None = None) -&gt; float</code></li>
+<li><code>stop_limit(self, side: str, trigger: typing.SupportsFloat | typing.SupportsIndex, limit_price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str | None = None) -&gt; int</code></li>
+<li><code>stop_market(self, side: str, trigger: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str | None = None) -&gt; int</code></li>
+<li><code>take_profit_limit(self, side: str, trigger: typing.SupportsFloat | typing.SupportsIndex, limit_price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str | None = None) -&gt; int</code></li>
+<li><code>take_profit_market(self, side: str, trigger: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str | None = None) -&gt; int</code></li>
+<li><code>trailing_stop(self, side: str, offset: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str | None = None) -&gt; int</code></li>
+<li><code>trailing_stop_percent(self, side: str, callback_bps: typing.SupportsInt | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, symbol: str | None = None) -&gt; int</code></li>
+<li><em>property</em> <code>primary_symbol_name: str</code></li>
+<li><em>property</em> <code>symbol_names: list[str]</code></li>
+<li><em>property</em> <code>symbols: list[int]</code></li>
+</ul>
+<h3 id="class-symbol"><code>class Symbol</code><a class="headerlink" href="#class-symbol" title="Permanent link">&para;</a></h3>
+<p><strong>Members</strong></p>
+<ul>
+<li><em>property</em> <code>exchange: str</code></li>
+<li><em>property</em> <code>id: int</code></li>
+<li><em>property</em> <code>name: str</code></li>
+<li><em>property</em> <code>tick_size: float</code></li>
+</ul>
+<h3 id="class-symbolcontext"><code>class SymbolContext</code><a class="headerlink" href="#class-symbolcontext" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>SymbolContext() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><em>attr</em> <code>symbol: str</code></li>
+<li><code>book_spread(self) -&gt; float</code></li>
+<li><code>is_flat(self) -&gt; bool</code></li>
+<li><code>is_long(self) -&gt; bool</code></li>
+<li><code>is_short(self) -&gt; bool</code></li>
+<li><em>property</em> <code>best_ask: float</code></li>
+<li><em>property</em> <code>best_ask: None</code></li>
+<li><em>property</em> <code>best_bid: float</code></li>
+<li><em>property</em> <code>best_bid: None</code></li>
+<li><em>property</em> <code>last_trade_price: float</code></li>
+<li><em>property</em> <code>last_trade_price: None</code></li>
+<li><em>property</em> <code>mid_price: float</code></li>
+<li><em>property</em> <code>mid_price: None</code></li>
+<li><em>property</em> <code>position: float</code></li>
+<li><em>property</em> <code>position: None</code></li>
+<li><em>property</em> <code>symbol_id: int</code></li>
+<li><em>property</em> <code>symbol_id: None</code></li>
+<li><em>property</em> <code>unrealized_pnl: float</code></li>
+<li><em>property</em> <code>unrealized_pnl: None</code></li>
+</ul>
+<h3 id="class-symbolregistry"><code>class SymbolRegistry</code><a class="headerlink" href="#class-symbolregistry" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>SymbolRegistry() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>add_symbol(self, exchange: str, symbol: str, tick_size: typing.SupportsFloat | typing.SupportsIndex = 0.01) -&gt; Symbol</code></li>
+<li><code>symbol_count(self) -&gt; int</code></li>
+</ul>
+<h3 id="class-tema"><code>class TEMA</code><a class="headerlink" href="#class-tema" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>TEMA(period: typing.SupportsInt | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>compute(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>reset(self) -&gt; None</code></li>
+<li><code>update(self, value: typing.SupportsFloat | typing.SupportsIndex) -&gt; float | None</code></li>
+<li><em>property</em> <code>count: int</code></li>
+<li><em>property</em> <code>ready: bool</code></li>
+<li><em>property</em> <code>value: float | None</code></li>
+</ul>
+<h3 id="class-tradedata"><code>class TradeData</code><a class="headerlink" href="#class-tradedata" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>TradeData() -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><em>attr</em> <code>is_buy: bool</code></li>
+<li><em>attr</em> <code>side: str</code></li>
+<li><em>attr</em> <code>symbol_name: str</code></li>
+<li><em>property</em> <code>price: float</code></li>
+<li><em>property</em> <code>price: None</code></li>
+<li><em>property</em> <code>quantity: float</code></li>
+<li><em>property</em> <code>quantity: None</code></li>
+<li><em>property</em> <code>symbol: int</code></li>
+<li><em>property</em> <code>symbol: None</code></li>
+<li><em>property</em> <code>timestamp_ns: int</code></li>
+<li><em>property</em> <code>timestamp_ns: None</code></li>
+</ul>
+<h3 id="class-volumeprofile"><code>class VolumeProfile</code><a class="headerlink" href="#class-volumeprofile" title="Permanent link">&para;</a></h3>
+<p>Volume Profile aggregator. Tracks volume distribution across price levels.</p>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>VolumeProfile(tick_size: typing.SupportsFloat | typing.SupportsIndex) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>add_trade(self, price: typing.SupportsFloat | typing.SupportsIndex, quantity: typing.SupportsFloat | typing.SupportsIndex, is_buy: bool) -&gt; None</code></li>
+<li><code>add_trades(self, prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], is_buy: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8]) -&gt; None</code></li>
+<li><code>clear(self) -&gt; None</code></li>
+<li><code>levels(self) -&gt; list</code></li>
+<li><code>num_levels(self) -&gt; int</code></li>
+<li><code>poc(self) -&gt; float</code></li>
+<li><code>total_delta(self) -&gt; float</code></li>
+<li><code>total_volume(self) -&gt; float</code></li>
+<li><code>value_area_high(self) -&gt; float</code></li>
+<li><code>value_area_low(self) -&gt; float</code></li>
+<li><code>volume_at(self, price: typing.SupportsFloat | typing.SupportsIndex) -&gt; float</code></li>
+</ul>
+<h3 id="class-walkforwardrunner"><code>class WalkForwardRunner</code><a class="headerlink" href="#class-walkforwardrunner" title="Permanent link">&para;</a></h3>
+<p><strong>Constructor</strong></p>
+<ul>
+<li><code>WalkForwardRunner(registry: ..., fee_rate: typing.SupportsFloat | typing.SupportsIndex = 0.0004, initial_capital: typing.SupportsFloat | typing.SupportsIndex = 10000.0, mode: str = 'anchored', train_size: typing.SupportsInt | typing.SupportsIndex = 0, test_size: typing.SupportsInt | typing.SupportsIndex = 0, step: typing.SupportsInt | typing.SupportsIndex = 0, min_train_size: typing.SupportsInt | typing.SupportsIndex = 0) -&gt; None</code></li>
+</ul>
+<p><strong>Members</strong></p>
+<ul>
+<li><code>run_csv(self, path: str, symbol: str) -&gt; list</code></li>
+<li><code>set_strategy_factory(self, factory: typing.Any) -&gt; None</code></li>
+</ul>
+<h2 id="flox_pytargets">flox_py.targets<a class="headerlink" href="#flox_pytargets" title="Permanent link">&para;</a></h2>
+<p>Module: <code>flox_py.targets</code></p>
+<p>Surface: 0 classes, 3 functions, 0 constants.</p>
+<h3 id="functions_1">Functions<a class="headerlink" href="#functions_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>future_ctc_volatility(close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], horizon: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>future_linear_slope(close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], horizon: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+<li><code>future_return(close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], horizon: typing.SupportsInt | typing.SupportsIndex) -&gt; numpy.typing.NDArray[numpy.float64]</code></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.indexes", "navigation.prune", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
