@@ -1,26 +1,43 @@
-cmake_minimum_required(VERSION 3.20)
-project(flox_my_strategies LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.22)
+project(crush_grid LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# FLOX must be built first; these headers come from the parent FLOX tree
-set(FLOX_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
-set(FLOX_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/../build")
+set(FLOX_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+set(FLOX_INCLUDE "${FLOX_DIR}/include")
+set(FLOX_BUILD "${FLOX_DIR}/build")
 
-add_executable(run_all_grids
-    grid_searches/run_all_grids.cpp
+find_package(fmt REQUIRED)
+
+add_executable(crush_grid
+    src/main.cpp
+    src/csv_reader.cpp
 )
 
-target_include_directories(run_all_grids PRIVATE
-    ${FLOX_INCLUDE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}
+target_include_directories(crush_grid PRIVATE
+    ${FLOX_INCLUDE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(run_all_grids PRIVATE
+target_link_libraries(crush_grid PRIVATE
     flox
+    fmt::fmt
 )
 
-# Individual strategy targets (for debugging/testing individual strategies)
-# add_executable(test_donchian grid_searches/test_single.cpp)
-# target_compile_definitions(test_donchian PRIVATE STRATEGY=DONCHIAN)
+target_link_directories(crush_grid PRIVATE
+    ${FLOX_BUILD}
+)
+
+target_compile_options(crush_grid PRIVATE
+    -Wall -Wextra -Wno-unused-parameter
+)
+
+target_compile_options(crush_grid PRIVATE
+    $<$<CONFIG:Debug>:-O0 -g -fsanitize=address -fno-omit-frame-pointer>
+    $<$<CONFIG:Release>:-O2>
+)
+target_link_options(crush_grid PRIVATE
+    $<$<CONFIG:Debug>:-fsanitize=address>
+)
