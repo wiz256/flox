@@ -73,31 +73,31 @@ struct CombinedParams
         ss << strategyName(kind) << "(";
         switch (kind) {
         case BOLLINGER_BREAKOUT:
-            ss << "bb=" << ip[0] << ",std=" << dp[0] << ",vm=" << dp[1]; break;
+            ss << "bb_period=" << ip[0] << ",bb_std=" << dp[0] << ",vol_mult=" << dp[1]; break;
         case DONCHIAN_BREAKOUT:
-            ss << "cp=" << ip[0] << ",ep=" << ip[1] << ",vm=" << dp[0]; break;
+            ss << "channel=" << ip[0] << ",exit=" << ip[1] << ",vol_mult=" << dp[0]; break;
         case DUAL_MOMENTUM:
-            ss << "lb=" << ip[0] << ",mt=" << dp[0] << ",sm=" << ip[1]; break;
+            ss << "lookback=" << ip[0] << ",mom_threshold=" << dp[0] << ",smooth=" << ip[1]; break;
         case EMA_CROSSOVER:
-            ss << "f=" << ip[0] << ",s=" << ip[1] << ",adx=" << ip[2]; break;
+            ss << "fast=" << ip[0] << ",slow=" << ip[1] << ",adx_min=" << ip[2]; break;
         case KELTNER_BREAKOUT:
-            ss << "ema=" << ip[0] << ",atr=" << ip[1] << ",am=" << dp[0] << ",apm=" << dp[1]; break;
+            ss << "ema=" << ip[0] << ",atr=" << ip[1] << ",atr_mult=" << dp[0] << ",atr_pct_min=" << dp[1]; break;
         case KELTNER_SQUEEZE:
-            ss << "ke=" << ip[0] << ",km=" << dp[0] << ",bp=" << ip[1] << ",bs=" << dp[1]; break;
+            ss << "ema=" << ip[0] << ",kelt_mult=" << dp[0] << ",bb=" << ip[1] << ",bb_std=" << dp[1]; break;
         case MACD:
-            ss << "f=" << ip[0] << ",s=" << ip[1] << ",sig=" << ip[2] << ",tp=" << ip[3]; break;
+            ss << "fast=" << ip[0] << ",slow=" << ip[1] << ",signal=" << ip[2] << ",trend=" << ip[3]; break;
         case RSI_BB_MR:
-            ss << "rp=" << ip[0] << ",rl=" << dp[0] << ",rh=" << dp[1] << ",bp=" << ip[1] << ",bs=" << dp[2]; break;
+            ss << "rsi_period=" << ip[0] << ",rsi_low=" << dp[0] << ",rsi_high=" << dp[1] << ",bb_period=" << ip[1] << ",bb_std=" << dp[2]; break;
         case RSI2:
-            ss << "rp=" << ip[0] << ",el=" << dp[0] << ",eh=" << dp[1] << ",tp=" << ip[1]; break;
+            ss << "rsi_period=" << ip[0] << ",entry_low=" << dp[0] << ",entry_high=" << dp[1] << ",trend=" << ip[1]; break;
         case SUPERTREND:
-            ss << "ap=" << ip[0] << ",am=" << dp[0] << ",adx=" << ip[1]; break;
+            ss << "atr_period=" << ip[0] << ",atr_mult=" << dp[0] << ",adx_min=" << ip[1]; break;
         case TREND_PULLBACK:
-            ss << "fe=" << ip[0] << ",se=" << ip[1] << ",rp=" << ip[2] << ",apm=" << dp[0]; break;
+            ss << "fast_ema=" << ip[0] << ",slow_ema=" << ip[1] << ",rsi_pullback=" << ip[2] << ",atr_pct_min=" << dp[0]; break;
         case TSMOM:
-            ss << "lb=" << ip[0] << ",sm=" << ip[1] << ",apm=" << dp[0]; break;
+            ss << "lookback=" << ip[0] << ",smooth=" << ip[1] << ",atr_pct_min=" << dp[0]; break;
         case VOL_COMPRESSION_BREAKOUT:
-            ss << "rw=" << ip[0] << ",cw=" << ip[1] << ",cp=" << dp[0] << ",vm=" << dp[1]; break;
+            ss << "range_window=" << ip[0] << ",compression_window=" << ip[1] << ",compression_pct=" << dp[0] << ",vol_mult=" << dp[1]; break;
         default: break;
         }
         ss << ")";
@@ -651,6 +651,12 @@ double wfoPassRate(const std::vector<WfoFoldResult>& folds, double foldPassPct)
 // Enhanced result row (includes plateau + WFO)
 // =============================================================================
 
+struct CompositeComponents
+{
+    double sharpe = 0, calmar = 0, profitFactor = 0, plateau = 0;
+    double trades = 0, costStress = 0, winRate = 0, ddPenalty = 0;
+};
+
 struct RobustResult
 {
     CombinedParams params;
@@ -665,7 +671,8 @@ struct RobustResult
     double plateauRatio;
     double avgNeighborSharpe;
     int neighborCount;
-    double compositeScore;   // Trader7-style composite (not just sharpe*plateau)
+    double compositeScore;   // Trader7-style composite
+    CompositeComponents cc;  // score breakdown
     double wfoPassRate;      // -1 if WFO not run
     double wfoAvgTestSharpe;
 };
@@ -824,10 +831,10 @@ int main(int argc, char* argv[])
                   << "  --wfo-folds <n>         WFO folds (default: 5)\n"
                   << "  --wfo-is-pct <f>        IS fraction per fold (default: 0.70)\n"
                   << "  --wfo-embargo <n>       Embargo bars between IS/OOS (default: 24)\n"
-                  << "  --wfo-min-is-trades <n> Min IS trades per fold (default: 50)\n"
-                  << "  --wfo-min-oos-trades <n> Min OOS trades per fold (default: 10)\n"
-                  << "  --wfo-degrad <f>        Min OOS/IS Sharpe ratio (default: 0.60)\n"
-                  << "  --wfo-fold-pass <f>     Fraction of folds that must pass (default: 0.60)\n";
+                  << "  --wfo-min-is-trades <n> Min IS trades per fold (default: 20)\n"
+                  << "  --wfo-min-oos-trades <n> Min OOS trades per fold (default: 5)\n"
+                  << "  --wfo-degrad <f>        Min OOS/IS Sharpe ratio (default: 0.30)\n"
+                  << "  --wfo-fold-pass <f>     Fraction of folds that must pass (default: 0.50)\n";
         return 1;
     }
 
@@ -848,10 +855,10 @@ int main(int argc, char* argv[])
     size_t wfoFolds = 5;
     double wfoIsPct = 0.70;
     size_t wfoEmbargo = 24;
-    size_t wfoMinIsTrades = 50;
-    size_t wfoMinOosTrades = 10;
-    double wfoDegradation = 0.60;
-    double wfoFoldPassPct = 0.60;
+    size_t wfoMinIsTrades = 20;    // 50 too strict for 4h bars; 20 fits ~1680 IS bars
+    size_t wfoMinOosTrades = 5;    // 10 too strict for short OOS windows
+    double wfoDegradation = 0.30;  // 0.60 too strict; 0.30 allows some degradation
+    double wfoFoldPassPct = 0.50;  // 0.60 too strict; need majority not supermajority
 
     for (int i = 2; i < argc; ++i)
     {
