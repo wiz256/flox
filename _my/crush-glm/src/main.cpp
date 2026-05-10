@@ -378,11 +378,15 @@ protected:
     double prevOpen_ = 0;
     int barCount_ = 0;
 
-    // Pending signals (next-bar-open execution)
-    int pendingSignal_ = 0;      // +1=want long, -1=want short
-    bool pendingSignalExit_ = false;
-    bool pendingRiskExit_ = false;
-    std::string pendingRiskReason_;
+    // Current bar's signal (stored for next bar's execution)
+    int curSignal_ = 0;
+    bool curSignalExit_ = false;
+
+    // Previous bar's pending actions (to execute at THIS bar's open)
+    int prevPendingSignal_ = 0;
+    bool prevPendingExit_ = false;
+    bool prevRiskExit_ = false;
+    std::string prevRiskReason_;
 
     std::vector<CrushTradeRecord> tradeLog_;
 };
