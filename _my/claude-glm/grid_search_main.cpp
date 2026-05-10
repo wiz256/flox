@@ -17,6 +17,7 @@
 #include "flox/position/position_tracker.h"
 
 #include <atomic>
+#include <cmath>
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
@@ -595,11 +596,19 @@ struct WfoFoldResult
     size_t foldIndex;
     size_t trainStart, trainEnd;
     size_t testStart, testEnd;
+    size_t trainBars;         // bars in IS window
+    size_t testBars;          // bars in OOS window
+    size_t embargoStart;      // where embargo begins
+    std::string trainDateFrom, trainDateTo;
+    std::string testDateFrom, testDateTo;
+    double trainPriceStart, trainPriceEnd;  // price at IS window boundaries
+    double testPriceStart, testPriceEnd;    // price at OOS window boundaries
     BacktestStats trainStats;
     BacktestStats testStats;
     double degradation;   // testSharpe / trainSharpe
     bool skipped;         // skipped due to insufficient trades
     bool passed;
+    std::string skipReason;  // why fold was skipped (empty if not skipped)
 };
 
 // Rolling WFO: fixed-size train window slides forward, test window follows with embargo gap.
@@ -631,6 +640,7 @@ std::vector<WfoFoldResult> runWalkForward(
         size_t foldStart = fold * foldPeriod;
         size_t trainStart = foldStart;
         size_t trainEnd = foldStart + trainSize;
+        size_t embargoStart = trainEnd;
         size_t testStart = trainEnd + embargoBars;  // embargo gap
         size_t testEnd = std::min(testStart + testSize, totalBars);
 
@@ -640,14 +650,35 @@ std::vector<WfoFoldResult> runWalkForward(
         std::vector<BarEvent> trainBars(g_bars.begin() + trainStart, g_bars.begin() + trainEnd);
         std::vector<BarEvent> testBars(g_bars.begin() + testStart, g_bars.begin() + testEnd);
 
+        // Extract dates and prices from bar boundaries
+        // Bars have endTime as their timestamp; use bar.close for prices
+        double trPriceStart = trainBars.empty() ? 0.0 : trainBars.front().bar.close.toDouble();
+        double trPriceEnd   = trainBars.empty() ? 0.0 : trainBars.back().bar.close.toDouble();
+        double tePriceStart = testBars.empty() ? 0.0 : testBars.front().bar.close.toDouble();
+        double tePriceEnd   = testBars.empty() ? 0.0 : testBars.back().bar.close.toDouble();
+
+        // Dates from bar endTime nanoseconds
+        std::string trDateFrom = trainBars.empty() ? "" : formatDateNs(trainBars.front().bar.endTime.time_since_epoch().count());
+        std::string trDateTo   = trainBars.empty() ? "" : formatDateNs(trainBars.back().bar.endTime.time_since_epoch().count());
+        std::string teDateFrom = testBars.empty() ? "" : formatDateNs(testBars.front().bar.endTime.time_since_epoch().count());
+        std::string teDateTo   = testBars.empty() ? "" : formatDateNs(testBars.back().bar.endTime.time_since_epoch().count());
+
         BacktestResult trainBt = runBacktestOnSlice(p, trainBars);
         auto trainStats = trainBt.computeStats();
 
         BacktestResult testBt = runBacktestOnSlice(p, testBars);
         auto testStats = testBt.computeStats();
 
-        // Skip fold if insufficient trades
-        bool skipped = (trainStats.totalTrades < minIsTrades || testStats.totalTrades < minOosTrades);
+        // Determine skip reason
+        std::string skipReason;
+        bool skipped = false;
+        if (trainStats.totalTrades < minIsTrades) {
+            skipped = true;
+            skipReason = "IS trades=" + std::to_string(trainStats.totalTrades) + " < " + std::to_string(minIsTrades);
+        } else if (testStats.totalTrades < minOosTrades) {
+            skipped = true;
+            skipReason = "OOS trades=" + std::to_string(testStats.totalTrades) + " < " + std::to_string(minOosTrades);
+        }
 
         double degradation = trainStats.sharpeRatio > 0.0
             ? testStats.sharpeRatio / trainStats.sharpeRatio
@@ -659,7 +690,10 @@ std::vector<WfoFoldResult> runWalkForward(
             && degradation >= oosVsIsRatio;
 
         folds.push_back({fold, trainStart, trainEnd, testStart, testEnd,
-                         trainStats, testStats, degradation, skipped, passed});
+                         trainBars.size(), testBars.size(), embargoStart,
+                         trDateFrom, trDateTo, teDateFrom, teDateTo,
+                         trPriceStart, trPriceEnd, tePriceStart, tePriceEnd,
+                         trainStats, testStats, degradation, skipped, passed, skipReason});
     }
 
     return folds;
@@ -837,13 +871,18 @@ void exportRobustCSV(const std::string& path, const std::vector<RobustResult>& r
     }
 }
 
-void exportWfoCSV(const std::string& path, const std::vector<std::pair<CombinedParams, std::vector<WfoFoldResult>>>& wfoResults)
+void exportWfoCSV(const std::string& path,
+                  const std::vector<std::pair<CombinedParams, std::vector<WfoFoldResult>>>& wfoResults)
 {
     std::ofstream f(path);
     if (!f.is_open()) { std::cerr << "Error: cannot write " << path << "\n"; return; }
 
-    f << "fold,parameters,train_sharpe,train_return,train_trades,train_maxdd,"
-      << "test_sharpe,test_return,test_trades,test_maxdd,degradation,passed\n";
+    f << "fold,parameters,"
+      << "train_date_from,train_date_to,train_bars,train_price_start,train_price_end,"
+      << "train_sharpe,train_sortino,train_calmar,train_return,train_maxdd,train_trades,train_win_rate,train_profit_factor,train_pnl,train_net_pnl,train_fees,"
+      << "test_date_from,test_date_to,test_bars,test_price_start,test_price_end,"
+      << "test_sharpe,test_sortino,test_calmar,test_return,test_maxdd,test_trades,test_win_rate,test_profit_factor,test_pnl,test_net_pnl,test_fees,"
+      << "degradation,passed,skipped,skip_reason\n";
 
     f << std::fixed << std::setprecision(4);
     for (const auto& [params, folds] : wfoResults)
@@ -851,11 +890,24 @@ void exportWfoCSV(const std::string& path, const std::vector<std::pair<CombinedP
         for (const auto& fold : folds)
         {
             f << fold.foldIndex << ",\"" << params.toString() << "\","
-              << fold.trainStats.sharpeRatio << "," << fold.trainStats.returnPct << ","
-              << fold.trainStats.totalTrades << "," << fold.trainStats.maxDrawdownPct << ","
-              << fold.testStats.sharpeRatio << "," << fold.testStats.returnPct << ","
-              << fold.testStats.totalTrades << "," << fold.testStats.maxDrawdownPct << ","
-              << fold.degradation << "," << (fold.passed ? 1 : 0) << "\n";
+              << fold.trainDateFrom << "," << fold.trainDateTo << ","
+              << fold.trainBars << "," << fold.trainPriceStart << "," << fold.trainPriceEnd << ","
+              << fold.trainStats.sharpeRatio << "," << fold.trainStats.sortinoRatio << ","
+              << fold.trainStats.calmarRatio << "," << fold.trainStats.returnPct << ","
+              << fold.trainStats.maxDrawdownPct << "," << fold.trainStats.totalTrades << ","
+              << fold.trainStats.winRate << "," << fold.trainStats.profitFactor << ","
+              << fold.trainStats.totalPnl << "," << fold.trainStats.netPnl << ","
+              << fold.trainStats.totalFees << ","
+              << fold.testDateFrom << "," << fold.testDateTo << ","
+              << fold.testBars << "," << fold.testPriceStart << "," << fold.testPriceEnd << ","
+              << fold.testStats.sharpeRatio << "," << fold.testStats.sortinoRatio << ","
+              << fold.testStats.calmarRatio << "," << fold.testStats.returnPct << ","
+              << fold.testStats.maxDrawdownPct << "," << fold.testStats.totalTrades << ","
+              << fold.testStats.winRate << "," << fold.testStats.profitFactor << ","
+              << fold.testStats.totalPnl << "," << fold.testStats.netPnl << ","
+              << fold.testStats.totalFees << ","
+              << fold.degradation << "," << (fold.passed ? 1 : 0) << ","
+              << (fold.skipped ? 1 : 0) << ",\"" << fold.skipReason << "\"\n";
         }
     }
 }
@@ -1215,6 +1267,127 @@ int main(int argc, char* argv[])
         ++shown;
     }
     if (shown == 0) std::cout << "  (no strategies with >= " << minTrades << " trades)\n";
+
+    // ===== WFO Fold Detail — show per-fold diagnostics for top 10 candidates =====
+    if (wfoEnabled && !wfoAll.empty())
+    {
+        // Build a lookup from params string → folds
+        std::unordered_map<std::string, const std::vector<WfoFoldResult>*> wfoLookup;
+        for (const auto& [params, folds] : wfoAll)
+            wfoLookup[params.toString()] = &folds;
+
+        int wfoShown = 0;
+        for (size_t i = 0; i < robustRows.size() && wfoShown < 10; ++i)
+        {
+            const auto& r = robustRows[i];
+            auto it = wfoLookup.find(r.params.toString());
+            if (it == wfoLookup.end()) continue;
+
+            const auto& folds = *it->second;
+            if (folds.empty()) continue;
+
+            std::cout << "\n--- WFO Detail #" << wfoShown + 1 << ": " << r.params.toString() << " ---\n";
+            std::cout << "  Fold | IS Period              | Bars | Price          | Sharpe | Return% | Trades | PnL      | Win%  | PF   | MaxDD%  | Fees\n";
+            std::cout << "  -----|------------------------|------|----------------|--------|---------|--------|----------|-------|------|---------|---------\n";
+
+            for (const auto& fold : folds)
+            {
+                // IS (train) row
+                std::cout << "  " << std::setw(4) << fold.foldIndex << " IS  "
+                          << fold.trainDateFrom << "→" << fold.trainDateTo << " "
+                          << std::setw(4) << fold.trainBars << " "
+                          << "$" << std::setw(8) << std::fixed << std::setprecision(0) << fold.trainPriceStart
+                          << "→$" << std::setw(8) << fold.trainPriceEnd << " "
+                          << std::setw(6) << std::setprecision(2) << fold.trainStats.sharpeRatio << " "
+                          << std::setw(7) << fold.trainStats.returnPct << " "
+                          << std::setw(6) << fold.trainStats.totalTrades << " "
+                          << std::setw(8) << fold.trainStats.netPnl << " "
+                          << std::setw(5) << (fold.trainStats.winRate * 100) << " "
+                          << std::setw(4) << fold.trainStats.profitFactor << " "
+                          << std::setw(7) << fold.trainStats.maxDrawdownPct << " "
+                          << std::setw(8) << fold.trainStats.totalFees << "\n";
+
+                // OOS (test) row
+                std::cout << "     " << (fold.skipped ? "OOS SKIP" : "     OOS") << " "
+                          << fold.testDateFrom << "→" << fold.testDateTo << " "
+                          << std::setw(4) << fold.testBars << " "
+                          << "$" << std::setw(8) << std::setprecision(0) << fold.testPriceStart
+                          << "→$" << std::setw(8) << fold.testPriceEnd << " "
+                          << std::setw(6) << std::setprecision(2) << fold.testStats.sharpeRatio << " "
+                          << std::setw(7) << fold.testStats.returnPct << " "
+                          << std::setw(6) << fold.testStats.totalTrades << " "
+                          << std::setw(8) << fold.testStats.netPnl << " "
+                          << std::setw(5) << (fold.testStats.winRate * 100) << " "
+                          << std::setw(4) << fold.testStats.profitFactor << " "
+                          << std::setw(7) << fold.testStats.maxDrawdownPct << " "
+                          << std::setw(8) << fold.testStats.totalFees << "\n";
+
+                // Degradation + pass/skip status
+                std::string statusStr;
+                if (fold.skipped)
+                    statusStr = "SKIP (" + fold.skipReason + ")";
+                else if (fold.passed)
+                    statusStr = "PASS";
+                else
+                {
+                    std::string reason;
+                    if (fold.testStats.sharpeRatio <= 0.0)
+                        reason = "OOS Sharpe=" + std::to_string(static_cast<int>(fold.testStats.sharpeRatio * 100) / 100.0) + "<=0";
+                    else if (fold.degradation < wfoDegradation)
+                        reason = "degradation " + std::to_string(static_cast<int>(fold.degradation * 100)) + "% < " + std::to_string(static_cast<int>(wfoDegradation * 100)) + "%";
+                    statusStr = "FAIL (" + reason + ")";
+                }
+                std::cout << "     Degradation: " << std::setprecision(2) << fold.degradation
+                          << " | " << statusStr << "\n";
+            }
+
+            // Cross-fold consistency summary
+            double isSharpeSum = 0, oosSharpeSum = 0, isRetSum = 0, oosRetSum = 0;
+            size_t nPassed = 0, nSkipped = 0, nonSkipped = 0;
+            for (const auto& fold : folds)
+            {
+                if (fold.skipped) { nSkipped++; continue; }
+                nonSkipped++;
+                isSharpeSum += fold.trainStats.sharpeRatio;
+                oosSharpeSum += fold.testStats.sharpeRatio;
+                isRetSum += fold.trainStats.returnPct;
+                oosRetSum += fold.testStats.returnPct;
+                if (fold.passed) nPassed++;
+            }
+            if (nonSkipped > 0)
+            {
+                double avgIsSh = isSharpeSum / nonSkipped;
+                double avgOosSh = oosSharpeSum / nonSkipped;
+                double avgIsRet = isRetSum / nonSkipped;
+                double avgOosRet = oosRetSum / nonSkipped;
+
+                // Cross-fold Sharpe std dev
+                double isVar = 0, oosVar = 0;
+                for (const auto& fold : folds) {
+                    if (fold.skipped) continue;
+                    isVar += (fold.trainStats.sharpeRatio - avgIsSh) * (fold.trainStats.sharpeRatio - avgIsSh);
+                    oosVar += (fold.testStats.sharpeRatio - avgOosSh) * (fold.testStats.sharpeRatio - avgOosSh);
+                }
+                double isStd = std::sqrt(isVar / nonSkipped);
+                double oosStd = std::sqrt(oosVar / nonSkipped);
+
+                std::cout << "  Summary: " << folds.size() << " folds | "
+                          << nSkipped << " skipped | " << nPassed << "/" << nonSkipped << " passed ("
+                          << std::setprecision(0) << (nonSkipped > 0 ? nPassed * 100.0 / nonSkipped : 0) << "%)\n";
+                std::cout << "  Avg IS Sharpe=" << std::setprecision(2) << avgIsSh
+                          << " (σ=" << isStd << ")"
+                          << " | Avg OOS Sharpe=" << avgOosSh << " (σ=" << oosStd << ")\n";
+                std::cout << "  Avg IS Return=" << std::setprecision(1) << avgIsRet
+                          << "% | Avg OOS Return=" << avgOosRet << "%\n";
+            }
+            else
+            {
+                std::cout << "  Summary: " << folds.size() << " folds | ALL SKIPPED\n";
+            }
+
+            ++wfoShown;
+        }
+    }
 
     // Per-strategy breakdown
     printPerStrategySummary(results, plateau);
