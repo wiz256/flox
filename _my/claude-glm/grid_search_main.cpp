@@ -660,14 +660,50 @@ struct RobustResult
     double totalReturn;
     double maxDrawdownPct;
     double winRate;
+    double profitFactor;
     size_t totalTrades;
     double plateauRatio;
     double avgNeighborSharpe;
     int neighborCount;
-    double robustScore;      // sharpe * plateauRatio
+    double compositeScore;   // Trader7-style composite (not just sharpe*plateau)
     double wfoPassRate;      // -1 if WFO not run
     double wfoAvgTestSharpe;
 };
+
+// Trader7-style composite score: Sharpe is only 25% of the total.
+// Prioritizes stable plateaus over high-Sharpe spikes.
+inline double computeCompositeScore(double sharpe, double calmar, double profitFactor,
+                                     double plateauRatio, double winRate, size_t trades,
+                                     double maxDrawdownPct, double costStressSharpe)
+{
+    // Normalize each component using tanh to bound [0, 1]
+    auto norm = [](double v, double scale) { return std::tanh(std::max(v, 0.0) / scale); };
+
+    double nSharpe     = norm(sharpe, 3.0);       // tanh(sharpe/3): 3.0 → 0.76, 6.0 → 0.96
+    double safeCalmar  = std::isnan(calmar) || std::isinf(calmar) ? 0.0 : calmar;
+    double nCalmar     = norm(safeCalmar, 10.0);   // Calmar = return/maxDD
+    double safePF      = std::isnan(profitFactor) || std::isinf(profitFactor) ? 0.0 : profitFactor;
+    double nPF         = norm(safePF - 1.0, 1.5); // tanh((pf-1)/1.5): 2.5 → 0.76
+    double nPlateau    = std::min(std::max(plateauRatio, 0.0), 1.0);
+    double nTrades     = norm(static_cast<double>(trades), 150.0); // tanh(trades/150)
+    double nCost       = norm(costStressSharpe, 2.0);  // Sharpe after 2x fees
+    double nWinRate    = std::min(std::max(winRate - 0.35, 0.0) / 0.45, 1.0); // 35-80% → 0-1
+
+    // Drawdown penalty (like Trader7: max(0, dd - 35%))
+    double ddPenalty = std::max(0.0, std::abs(maxDrawdownPct) - 35.0) / 100.0;
+
+    // Composite: 25% sharpe + 20% calmar + 15% PF + 15% plateau + 10% trades + 10% cost + 5% winrate - penalties
+    double score = 0.25 * nSharpe
+                 + 0.20 * nCalmar
+                 + 0.15 * nPF
+                 + 0.15 * nPlateau
+                 + 0.10 * nTrades
+                 + 0.10 * nCost
+                 + 0.05 * nWinRate
+                 - ddPenalty;
+
+    return score;
+}
 
 // =============================================================================
 // Per-strategy summary
@@ -725,7 +761,7 @@ void exportRobustCSV(const std::string& path, const std::vector<RobustResult>& r
     if (!f.is_open()) { std::cerr << "Error: cannot write " << path << "\n"; return; }
 
     f << "sharpe_ratio,sortino_ratio,calmar_ratio,total_return,max_drawdown_pct,win_rate,"
-      << "total_trades,parameters,plateau_ratio,avg_neighbor_sharpe,neighbor_count,robust_score,"
+      << "profit_factor,total_trades,parameters,plateau_ratio,avg_neighbor_sharpe,neighbor_count,composite_score,"
       << "wfo_pass_rate,wfo_avg_test_sharpe\n";
 
     f << std::fixed << std::setprecision(4);
@@ -733,9 +769,9 @@ void exportRobustCSV(const std::string& path, const std::vector<RobustResult>& r
     {
         f << r.sharpe << "," << r.sortino << "," << r.calmar << ","
           << r.totalReturn << "," << r.maxDrawdownPct << "," << r.winRate << ","
-          << r.totalTrades << ",\"" << r.params.toString() << "\","
+          << r.profitFactor << "," << r.totalTrades << ",\"" << r.params.toString() << "\","
           << r.plateauRatio << "," << r.avgNeighborSharpe << ","
-          << r.neighborCount << "," << r.robustScore << ","
+          << r.neighborCount << "," << r.compositeScore << ","
           << r.wfoPassRate << "," << r.wfoAvgTestSharpe << "\n";
     }
 }
@@ -948,20 +984,25 @@ int main(int argc, char* argv[])
         rr.totalReturn = results[i].totalReturn();
         rr.maxDrawdownPct = results[i].maxDrawdownPct();
         rr.winRate = results[i].winRate();
+        rr.profitFactor = results[i].profitFactor();
         rr.totalTrades = results[i].totalTrades();
         rr.plateauRatio = plateau[i].plateauRatio;
         rr.avgNeighborSharpe = plateau[i].avgNeighborSharpe;
         rr.neighborCount = plateau[i].neighborCount;
-        rr.robustScore = rr.sharpe * rr.plateauRatio;
+        // Cost stress: approximate Sharpe after 2x fees (halve excess returns)
+        double costStressSharpe = rr.sharpe * 0.5;
+        rr.compositeScore = computeCompositeScore(
+            rr.sharpe, rr.calmar, rr.profitFactor, rr.plateauRatio,
+            rr.winRate, rr.totalTrades, rr.maxDrawdownPct, costStressSharpe);
         rr.wfoPassRate = -1.0;
         rr.wfoAvgTestSharpe = 0.0;
         robustRows.push_back(rr);
     }
 
-    // Sort by robustScore descending
+    // Sort by compositeScore descending (Trader7-style: prioritizes stable plateaus)
     std::sort(robustRows.begin(), robustRows.end(),
               [](const RobustResult& a, const RobustResult& b) {
-                  return a.robustScore > b.robustScore;
+                  return a.compositeScore > b.compositeScore;
               });
 
     // ===== Step 4: Walk-forward for top-K =====
@@ -1020,17 +1061,17 @@ int main(int argc, char* argv[])
         std::cerr << "\n";
     }
 
-    // Re-sort by robustScore (now includes WFO data)
+    // Re-sort by compositeScore (now includes WFO data)
     std::sort(robustRows.begin(), robustRows.end(),
               [](const RobustResult& a, const RobustResult& b) {
-                  return a.robustScore > b.robustScore;
+                  return a.compositeScore > b.compositeScore;
               });
 
     // ===== Step 5: Display results =====
-    std::cout << "\n=== Top 30 by Robust Score (" << coin << " | " << modeStr << " $" << effectiveNotional
+    std::cout << "\n=== Top 30 by Composite Score (" << coin << " | " << modeStr << " $" << effectiveNotional
               << " | min " << minTrades << " trades | " << robustRows.size() << " passed filter) ===\n";
-    std::cout << "   Sharpe | Return   | Trades | Plateau | RobustScore | WFO Pass% | Params\n";
-    std::cout << "  --------|----------|--------|---------|-------------|-----------|-------\n";
+    std::cout << "   Sharpe | Calmar | PF   | Trades | Plateau | Composite | WFO% | Params\n";
+    std::cout << "  --------|--------|------|--------|---------|-----------|------|-------\n";
 
     int shown = 0;
     for (size_t i = 0; i < robustRows.size() && shown < 30; ++i)
@@ -1039,14 +1080,15 @@ int main(int argc, char* argv[])
         std::cout << std::fixed << std::setprecision(2);
         std::cout << shown + 1 << ". "
                   << std::setw(7) << r.sharpe << " | "
-                  << std::setw(8) << std::setprecision(1) << r.totalReturn << "% | "
+                  << std::setw(6) << r.calmar << " | "
+                  << std::setw(4) << std::setprecision(2) << r.profitFactor << " | "
                   << std::setw(6) << r.totalTrades << " | "
-                  << std::setw(7) << std::setprecision(2) << r.plateauRatio << " | "
-                  << std::setw(11) << r.robustScore << " | ";
+                  << std::setw(7) << r.plateauRatio << " | "
+                  << std::setw(9) << r.compositeScore << " | ";
         if (r.wfoPassRate >= 0)
-            std::cout << std::setw(9) << std::setprecision(0) << (r.wfoPassRate * 100) << "%";
+            std::cout << std::setw(3) << std::setprecision(0) << (r.wfoPassRate * 100) << "%";
         else
-            std::cout << "      n/a";
+            std::cout << " n/a";
         std::cout << " | " << r.params.toString() << "\n";
         ++shown;
     }

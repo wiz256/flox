@@ -37,7 +37,7 @@ python3 python/download_data.py --interval 4h --days 2000
 ./build/crush_grid data/BTCUSDT_4h.csv 8
 
 # 4. Multi-coin aggregation (finds strategies working across many coins)
-python3 python/run_all_coins.py --interval 4h --min-trades 20
+python3 python/run_all_coins.py --interval 4h --min-trades 30
 ```
 
 ## 13 Strategies with Exact Python Grid Params
