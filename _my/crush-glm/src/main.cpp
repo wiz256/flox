@@ -20,6 +20,25 @@ namespace fs = std::filesystem;
 using namespace flox;
 using namespace crush;
 
+// ── Constants ──────────────────────────────────────────────────────────
+constexpr double NOTIONAL_USD    = 1000.0;
+constexpr double FEE_RATE        = 0.0004;
+constexpr double INITIAL_CAPITAL = 10000.0;
+constexpr int    MIN_TRADES      = 30;
+constexpr int    WF_FOLDS        = 5;
+constexpr double WF_TRAIN_PCT    = 0.7;
+constexpr double WF_PASS_RATIO   = 0.6;
+
+constexpr double PLATEAU_VAR_THRESH = 0.15;
+constexpr int    WRC_BOOTSTRAPS  = 5000;
+
+// ── Sizing ─────────────────────────────────────────────────────────────
+inline Quantity qtyFromNotional(double price) {
+    if (price <= 0.0) return Quantity::fromDouble(0.0);
+    return Quantity::fromDouble(NOTIONAL_USD / price);
+}
+
+// ── Enums / Types ──────────────────────────────────────────────────────
 enum class ExitMode : uint8_t { Chandelier, ChandelierTimeStop, SignalBETrail };
 
 struct Params {
@@ -28,12 +47,21 @@ struct Params {
     double signal_p3 = 2.0;
     ExitMode exit_mode = ExitMode::Chandelier;
     int exit_atr_period = 14;
-    double exit_sl_mult = 2.0, exit_trail_mult = 3.0, exit_tp_mult = 0.0;
+    double exit_sl_mult = 2.0, exit_trail_mult = 3.0;
     int exit_time_bars = 0;
     double exit_be_r_mult = 1.0;
 };
 
-// Streaming indicators for fast reset per backtest
+struct GridResult {
+    Params params;
+    double sharpe = 0;
+    size_t trades = 0;
+    double totalReturn = 0;
+    double maxDrawdownPct = 0;
+    double winRate = 0;
+};
+
+// ── Streaming indicators ───────────────────────────────────────────────
 class StreamEma {
     double mult_; double val_ = 0; size_t n_ = 0; bool seeded_ = false;
 public:
@@ -94,11 +122,11 @@ public:
     bool ready() const { return sma_.ready(); }
 };
 
+// ── Base Strategy ──────────────────────────────────────────────────────
 class BaseStrategy : public Strategy {
 public:
     BaseStrategy(SubscriberId sid, SymbolId sym, const SymbolRegistry& reg, const Params& p)
-        : Strategy(sid, sym, reg), p_(p), exitAtr_(p.exit_atr_period),
-          qty_(Quantity::fromDouble(0.01)) {}
+        : Strategy(sid, sym, reg), p_(p), exitAtr_(p.exit_atr_period) {}
 
 protected:
     void onSymbolBar(SymbolContext& ctx, const BarEvent& ev) override {
@@ -117,12 +145,12 @@ protected:
     virtual void onBarImpl(double h, double l, double c) = 0;
 
     void enterLong(SymbolId sym, double price) {
-        emitMarketBuy(sym, qty_);
+        emitMarketBuy(sym, qtyFromNotional(price));
         entryPrice_ = price; highSince_ = price; lowSince_ = price;
         barsInTrade_ = 0; side_ = 1; beAct_ = false; trail_ = 0;
     }
     void enterShort(SymbolId sym, double price) {
-        emitMarketSell(sym, qty_);
+        emitMarketSell(sym, qtyFromNotional(price));
         entryPrice_ = price; highSince_ = price; lowSince_ = price;
         barsInTrade_ = 0; side_ = -1; beAct_ = false; trail_ = 0;
     }
@@ -133,7 +161,7 @@ protected:
         Quantity pos = position(sym);
         if (pos.raw() == 0) { side_ = 0; return; }
 
-        if (pos.raw() > 0) { // long
+        if (pos.raw() > 0) {
             highSince_ = std::max(highSince_, h);
             if (p_.exit_mode == ExitMode::Chandelier || p_.exit_mode == ExitMode::ChandelierTimeStop) {
                 if (c <= highSince_ - p_.exit_trail_mult * atr) { emitClosePosition(sym); return; }
@@ -144,7 +172,7 @@ protected:
                 if (c <= entryPrice_ - ir) { emitClosePosition(sym); return; }
             }
             if (p_.exit_mode == ExitMode::ChandelierTimeStop && p_.exit_time_bars > 0 && barsInTrade_ >= p_.exit_time_bars) { emitClosePosition(sym); return; }
-        } else { // short
+        } else {
             lowSince_ = std::min(lowSince_, l);
             if (p_.exit_mode == ExitMode::Chandelier || p_.exit_mode == ExitMode::ChandelierTimeStop) {
                 if (c >= lowSince_ + p_.exit_trail_mult * atr) { emitClosePosition(sym); return; }
@@ -160,13 +188,13 @@ protected:
 
     const Params p_;
     StreamAtr exitAtr_;
-    Quantity qty_;
     std::vector<double> closes_, highs_, lows_;
     bool beAct_ = false;
     int side_ = 0, barsInTrade_ = 0;
     double entryPrice_ = 0, highSince_ = 0, lowSince_ = 1e18, trail_ = 0;
 };
 
+// ── Strategy implementations ───────────────────────────────────────────
 class DonchianStrat final : public BaseStrategy {
 public:
     using BaseStrategy::BaseStrategy;
@@ -315,6 +343,7 @@ public:
     }
 };
 
+// ── Factory ────────────────────────────────────────────────────────────
 using Factory = std::function<std::unique_ptr<BaseStrategy>(SubscriberId, SymbolId, const SymbolRegistry&, const Params&)>;
 
 std::vector<std::pair<std::string, Factory>> allStrats() {
@@ -330,6 +359,7 @@ std::vector<std::pair<std::string, Factory>> allStrats() {
     };
 }
 
+// ── CSV → BarEvents ────────────────────────────────────────────────────
 std::vector<BarEvent> csvToBarEvents(const std::vector<CsvBar>& bars, SymbolId sym) {
     std::vector<BarEvent> events;
     events.reserve(bars.size());
@@ -350,11 +380,206 @@ std::vector<BarEvent> csvToBarEvents(const std::vector<CsvBar>& bars, SymbolId s
     return events;
 }
 
+// ── Grid config ────────────────────────────────────────────────────────
 struct GridConfig {
     std::string name;
     std::vector<int> p1; std::vector<int> p2; std::vector<double> p3;
 };
 
+// ── Run a single backtest ──────────────────────────────────────────────
+struct RunMetrics {
+    double sharpe = 0, totalReturn = 0, maxDrawdownPct = 0, winRate = 0;
+    size_t trades = 0;
+    std::vector<double> barReturns;
+};
+
+RunMetrics runSingle(const Factory& fac, SymbolId sid, const SymbolRegistry& reg,
+                     const Params& p, const std::vector<BarEvent>& events) {
+    RunMetrics rm;
+    try {
+        auto strat = fac(1, sid, reg, p);
+        BacktestConfig cfg; cfg.initialCapital = INITIAL_CAPITAL; cfg.feeRate = FEE_RATE;
+        BacktestRunner runner(cfg); runner.setStrategy(strat.get());
+        auto r = runner.runBars(events);
+        auto s = r.computeStats();
+        rm.sharpe = s.sharpeRatio;
+        rm.totalReturn = s.totalPnl;
+        rm.maxDrawdownPct = s.maxDrawdownPct;
+        rm.winRate = s.winRate;
+        rm.trades = s.totalTrades;
+        auto eq = r.equityCurve();
+        rm.barReturns.reserve(eq.size());
+        for (size_t i = 1; i < eq.size(); ++i) {
+            double prev = eq[i-1].equity;
+            if (prev > 0) rm.barReturns.push_back((eq[i].equity - prev) / prev);
+        }
+    } catch (...) {}
+    return rm;
+}
+
+// ── Plateau detection (multi-dimensional neighborhood) ─────────────────
+struct PlateauResult {
+    bool isPlateau = false;
+    int neighborCount = 0;
+    double neighborRatio = 0;
+    double relVariance = 1.0;
+};
+
+PlateauResult detectPlateau(const std::vector<GridResult>& results, size_t bestIdx,
+                             const GridConfig& gc) {
+    PlateauResult pr;
+    if (bestIdx >= results.size() || results[bestIdx].sharpe <= 0) return pr;
+
+    const auto& best = results[bestIdx];
+    double bestSharpe = best.sharpe;
+
+    auto p1Range = gc.p1.empty() ? 1.0 : double(gc.p1.back() - gc.p1.front());
+    auto p2Range = gc.p2.empty() ? 1.0 : double(gc.p2.back() - gc.p2.front());
+    double p3Range = gc.p3.empty() ? 1.0 : (gc.p3.back() - gc.p3.front());
+    if (p1Range <= 0) p1Range = 1;
+    if (p2Range <= 0) p2Range = 1;
+    if (p3Range <= 0) p3Range = 1;
+
+    std::vector<double> neighborSharpes;
+
+    for (size_t i = 0; i < results.size(); ++i) {
+        if (i == bestIdx) continue;
+        if (results[i].trades < MIN_TRADES) continue;
+
+        double d1 = std::abs(results[i].params.signal_p1 - best.params.signal_p1) / p1Range;
+        bool sameP2 = gc.p2.size() <= 1 || gc.p2[0] == 0;
+        double d2 = sameP2 ? 0 : std::abs(results[i].params.signal_p2 - best.params.signal_p2) / p2Range;
+        bool sameP3 = gc.p3.size() <= 1 || gc.p3[0] == 0;
+        double d3 = sameP3 ? 0 : std::abs(results[i].params.signal_p3 - best.params.signal_p3) / p3Range;
+
+        if (d1 <= 0.3 && d2 <= 0.3 && d3 <= 0.3) {
+            neighborSharpes.push_back(results[i].sharpe);
+        }
+    }
+
+    pr.neighborCount = neighborSharpes.size();
+    if (pr.neighborCount < 3) return pr;
+
+    int above = 0;
+    for (double s : neighborSharpes) {
+        if (s >= bestSharpe * 0.8) above++;
+    }
+    pr.neighborRatio = double(above) / pr.neighborCount;
+
+    double mean = std::accumulate(neighborSharpes.begin(), neighborSharpes.end(), 0.0) / pr.neighborCount;
+    double sq = 0;
+    for (double s : neighborSharpes) { double d = s - mean; sq += d * d; }
+    pr.relVariance = std::sqrt(sq / pr.neighborCount) / std::abs(bestSharpe);
+
+    pr.isPlateau = pr.neighborRatio >= 0.5 && pr.relVariance < PLATEAU_VAR_THRESH;
+    return pr;
+}
+
+// ── Walk-forward validation (anchored, 5 folds) ────────────────────────
+struct WFResult {
+    double avgOosSharpe = 0;
+    double oosIsRatio = 0;
+    bool passed = false;
+    int validFolds = 0;
+};
+
+WFResult walkForward(const Factory& fac, SymbolId sid, const SymbolRegistry& reg,
+                     const Params& p, const std::vector<BarEvent>& events) {
+    WFResult wf;
+    size_t n = events.size();
+    size_t windowSize = n / WF_FOLDS;
+    size_t trainSize = size_t(windowSize * WF_TRAIN_PCT);
+
+    if (windowSize < 50 || trainSize < 30) return wf;
+
+    double totalIs = 0, totalOos = 0;
+    int vf = 0;
+
+    for (int f = 0; f < WF_FOLDS; ++f) {
+        size_t offset = f * windowSize;
+        size_t trainEnd = offset + trainSize;
+        size_t testEnd = std::min(offset + windowSize, n);
+        if (trainEnd >= testEnd || trainEnd >= n) continue;
+
+        std::vector<BarEvent> trainSlice(events.begin() + offset, events.begin() + ptrdiff_t(trainEnd));
+        std::vector<BarEvent> testSlice(events.begin() + ptrdiff_t(trainEnd), events.begin() + ptrdiff_t(testEnd));
+
+        auto isR = runSingle(fac, sid, reg, p, trainSlice);
+        auto oosR = runSingle(fac, sid, reg, p, testSlice);
+
+        if (isR.trades >= MIN_TRADES / 2 && oosR.trades >= 5) {
+            totalIs += isR.sharpe;
+            totalOos += oosR.sharpe;
+            vf++;
+        }
+    }
+
+    if (vf < 2) return wf;
+    wf.validFolds = vf;
+    wf.avgOosSharpe = totalOos / vf;
+    double avgIs = totalIs / vf;
+    wf.oosIsRatio = (std::abs(avgIs) > 1e-10) ? wf.avgOosSharpe / avgIs : 0;
+    wf.passed = wf.oosIsRatio >= WF_PASS_RATIO && wf.avgOosSharpe > 0;
+    return wf;
+}
+
+// ── White's Reality Check (stationary bootstrap on strategy returns) ────
+double whitesRealityCheck(const std::vector<double>& strategyReturns,
+                          int numBootstrap = WRC_BOOTSTRAPS) {
+    if (strategyReturns.size() < 30) return 1.0;
+
+    size_t T = strategyReturns.size();
+    double observed = 0;
+    for (double r : strategyReturns) observed += r;
+    observed /= T;
+    if (observed <= 0) return 1.0;
+
+    double avgBlock = std::max(2.0, std::sqrt(double(T)));
+    double pContinue = 1.0 / avgBlock;
+
+    std::mt19937 rng(42);
+    std::uniform_int_distribution<size_t> idxDist(0, T - 1);
+    std::bernoulli_distribution continueDist(pContinue);
+
+    int exceedCount = 0;
+    for (int b = 0; b < numBootstrap; ++b) {
+        double bootMean = 0;
+        size_t count = 0;
+        size_t pos = idxDist(rng);
+        while (count < T) {
+            bootMean += strategyReturns[pos];
+            count++;
+            if (!continueDist(rng)) {
+                pos = idxDist(rng);
+            } else {
+                pos = (pos + 1) % T;
+            }
+        }
+        bootMean /= double(count);
+        if (bootMean >= observed) exceedCount++;
+    }
+
+    return double(exceedCount) / numBootstrap;
+}
+
+// ── Lookahead guard ────────────────────────────────────────────────────
+// Verify signals use only past data: run on full data, then on truncated
+// data (last 20% removed). First 80% of signals must be identical.
+bool checkNoLookahead(const Factory& fac, SymbolId sid, const SymbolRegistry& reg,
+                      const Params& p, const std::vector<BarEvent>& events) {
+    if (events.size() < 100) return true;
+    size_t cutoff = events.size() * 80 / 100;
+
+    auto fullR = runSingle(fac, sid, reg, p, events);
+    std::vector<BarEvent> truncated(events.begin(), events.begin() + ptrdiff_t(cutoff));
+    auto truncR = runSingle(fac, sid, reg, p, truncated);
+
+    // Same number of trades (within 1) on the truncated portion means no lookahead
+    size_t fullTradesInTrunc = fullR.trades * 80 / 100;
+    return std::abs(int(fullTradesInTrunc) - int(truncR.trades)) <= int(fullTradesInTrunc * 0.15 + 1);
+}
+
+// ── Main ───────────────────────────────────────────────────────────────
 int main(int argc, char** argv) {
     std::string data_dir = "data", tf = "4h", out_dir = "results";
     int max_sym = 0;
@@ -369,7 +594,9 @@ int main(int argc, char** argv) {
 
     auto csvs = findCsvFiles(data_dir, tf);
     if (max_sym > 0 && int(csvs.size()) > max_sym) csvs.resize(max_sym);
-    fmt::print("=== CRUSH Grid Search ===\nData:{} TF:{} Symbols:{}\n\n", data_dir, tf, csvs.size());
+    fmt::print("=== CRUSH Grid Search v2 ===\n");
+    fmt::print("Data:{} TF:{} Symbols:{} Notional:${:.0f} MinTrades:{}\n\n",
+               data_dir, tf, csvs.size(), NOTIONAL_USD, MIN_TRADES);
 
     auto strats = allStrats();
     std::vector<ExitMode> emodes = {ExitMode::Chandelier, ExitMode::ChandelierTimeStop, ExitMode::SignalBETrail};
@@ -385,10 +612,13 @@ int main(int argc, char** argv) {
     };
 
     FILE* csvf = std::fopen((out_dir + "/grid_summary.csv").c_str(), "w");
-    fmt::print(csvf, "symbol,strategy,exit_mode,p1,p2,p3,atr_per,sl_mult,trail_mult,sharpe,trades,plateau,wf_sharpe,wrc_p,wrc_sig\n");
+    fmt::print(csvf, "symbol,strategy,exit_mode,p1,p2,p3,atr_per,sl_mult,trail_mult,"
+                     "sharpe,trades,return_pct,dd_pct,win_rate,"
+                     "plateau,neighbors,plateau_ratio,rel_variance,"
+                     "wf_sharpe,wf_oos_is_ratio,wf_passed,"
+                     "wrc_p,wrc_sig,no_lookahead\n");
 
     SymbolRegistry registry;
-    // Pre-register ALL symbols so IDs are stable
     struct SymData { std::string name; SymbolId sid; std::vector<CsvBar> bars; std::vector<BarEvent> events; };
     std::vector<SymData> symData;
     for (const auto& csv : csvs) {
@@ -404,6 +634,8 @@ int main(int argc, char** argv) {
     }
 
     int total_combos = 0;
+    int total_promoted = 0;
+
     for (const auto& sd : symData) {
         for (const auto& [sname, fac] : strats) {
             const GridConfig* gc = nullptr;
@@ -411,7 +643,8 @@ int main(int argc, char** argv) {
             if (!gc) continue;
 
             for (auto em : emodes) {
-                std::vector<std::pair<Params, double>> results;
+                // ── Phase 1: Grid search ──
+                std::vector<GridResult> results;
                 for (int p1 : gc->p1) for (int p2 : gc->p2) for (double p3 : gc->p3)
                 for (int ea : {10,14,21}) for (double sl : {1.5,2.0,2.5}) {
                     total_combos++;
@@ -420,83 +653,73 @@ int main(int argc, char** argv) {
                     gp.exit_mode = em; gp.exit_atr_period = ea; gp.exit_sl_mult = sl;
                     gp.exit_trail_mult = 3.0; gp.exit_time_bars = (em == ExitMode::ChandelierTimeStop) ? 40 : 0;
                     gp.exit_be_r_mult = 1.0;
-                    try {
-                        auto strat = fac(1, sd.sid, registry, gp);
-                        BacktestConfig cfg; cfg.initialCapital = 10000.0; cfg.feeRate = 0.0004;
-                        BacktestRunner runner(cfg); runner.setStrategy(strat.get());
-                        auto r = runner.runBars(sd.events);
-                        auto s = r.computeStats();
-                        if (s.totalTrades >= 10) results.push_back({gp, s.sharpeRatio});
-                    } catch (...) {}
+
+                    auto rm = runSingle(fac, sd.sid, registry, gp, sd.events);
+                    if (rm.trades >= MIN_TRADES && std::isfinite(rm.sharpe)) {
+                        GridResult gr;
+                        gr.params = gp; gr.sharpe = rm.sharpe; gr.trades = rm.trades;
+                        gr.totalReturn = rm.totalReturn; gr.maxDrawdownPct = rm.maxDrawdownPct;
+                        gr.winRate = rm.winRate;
+                        results.push_back(std::move(gr));
+                    }
                 }
 
                 if (results.empty()) continue;
-                std::sort(results.begin(), results.end(), [](auto& a, auto& b) { return a.second > b.second; });
-                auto& bp = results[0].first; double bs = results[0].second;
 
-                // Plateau detection
-                int above = 0, total = 0;
-                for (size_t i = 1; i < results.size(); ++i) {
-                    if (std::abs(results[i].first.signal_p1 - bp.signal_p1) <= 2) {
-                        total++; if (results[i].second >= bs * 0.8) above++;
-                    }
-                }
-                bool plateau = total > 0 && double(above)/total >= 0.5 && bs > 0;
+                // ── Phase 2: Find best + plateau detection ──
+                std::sort(results.begin(), results.end(),
+                    [](const GridResult& a, const GridResult& b) { return a.sharpe > b.sharpe; });
 
-                // Walk-forward (simplified)
-                double wf_sharpe = 0;
-                if (plateau && bs > 0.3) {
-                    int folds = 5; size_t seg = sd.bars.size() / (folds * 2);
-                    if (seg >= 50) {
-                        double ss = 0; int vf = 0;
-                        for (int f = 0; f < folds; ++f) {
-                            size_t ts = f * seg * 2 + seg, te = std::min(ts + seg, sd.events.size());
-                            if (te <= ts) continue;
-                            try {
-                                auto strat = fac(1, sd.sid, registry, bp);
-                                BacktestConfig cfg; cfg.initialCapital = 10000.0; cfg.feeRate = 0.0004;
-                                BacktestRunner runner(cfg); runner.setStrategy(strat.get());
-                                std::vector<BarEvent> slice(sd.events.begin()+ts, sd.events.begin()+te);
-                                auto r = runner.runBars(slice); auto s = r.computeStats();
-                                ss += s.sharpeRatio; vf++;
-                            } catch (...) {}
-                        }
-                        if (vf > 0) wf_sharpe = ss / vf;
-                    }
-                }
+                size_t bestIdx = 0;
+                auto& bp = results[0].params;
+                double bs = results[0].sharpe;
+                size_t bt = results[0].trades;
 
-                // White's reality check (simplified)
+                auto plateau = detectPlateau(results, bestIdx, *gc);
+
+                // ── Phase 3: Walk-forward (always, not just on plateaus) ──
+                auto wf = walkForward(fac, sd.sid, registry, bp, sd.events);
+
+                // ── Phase 4: White's Reality Check on best strategy returns ──
+                auto bestRun = runSingle(fac, sd.sid, registry, bp, sd.events);
                 double wrc_p = 1.0;
-                if (plateau && bs > 0.3) {
-                    std::vector<double> rets; rets.reserve(sd.bars.size());
-                    for (size_t i = 1; i < sd.bars.size(); ++i)
-                        rets.push_back((sd.bars[i].close - sd.bars[i-1].close) / sd.bars[i-1].close);
-                    if (rets.size() >= 10) {
-                        double mean = std::accumulate(rets.begin(), rets.end(), 0.0) / rets.size();
-                        std::mt19937 rng(42); int exc = 0;
-                        for (int b = 0; b < 1000; ++b) {
-                            double bm = 0;
-                            for (size_t i = 0; i < rets.size(); ++i) bm += rets[rng() % rets.size()];
-                            bm /= rets.size(); if (bm >= mean) exc++;
-                        }
-                        wrc_p = double(exc) / 1000;
-                    }
+                if (bestRun.barReturns.size() >= 30 && bs > 0) {
+                    wrc_p = whitesRealityCheck(bestRun.barReturns);
                 }
+
+                // ── Phase 5: Lookahead guard ──
+                bool noLookahead = checkNoLookahead(fac, sd.sid, registry, bp, sd.events);
+
+                // ── Promotion gate ──
+                bool promoted = plateau.isPlateau && wf.passed && wrc_p < 0.05 && noLookahead && bs > 0;
+                if (promoted) total_promoted++;
 
                 std::string ems = em == ExitMode::Chandelier ? "chan" : em == ExitMode::ChandelierTimeStop ? "chan_ts" : "sig_be";
-                fmt::print("  {} | {} | sh={:.2f} tr={} pl={} wf={:.2f} wrc={:.3f}\n",
-                    sname, ems, bs, results.size(), plateau, wf_sharpe, wrc_p);
-                fmt::print(csvf, "{},{},{},{},{},{:.1f},{},{:.1f},{:.1f},{:.3f},{},{},{:.3f},{:.4f},{}\n",
+                fmt::print("  {} | {} | sh={:.2f} tr={} pl={}({} n={:.2f} var={:.2f}) "
+                           "wf={:.2f}(ratio={:.2f} folds={} {}) wrc={:.4f} la={}\n",
+                    sname, ems, bs, bt,
+                    plateau.isPlateau, plateau.neighborCount, plateau.neighborRatio, plateau.relVariance,
+                    wf.avgOosSharpe, wf.oosIsRatio, wf.validFolds, wf.passed ? "PASS" : "FAIL",
+                    wrc_p, noLookahead ? "OK" : "SUSPECT");
+
+                fmt::print(csvf, "{},{},{},{},{},{:.1f},{},{:.1f},{:.1f},"
+                                 "{:.3f},{},{:.2f},{:.2f},{:.2f},"
+                                 "{},{},{:.3f},{:.3f},"
+                                 "{:.3f},{:.3f},{},"
+                                 "{:.4f},{},{}\n",
                     sd.name, sname, ems, bp.signal_p1, bp.signal_p2, bp.signal_p3,
                     bp.exit_atr_period, bp.exit_sl_mult, bp.exit_trail_mult,
-                    bs, results.size(), plateau, wf_sharpe, wrc_p, wrc_p < 0.05);
+                    bs, bt, results[0].totalReturn, results[0].maxDrawdownPct, results[0].winRate,
+                    plateau.isPlateau, plateau.neighborCount, plateau.neighborRatio, plateau.relVariance,
+                    wf.avgOosSharpe, wf.oosIsRatio, wf.passed,
+                    wrc_p, wrc_p < 0.05, noLookahead);
             }
         }
         std::fflush(csvf);
-        fmt::print("  [{}] done, total combos={}\n", sd.name, total_combos);
+        fmt::print("  [{}] done, combos={}, promoted so far={}\n", sd.name, total_combos, total_promoted);
         std::fflush(stdout);
     }
     std::fclose(csvf);
-    fmt::print("\nTotal combos: {}\nResults: {}/grid_summary.csv\n", total_combos, out_dir);
+    fmt::print("\nTotal combos: {}\nPromoted: {}\nResults: {}/grid_summary.csv\n", total_combos, total_promoted, out_dir);
     return 0;
 }

@@ -1,8 +1,10 @@
 /*
- * Grid Search Main — 13 strategies with exact Python grid params, multi-threaded
+ * Grid Search Main — 13 strategies × 1594 combos × robustness validation
+ *
+ * Pipeline: Grid search → Min-trades filter → Neighborhood plateau → Walk-forward
  *
  * Build:  ./build.sh
- * Usage:  ./build/crush_grid data/BTCUSDT_4h.csv [num_threads]
+ * Usage:  ./build/crush_grid data/BTCUSDT_4h.csv [options]
  */
 
 #include "strategies/strategies.h"
@@ -21,7 +23,9 @@
 #include <mutex>
 #include <sstream>
 #include <thread>
+#include <unordered_map>
 
+namespace fs = std::filesystem;
 using namespace flox;
 using namespace flox::strategy;
 using namespace flox::util;
@@ -210,6 +214,215 @@ struct CombinedGrid
 };
 
 // =============================================================================
+// Axis definitions for neighborhood / plateau detection
+// =============================================================================
+
+struct AxisDef
+{
+    enum Type { INT, DOUBLE } type;
+    int ipSlot;                      // which ip[] slot (-1 if unused)
+    int dpSlot;                      // which dp[] slot (-1 if unused)
+    std::vector<int> intVals;
+    std::vector<double> dblVals;
+
+    size_t size() const { return type == INT ? intVals.size() : dblVals.size(); }
+
+    // Find index of value in axis. Returns -1 if not found.
+    int indexInAxis(const CombinedParams& p) const
+    {
+        if (type == INT) {
+            int v = p.ip[ipSlot];
+            for (size_t i = 0; i < intVals.size(); ++i)
+                if (intVals[i] == v) return static_cast<int>(i);
+        } else {
+            double v = p.dp[dpSlot];
+            for (size_t i = 0; i < dblVals.size(); ++i)
+                if (dblVals[i] == v) return static_cast<int>(i);
+        }
+        return -1;
+    }
+};
+
+struct StrategyAxisDefs
+{
+    std::vector<AxisDef> axes;
+};
+
+// Per-strategy axis definitions — extracted from CombinedGrid constructor
+static const StrategyAxisDefs g_axisDefs[NUM_STRATEGIES] = {
+    /* BOLLINGER_BREAKOUT */ {
+        { AxisDef{AxisDef::INT, 0,-1, {10,20,30,50}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {1.5,2.0,2.5,3.0}},
+          AxisDef{AxisDef::DOUBLE,-1,1, {}, {0.0,1.3,1.5}} }
+    },
+    /* DONCHIAN_BREAKOUT */ {
+        { AxisDef{AxisDef::INT, 0,-1, {10,15,20,30,40,55}, {}},
+          AxisDef{AxisDef::INT, 1,-1, {5,8,10,15,20}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {0.0,1.3,1.5,2.0}} }
+    },
+    /* DUAL_MOMENTUM */ {
+        { AxisDef{AxisDef::INT, 0,-1, {20,40,60,120}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {0.0,0.02,0.05}},
+          AxisDef{AxisDef::INT, 1,-1, {1,3,5}, {}} }
+    },
+    /* EMA_CROSSOVER */ {
+        { AxisDef{AxisDef::INT, 0,-1, {5,8,13,21,34}, {}},
+          AxisDef{AxisDef::INT, 1,-1, {21,34,55,89,144}, {}},
+          AxisDef{AxisDef::INT, 2,-1, {0,15,20,25}, {}} }
+    },
+    /* KELTNER_BREAKOUT */ {
+        { AxisDef{AxisDef::INT, 0,-1, {10,20,30,40,50,60,80}, {}},
+          AxisDef{AxisDef::INT, 1,-1, {10,14,20,30}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {2.0,2.5,2.8,3.0,3.2,3.5}},
+          AxisDef{AxisDef::DOUBLE,-1,1, {}, {0.0,0.005,0.008}} }
+    },
+    /* KELTNER_SQUEEZE */ {
+        { AxisDef{AxisDef::INT, 0,-1, {10,20,30}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {1.5,2.0,2.5}},
+          AxisDef{AxisDef::INT, 1,-1, {10,20,30}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,1, {}, {1.5,2.0,2.5}} }
+    },
+    /* MACD */ {
+        { AxisDef{AxisDef::INT, 0,-1, {8,12,16}, {}},
+          AxisDef{AxisDef::INT, 1,-1, {21,26,34}, {}},
+          AxisDef{AxisDef::INT, 2,-1, {7,9,12}, {}},
+          AxisDef{AxisDef::INT, 3,-1, {0,100,200}, {}} }
+    },
+    /* RSI_BB_MR */ {
+        { AxisDef{AxisDef::INT, 0,-1, {7,14,21}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {20.0,25.0,30.0}},
+          AxisDef{AxisDef::DOUBLE,-1,1, {}, {70.0,75.0,80.0}},
+          AxisDef{AxisDef::INT, 1,-1, {15,20,30}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,2, {}, {1.5,2.0,2.5}} }
+    },
+    /* RSI2 */ {
+        { AxisDef{AxisDef::INT, 0,-1, {2,3}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {5.0,10.0,15.0}},
+          AxisDef{AxisDef::DOUBLE,-1,1, {}, {85.0,90.0,95.0}},
+          AxisDef{AxisDef::INT, 1,-1, {50,100,200}, {}} }
+    },
+    /* SUPERTREND */ {
+        { AxisDef{AxisDef::INT, 0,-1, {7,10,14,20}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {2.0,2.5,3.0,3.5,4.0}},
+          AxisDef{AxisDef::INT, 1,-1, {0,20,25}, {}} }
+    },
+    /* TREND_PULLBACK */ {
+        { AxisDef{AxisDef::INT, 0,-1, {10,20,30}, {}},
+          AxisDef{AxisDef::INT, 1,-1, {50,100,150,200}, {}},
+          AxisDef{AxisDef::INT, 2,-1, {35,40,45}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {0.0,0.004,0.008}} }
+    },
+    /* TSMOM */ {
+        { AxisDef{AxisDef::INT, 0,-1, {20,40,60,80,120,160}, {}},
+          AxisDef{AxisDef::INT, 1,-1, {1,3,5,10}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {0.0,0.005,0.008}} }
+    },
+    /* VOL_COMPRESSION_BREAKOUT */ {
+        { AxisDef{AxisDef::INT, 0,-1, {20,30,40,60}, {}},
+          AxisDef{AxisDef::INT, 1,-1, {60,100,150}, {}},
+          AxisDef{AxisDef::DOUBLE,-1,0, {}, {0.2,0.3,0.4}},
+          AxisDef{AxisDef::DOUBLE,-1,1, {}, {0.0,1.3,1.5}} }
+    },
+};
+
+// =============================================================================
+// Neighbor map — find ±1 param step neighbors for plateau detection
+// =============================================================================
+
+struct NeighborInfo
+{
+    double plateauRatio = 0.0;      // fraction of profitable neighbors
+    double avgNeighborSharpe = 0.0;
+    int    neighborCount = 0;
+    int    profitableCount = 0;
+};
+
+class NeighborMap
+{
+public:
+    void build(const CombinedGrid& grid)
+    {
+        // Build param-string → index lookup
+        _paramIndex.clear();
+        for (size_t i = 0; i < grid.entries.size(); ++i)
+            _paramIndex[grid.entries[i].toString()] = i;
+    }
+
+    // Find all neighbors (±1 step in exactly one axis) for grid entry at idx
+    std::vector<size_t> findNeighbors(const CombinedParams& p) const
+    {
+        std::vector<size_t> neighbors;
+        int k = static_cast<int>(p.kind);
+        if (k < 0 || k >= NUM_STRATEGIES) return neighbors;
+
+        const auto& axes = g_axisDefs[k].axes;
+        for (const auto& axis : axes)
+        {
+            int curIdx = axis.indexInAxis(p);
+            if (curIdx < 0) continue;
+
+            for (int delta : {-1, +1})
+            {
+                int newIdx = curIdx + delta;
+                if (newIdx < 0 || static_cast<size_t>(newIdx) >= axis.size()) continue;
+
+                // Create neighbor params
+                CombinedParams nb = p;
+                if (axis.type == AxisDef::INT)
+                    nb.ip[axis.ipSlot] = axis.intVals[newIdx];
+                else
+                    nb.dp[axis.dpSlot] = axis.dblVals[newIdx];
+
+                // Look up in the grid
+                auto it = _paramIndex.find(nb.toString());
+                if (it != _paramIndex.end())
+                    neighbors.push_back(it->second);
+            }
+        }
+        return neighbors;
+    }
+
+    // Compute plateau info for all grid entries
+    std::vector<NeighborInfo> computePlateau(
+        const CombinedGrid& grid,
+        const std::vector<OptimizationResult<CombinedParams>>& results,
+        size_t minTrades) const
+    {
+        std::vector<NeighborInfo> info(grid.totalCombinations());
+
+        for (size_t i = 0; i < grid.totalCombinations(); ++i)
+        {
+            auto nbs = findNeighbors(grid[i]);
+            double sharpeSum = 0.0;
+            int profitable = 0;
+            int valid = 0;
+
+            for (size_t ni : nbs)
+            {
+                if (ni >= results.size()) continue;
+                // Count neighbor as valid if it has enough trades
+                if (results[ni].totalTrades() >= minTrades || results[ni].totalTrades() > 0)
+                {
+                    valid++;
+                    double s = results[ni].sharpeRatio();
+                    sharpeSum += s;
+                    if (s > 0.0) profitable++;
+                }
+            }
+
+            info[i].neighborCount = valid;
+            info[i].profitableCount = profitable;
+            info[i].plateauRatio = valid > 0 ? static_cast<double>(profitable) / static_cast<double>(valid) : 0.0;
+            info[i].avgNeighborSharpe = valid > 0 ? sharpeSum / static_cast<double>(valid) : 0.0;
+        }
+        return info;
+    }
+
+private:
+    std::unordered_map<std::string, size_t> _paramIndex;
+};
+
+// =============================================================================
 // Shared state
 // =============================================================================
 
@@ -285,6 +498,21 @@ BacktestResult runBacktest(const CombinedParams& p)
     return result;
 }
 
+// Run backtest on a slice of bars (for walk-forward)
+BacktestResult runBacktestOnSlice(const CombinedParams& p, const std::vector<BarEvent>& bars)
+{
+    BacktestConfig config;
+    config.initialCapital = g_initialCapital;
+    config.feeRate = g_feeRate;
+
+    BacktestRunner runner(config);
+    Strategy* strat = createStrategy(p);
+    runner.setStrategy(strat);
+    BacktestResult result = runner.runBars(bars);
+    delete strat;
+    return result;
+}
+
 // =============================================================================
 // Multi-threaded grid search
 // =============================================================================
@@ -327,37 +555,179 @@ std::vector<OptimizationResult<CombinedParams>> runParallel(
 }
 
 // =============================================================================
+// Walk-forward validation (custom, uses BacktestRunner::runBars with full OHLCV)
+// =============================================================================
+
+struct WfoFoldResult
+{
+    size_t foldIndex;
+    size_t trainStart, trainEnd;
+    size_t testStart, testEnd;
+    BacktestStats trainStats;
+    BacktestStats testStats;
+    double degradation;   // testSharpe / trainSharpe
+    bool passed;
+};
+
+std::vector<WfoFoldResult> runWalkForward(
+    const CombinedParams& p,
+    size_t numFolds,
+    size_t minTrainBars,
+    double minDegradation,
+    size_t wfoMinTrades)
+{
+    size_t totalBars = g_bars.size();
+    if (totalBars < minTrainBars + numFolds) return {};
+
+    size_t testSize = (totalBars - minTrainBars) / numFolds;
+    if (testSize == 0) return {};
+
+    std::vector<WfoFoldResult> folds;
+
+    for (size_t fold = 0; fold < numFolds; ++fold)
+    {
+        size_t trainEnd = minTrainBars + fold * testSize;
+        size_t testEnd = std::min(trainEnd + testSize, totalBars);
+
+        if (testEnd <= trainEnd || trainEnd < 1) break;
+
+        // Slice bars (anchored: train = [0, trainEnd), test = [trainEnd, testEnd))
+        std::vector<BarEvent> trainBars(g_bars.begin(), g_bars.begin() + trainEnd);
+        std::vector<BarEvent> testBars(g_bars.begin() + trainEnd, g_bars.begin() + testEnd);
+
+        BacktestResult trainBt = runBacktestOnSlice(p, trainBars);
+        auto trainStats = trainBt.computeStats();
+
+        BacktestResult testBt = runBacktestOnSlice(p, testBars);
+        auto testStats = testBt.computeStats();
+
+        double degradation = trainStats.sharpeRatio > 0.0
+            ? testStats.sharpeRatio / trainStats.sharpeRatio
+            : 0.0;
+
+        bool passed = testStats.sharpeRatio > 0.0
+            && testStats.totalTrades >= wfoMinTrades
+            && degradation >= minDegradation;
+
+        folds.push_back({fold, 0, trainEnd, trainEnd, testEnd,
+                         trainStats, testStats, degradation, passed});
+    }
+    return folds;
+}
+
+// =============================================================================
+// Enhanced result row (includes plateau + WFO)
+// =============================================================================
+
+struct RobustResult
+{
+    CombinedParams params;
+    double sharpe;
+    double sortino;
+    double calmar;
+    double totalReturn;
+    double maxDrawdownPct;
+    double winRate;
+    size_t totalTrades;
+    double plateauRatio;
+    double avgNeighborSharpe;
+    int neighborCount;
+    double robustScore;      // sharpe * plateauRatio
+    double wfoPassRate;      // -1 if WFO not run
+    double wfoAvgTestSharpe;
+};
+
+// =============================================================================
 // Per-strategy summary
 // =============================================================================
 
-void printPerStrategySummary(const std::vector<OptimizationResult<CombinedParams>>& results)
+void printPerStrategySummary(const std::vector<OptimizationResult<CombinedParams>>& results,
+                              const std::vector<NeighborInfo>& plateau)
 {
-    struct StratStats { size_t count = 0; double bestSharpe = -999; double avgSharpe = 0; double bestReturn = -999; std::string bestParams; };
+    struct StratStats {
+        size_t count = 0, profitable = 0;
+        double bestSharpe = -999, bestRobust = -999;
+        double avgSharpe = 0, avgPlateau = 0;
+    };
     StratStats stats[NUM_STRATEGIES];
 
-    for (const auto& r : results)
+    for (size_t i = 0; i < results.size(); ++i)
     {
-        int k = static_cast<int>(r.parameters.kind);
+        int k = static_cast<int>(results[i].parameters.kind);
         if (k < 0 || k >= NUM_STRATEGIES) continue;
         auto& s = stats[k];
         s.count++;
-        s.avgSharpe += r.sharpeRatio();
-        if (r.sharpeRatio() > s.bestSharpe) {
-            s.bestSharpe = r.sharpeRatio();
-            s.bestReturn = r.totalReturn();
-            s.bestParams = r.parameters.toString();
+        double sh = results[i].sharpeRatio();
+        s.avgSharpe += sh;
+        s.avgPlateau += plateau[i].plateauRatio;
+        if (sh > 0) s.profitable++;
+        double robust = sh * plateau[i].plateauRatio;
+        if (robust > s.bestRobust) {
+            s.bestRobust = robust;
+            s.bestSharpe = sh;
         }
     }
 
     std::cout << "\n=== Per-Strategy Summary ===\n";
-    std::cout << "Strategy                   | Combos | Best Sharpe | Best Return | Avg Sharpe\n";
-    std::cout << "---------------------------|--------|-------------|-------------|-----------\n";
+    std::cout << "Strategy                   | Combos | Profit% | Avg Plateau | Best Sharpe | Best Robust\n";
+    std::cout << "---------------------------|--------|---------|-------------|-------------|------------\n";
     for (int k = 0; k < NUM_STRATEGIES; ++k)
     {
         auto& s = stats[k];
-        double avg = s.count > 0 ? s.avgSharpe / static_cast<double>(s.count) : 0.0;
-        printf("%-26s | %6zu | %11.2f | %11.1f%% | %9.2f\n",
-               strategyName(static_cast<StrategyKind>(k)), s.count, s.bestSharpe, s.bestReturn, avg);
+        if (s.count == 0) continue;
+        double profitPct = static_cast<double>(s.profitable) / static_cast<double>(s.count) * 100.0;
+        double avgS = s.avgSharpe / static_cast<double>(s.count);
+        double avgP = s.avgPlateau / static_cast<double>(s.count);
+        printf("%-26s | %5zu  | %5.1f%%  | %11.2f | %11.2f | %10.2f\n",
+               strategyName(static_cast<StrategyKind>(k)), s.count, profitPct, avgP, s.bestSharpe, s.bestRobust);
+    }
+}
+
+// =============================================================================
+// Custom CSV export with robustness columns
+// =============================================================================
+
+void exportRobustCSV(const std::string& path, const std::vector<RobustResult>& rows)
+{
+    std::ofstream f(path);
+    if (!f.is_open()) { std::cerr << "Error: cannot write " << path << "\n"; return; }
+
+    f << "sharpe_ratio,sortino_ratio,calmar_ratio,total_return,max_drawdown_pct,win_rate,"
+      << "total_trades,parameters,plateau_ratio,avg_neighbor_sharpe,neighbor_count,robust_score,"
+      << "wfo_pass_rate,wfo_avg_test_sharpe\n";
+
+    f << std::fixed << std::setprecision(4);
+    for (const auto& r : rows)
+    {
+        f << r.sharpe << "," << r.sortino << "," << r.calmar << ","
+          << r.totalReturn << "," << r.maxDrawdownPct << "," << r.winRate << ","
+          << r.totalTrades << ",\"" << r.params.toString() << "\","
+          << r.plateauRatio << "," << r.avgNeighborSharpe << ","
+          << r.neighborCount << "," << r.robustScore << ","
+          << r.wfoPassRate << "," << r.wfoAvgTestSharpe << "\n";
+    }
+}
+
+void exportWfoCSV(const std::string& path, const std::vector<std::pair<CombinedParams, std::vector<WfoFoldResult>>>& wfoResults)
+{
+    std::ofstream f(path);
+    if (!f.is_open()) { std::cerr << "Error: cannot write " << path << "\n"; return; }
+
+    f << "fold,parameters,train_sharpe,train_return,train_trades,train_maxdd,"
+      << "test_sharpe,test_return,test_trades,test_maxdd,degradation,passed\n";
+
+    f << std::fixed << std::setprecision(4);
+    for (const auto& [params, folds] : wfoResults)
+    {
+        for (const auto& fold : folds)
+        {
+            f << fold.foldIndex << ",\"" << params.toString() << "\","
+              << fold.trainStats.sharpeRatio << "," << fold.trainStats.returnPct << ","
+              << fold.trainStats.totalTrades << "," << fold.trainStats.maxDrawdownPct << ","
+              << fold.testStats.sharpeRatio << "," << fold.testStats.returnPct << ","
+              << fold.testStats.totalTrades << "," << fold.testStats.maxDrawdownPct << ","
+              << fold.degradation << "," << (fold.passed ? 1 : 0) << "\n";
+        }
     }
 }
 
@@ -372,12 +742,19 @@ int main(int argc, char* argv[])
         std::cerr << "Usage: " << argv[0] << " <data.csv> [options]\n"
                   << "  --sizing-mode <mode>    all_equity|fixed_notional|percent_equity (default: fixed_notional)\n"
                   << "  --notional <usd>        Notional per trade for fixed_notional mode (default: 1000)\n"
-                  << "  --percent-equity <pct>  Equity fraction for percent_equity mode (default: 0.01 = 1%%)\n"
-                  << "  --leverage <mult>       Leverage multiplier for all modes (default: 1.0)\n"
+                  << "  --percent-equity <pct>  Equity fraction for percent_equity mode (default: 0.01)\n"
+                  << "  --leverage <mult>       Leverage multiplier (default: 1.0)\n"
                   << "  --min-trades <n>        Minimum trades filter (default: 30)\n"
                   << "  --threads <n>           Number of threads (default: all cores)\n"
                   << "  --capital <usd>         Initial capital (default: 10000)\n"
-                  << "  --fee <rate>            Fee rate (default: 0.0004 = 0.04%%)\n";
+                  << "  --fee <rate>            Fee rate (default: 0.0004)\n"
+                  << "  --wfo                   Enable walk-forward validation (default: on)\n"
+                  << "  --no-wfo                Disable walk-forward validation\n"
+                  << "  --top-k <n>             Top-K candidates for WFO (default: 50)\n"
+                  << "  --plateau-min <f>       Min plateau ratio (default: 0.3)\n"
+                  << "  --wfo-folds <n>         WFO folds (default: 5)\n"
+                  << "  --wfo-degrad <f>        Min degradation ratio (default: 0.3)\n"
+                  << "  --wfo-min-trades <n>    Min trades in test window (default: 5)\n";
         return 1;
     }
 
@@ -391,6 +768,12 @@ int main(int argc, char* argv[])
     size_t numThreads = std::thread::hardware_concurrency();
     double capital = 10000.0;
     double feeRate = 0.0004;
+    bool wfoEnabled = true;
+    size_t topK = 50;
+    double plateauMin = 0.3;
+    size_t wfoFolds = 5;
+    double wfoDegradation = 0.3;
+    size_t wfoMinTrades = 5;
 
     for (int i = 2; i < argc; ++i)
     {
@@ -409,24 +792,29 @@ int main(int argc, char* argv[])
         else if (arg == "--threads" && i + 1 < argc) { numThreads = std::stoul(argv[++i]); }
         else if (arg == "--capital" && i + 1 < argc) { capital = std::stod(argv[++i]); }
         else if (arg == "--fee" && i + 1 < argc) { feeRate = std::stod(argv[++i]); }
+        else if (arg == "--wfo") { wfoEnabled = true; }
+        else if (arg == "--no-wfo") { wfoEnabled = false; }
+        else if (arg == "--top-k" && i + 1 < argc) { topK = std::stoul(argv[++i]); }
+        else if (arg == "--plateau-min" && i + 1 < argc) { plateauMin = std::stod(argv[++i]); }
+        else if (arg == "--wfo-folds" && i + 1 < argc) { wfoFolds = std::stoul(argv[++i]); }
+        else if (arg == "--wfo-degrad" && i + 1 < argc) { wfoDegradation = std::stod(argv[++i]); }
+        else if (arg == "--wfo-min-trades" && i + 1 < argc) { wfoMinTrades = std::stoul(argv[++i]); }
         else { numThreads = std::stoul(arg); }  // backward compat: positional thread count
     }
     if (numThreads == 0) numThreads = 1;
 
-    // Extract coin name from filename (e.g., data/BTCUSDT_4h.csv -> BTCUSDT)
-    std::string coin = std::filesystem::path(csvPath).stem().string();
+    // Extract coin name from filename
+    std::string coin = fs::path(csvPath).stem().string();
     auto usdPos = coin.find("USDT");
     if (usdPos != std::string::npos) coin = coin.substr(0, usdPos + 4);
     else if (coin.find('_') != std::string::npos) coin = coin.substr(0, coin.find('_'));
 
-    // Set global sizing params for all strategies
+    // Set global sizing params
     g_sizingMode = sizingMode;
     g_notionalUsd = notional;
     g_percentEquity = percentEquity;
     g_leverage = leverage;
     g_capitalForSizing = capital;
-
-    // Backtest config
     g_initialCapital = capital;
     g_feeRate = feeRate;
 
@@ -434,15 +822,10 @@ int main(int argc, char* argv[])
     auto csvBars = readCsvBars(csvPath);
     if (csvBars.empty()) { std::cerr << "Error: no bars loaded\n"; return 1; }
 
-    // Compute bar period from data
     size_t numBars = csvBars.size();
-    double firstPrice = numBars > 0 ? csvBars[0].close : 0.0;
-    double lastPrice = numBars > 0 ? csvBars[numBars - 1].close : 0.0;
-    int64_t firstNs = numBars > 0 ? csvBars[0].timestampNs : 0;
-    int64_t lastNs = numBars > 0 ? csvBars[numBars - 1].timestampNs : 0;
-    double barHours = numBars > 1 ? static_cast<double>(lastNs - firstNs) / 1e9 / 3600.0 / static_cast<double>(numBars - 1) : 0.0;
+    double firstPrice = csvBars[0].close;
+    double lastPrice = csvBars[numBars - 1].close;
 
-    // Compute effective notional for display
     double effectiveNotional;
     const char* modeStr;
     switch (sizingMode) {
@@ -453,11 +836,9 @@ int main(int argc, char* argv[])
     }
 
     std::cerr << "Loaded " << numBars << " bars (" << coin << ")\n";
-    std::cerr << "  Period: " << barHours << "h bars | First: $" << firstPrice << " | Last: $" << lastPrice << "\n";
+    std::cerr << "  Period: First: $" << firstPrice << " | Last: $" << lastPrice << "\n";
     std::cerr << "  Sizing: " << modeStr << " | Notional: $" << effectiveNotional
               << " | Leverage: " << leverage << "x\n";
-    std::cerr << "  Qty per trade: $" << effectiveNotional << " / $" << lastPrice << " = "
-              << std::fixed << std::setprecision(6) << effectiveNotional / lastPrice << " " << coin << "\n";
 
     SymbolInfo info;
     info.id = g_symbolId;
@@ -465,55 +846,165 @@ int main(int argc, char* argv[])
     info.symbol = coin;
     info.tickSize = Price::fromDouble(0.01);
     g_registry.registerSymbol(info);
-
     g_bars = csvBarsToBarEvents(csvBars, g_symbolId);
 
     CombinedGrid grid;
     std::cerr << "\nGrid: " << grid.totalCombinations() << " combinations across " << NUM_STRATEGIES << " strategies\n";
     std::cerr << "Config: sizing=" << modeStr << " | notional=$" << effectiveNotional << " | capital=$" << capital
               << " | fee=" << (feeRate * 100) << "% | min-trades=" << minTrades
-              << " | " << numThreads << " threads\n\n";
+              << " | " << numThreads << " threads"
+              << " | WFO=" << (wfoEnabled ? "ON" : "OFF") << "\n\n";
 
+    // ===== Step 1: Grid search =====
     auto results = runParallel(grid, numThreads);
 
-    // Global ranking
-    auto ranked = BacktestOptimizer<CombinedParams, CombinedGrid>::rankResults(results, RankMetric::SharpeRatio);
+    // ===== Step 2: Neighborhood / Plateau detection =====
+    std::cerr << "Computing neighborhood plateau scores...\n";
+    NeighborMap nmap;
+    nmap.build(grid);
+    auto plateau = nmap.computePlateau(grid, results, minTrades);
 
-    // Filter by min-trades BEFORE display and export
-    std::vector<OptimizationResult<CombinedParams>> filtered;
-    for (const auto& r : ranked) {
-        if (r.totalTrades() >= minTrades) {
-            filtered.push_back(r);
-        }
+    size_t withPlateau = 0;
+    for (const auto& p : plateau)
+        if (p.plateauRatio >= plateauMin) ++withPlateau;
+    std::cerr << "  " << withPlateau << "/" << grid.totalCombinations()
+              << " have plateauRatio >= " << plateauMin << "\n";
+
+    // ===== Step 3: Filter + rank by robustScore =====
+    // Build robust results, filter by min-trades
+    std::vector<RobustResult> robustRows;
+    for (size_t i = 0; i < results.size(); ++i)
+    {
+        if (results[i].totalTrades() < minTrades) continue;
+
+        RobustResult rr;
+        rr.params = results[i].parameters;
+        rr.sharpe = results[i].sharpeRatio();
+        rr.sortino = results[i].sortinoRatio();
+        rr.calmar = results[i].calmarRatio();
+        rr.totalReturn = results[i].totalReturn();
+        rr.maxDrawdownPct = results[i].maxDrawdownPct();
+        rr.winRate = results[i].winRate();
+        rr.totalTrades = results[i].totalTrades();
+        rr.plateauRatio = plateau[i].plateauRatio;
+        rr.avgNeighborSharpe = plateau[i].avgNeighborSharpe;
+        rr.neighborCount = plateau[i].neighborCount;
+        rr.robustScore = rr.sharpe * rr.plateauRatio;
+        rr.wfoPassRate = -1.0;
+        rr.wfoAvgTestSharpe = 0.0;
+        robustRows.push_back(rr);
     }
 
-    std::cout << "\n=== Top 30 Results (" << coin << " | " << modeStr << " $" << effectiveNotional
-              << " | min " << minTrades << " trades | " << filtered.size() << " passed filter) ===\n";
-    int shown = 0;
-    for (size_t i = 0; i < filtered.size() && shown < 30; ++i)
+    // Sort by robustScore descending
+    std::sort(robustRows.begin(), robustRows.end(),
+              [](const RobustResult& a, const RobustResult& b) {
+                  return a.robustScore > b.robustScore;
+              });
+
+    // ===== Step 4: Walk-forward for top-K =====
+    std::vector<std::pair<CombinedParams, std::vector<WfoFoldResult>>> wfoAll;
+
+    if (wfoEnabled && !robustRows.empty())
     {
-        std::cout << shown + 1 << ". " << filtered[i].parameters.toString() << "\n"
-                  << "   Sharpe: " << std::fixed << std::setprecision(2) << filtered[i].sharpeRatio()
-                  << " | Return: " << std::setprecision(1) << filtered[i].totalReturn() << "%"
-                  << " | MaxDD: " << filtered[i].maxDrawdownPct() << "%"
-                  << " | Trades: " << filtered[i].totalTrades()
-                  << " | Win%: " << std::setprecision(1) << (filtered[i].winRate() * 100) << "\n";
+        // Only WFO candidates with decent plateau
+        std::vector<const RobustResult*> wfoCandidates;
+        for (const auto& rr : robustRows)
+        {
+            if (rr.plateauRatio >= plateauMin && wfoCandidates.size() < topK)
+                wfoCandidates.push_back(&rr);
+        }
+
+        std::cerr << "\nWalk-forward: " << wfoCandidates.size() << " candidates"
+                  << " | " << wfoFolds << " folds"
+                  << " | min degradation=" << wfoDegradation << "\n";
+
+        for (size_t ci = 0; ci < wfoCandidates.size(); ++ci)
+        {
+            const auto& cand = *wfoCandidates[ci];
+            auto folds = runWalkForward(cand.params, wfoFolds,
+                                        numBars / (wfoFolds + 1),  // minTrainBars
+                                        wfoDegradation, wfoMinTrades);
+            wfoAll.emplace_back(cand.params, folds);
+
+            // Update the robust result
+            size_t passCount = 0;
+            double testSharpeSum = 0.0;
+            for (const auto& f : folds)
+            {
+                if (f.passed) ++passCount;
+                testSharpeSum += f.testStats.sharpeRatio;
+            }
+            double passRate = folds.empty() ? 0.0 : static_cast<double>(passCount) / static_cast<double>(folds.size());
+            double avgTestSharpe = folds.empty() ? 0.0 : testSharpeSum / static_cast<double>(folds.size());
+
+            // Find and update the robust result
+            for (auto& rr : robustRows)
+            {
+                if (rr.params.toString() == cand.params.toString())
+                {
+                    rr.wfoPassRate = passRate;
+                    rr.wfoAvgTestSharpe = avgTestSharpe;
+                    break;
+                }
+            }
+
+            if ((ci + 1) % 10 == 0 || ci + 1 == wfoCandidates.size())
+                std::cerr << "\r  WFO: " << ci + 1 << "/" << wfoCandidates.size() << std::flush;
+        }
+        std::cerr << "\n";
+    }
+
+    // Re-sort by robustScore (now includes WFO data)
+    std::sort(robustRows.begin(), robustRows.end(),
+              [](const RobustResult& a, const RobustResult& b) {
+                  return a.robustScore > b.robustScore;
+              });
+
+    // ===== Step 5: Display results =====
+    std::cout << "\n=== Top 30 by Robust Score (" << coin << " | " << modeStr << " $" << effectiveNotional
+              << " | min " << minTrades << " trades | " << robustRows.size() << " passed filter) ===\n";
+    std::cout << "   Sharpe | Return   | Trades | Plateau | RobustScore | WFO Pass% | Params\n";
+    std::cout << "  --------|----------|--------|---------|-------------|-----------|-------\n";
+
+    int shown = 0;
+    for (size_t i = 0; i < robustRows.size() && shown < 30; ++i)
+    {
+        const auto& r = robustRows[i];
+        std::cout << std::fixed << std::setprecision(2);
+        std::cout << shown + 1 << ". "
+                  << std::setw(7) << r.sharpe << " | "
+                  << std::setw(8) << std::setprecision(1) << r.totalReturn << "% | "
+                  << std::setw(6) << r.totalTrades << " | "
+                  << std::setw(7) << std::setprecision(2) << r.plateauRatio << " | "
+                  << std::setw(11) << r.robustScore << " | ";
+        if (r.wfoPassRate >= 0)
+            std::cout << std::setw(9) << std::setprecision(0) << (r.wfoPassRate * 100) << "%";
+        else
+            std::cout << "      n/a";
+        std::cout << " | " << r.params.toString() << "\n";
         ++shown;
     }
     if (shown == 0) std::cout << "  (no strategies with >= " << minTrades << " trades)\n";
 
-    // Per-strategy breakdown (uses all results, not just filtered)
-    printPerStrategySummary(results);
+    // Per-strategy breakdown
+    printPerStrategySummary(results, plateau);
 
     // Statistical summary
     using Stats = OptimizationStatistics<CombinedParams, CombinedGrid>;
     Stats::printSummary(results);
 
-    // Export filtered results to results/ folder
-    std::filesystem::create_directories("results");
+    // ===== Step 6: Export =====
+    fs::create_directories("results");
     std::string csvOut = "results/" + coin + "_grid_results.csv";
-    BacktestOptimizer<CombinedParams, CombinedGrid>::exportToCSV(filtered, csvOut);
-    std::cerr << "\nExported " << filtered.size() << " results (>= " << minTrades << " trades) to " << csvOut << "\n";
+    exportRobustCSV(csvOut, robustRows);
+    std::cerr << "\nExported " << robustRows.size() << " results to " << csvOut << "\n";
+
+    if (wfoEnabled && !wfoAll.empty())
+    {
+        std::string wfoOut = "results/" + coin + "_wfo_results.csv";
+        exportWfoCSV(wfoOut, wfoAll);
+        std::cerr << "Exported WFO results to " << wfoOut << "\n";
+    }
 
     return 0;
 }
