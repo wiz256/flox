@@ -28,13 +28,21 @@ constexpr int    MIN_TRADES      = 30;
 constexpr int    WF_FOLDS        = 5;
 constexpr double WF_TRAIN_PCT    = 0.7;
 constexpr double WF_PASS_RATIO   = 0.6;
+constexpr int    WF_PURGE_BARS   = 24;
+constexpr int    WF_MIN_IS_TRADES  = 10;
+constexpr int    WF_MIN_OOS_TRADES = 5;
 
 constexpr double PLATEAU_VAR_THRESH = 0.15;
 constexpr int    WRC_BOOTSTRAPS  = 5000;
 
 // ── Sizing ─────────────────────────────────────────────────────────────
-inline Quantity qtyFromNotional(double price) {
+enum class SizingMode : uint8_t { AllEquity, FixedNotional };
+
+inline Quantity qtyForTrade(double price, SizingMode mode) {
     if (price <= 0.0) return Quantity::fromDouble(0.0);
+    if (mode == SizingMode::AllEquity) {
+        return Quantity::fromDouble(INITIAL_CAPITAL / price);
+    }
     return Quantity::fromDouble(NOTIONAL_USD / price);
 }
 
@@ -125,8 +133,9 @@ public:
 // ── Base Strategy ──────────────────────────────────────────────────────
 class BaseStrategy : public Strategy {
 public:
-    BaseStrategy(SubscriberId sid, SymbolId sym, const SymbolRegistry& reg, const Params& p)
-        : Strategy(sid, sym, reg), p_(p), exitAtr_(p.exit_atr_period) {}
+    BaseStrategy(SubscriberId sid, SymbolId sym, const SymbolRegistry& reg, const Params& p,
+                 SizingMode sizing = SizingMode::FixedNotional)
+        : Strategy(sid, sym, reg), p_(p), exitAtr_(p.exit_atr_period), sizing_(sizing) {}
 
 protected:
     void onSymbolBar(SymbolContext& ctx, const BarEvent& ev) override {
@@ -145,12 +154,12 @@ protected:
     virtual void onBarImpl(double h, double l, double c) = 0;
 
     void enterLong(SymbolId sym, double price) {
-        emitMarketBuy(sym, qtyFromNotional(price));
+        emitMarketBuy(sym, qtyForTrade(price, sizing_));
         entryPrice_ = price; highSince_ = price; lowSince_ = price;
         barsInTrade_ = 0; side_ = 1; beAct_ = false; trail_ = 0;
     }
     void enterShort(SymbolId sym, double price) {
-        emitMarketSell(sym, qtyFromNotional(price));
+        emitMarketSell(sym, qtyForTrade(price, sizing_));
         entryPrice_ = price; highSince_ = price; lowSince_ = price;
         barsInTrade_ = 0; side_ = -1; beAct_ = false; trail_ = 0;
     }
@@ -188,6 +197,7 @@ protected:
 
     const Params p_;
     StreamAtr exitAtr_;
+    SizingMode sizing_;
     std::vector<double> closes_, highs_, lows_;
     bool beAct_ = false;
     int side_ = 0, barsInTrade_ = 0;
@@ -231,8 +241,8 @@ public:
 class EmaCrossStrat final : public BaseStrategy {
     StreamEma fast_, slow_; bool prevAbove_ = false;
 public:
-    EmaCrossStrat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
-        : BaseStrategy(sid, s, r, p), fast_(p.signal_p1), slow_(p.signal_p2) {}
+    EmaCrossStrat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz = SizingMode::FixedNotional)
+        : BaseStrategy(sid, s, r, p, sz), fast_(p.signal_p1), slow_(p.signal_p2) {}
     void onBarImpl(double, double, double c) override {
         fast_.update(c); slow_.update(c);
         if (!fast_.ready() || !slow_.ready()) return;
@@ -249,8 +259,8 @@ public:
 class KeltnerBrkStrat final : public BaseStrategy {
     StreamEma ema_; StreamAtr atr_; double mult_;
 public:
-    KeltnerBrkStrat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
-        : BaseStrategy(sid, s, r, p), ema_(p.signal_p1), atr_(p.signal_p1), mult_(p.signal_p3) {}
+    KeltnerBrkStrat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz = SizingMode::FixedNotional)
+        : BaseStrategy(sid, s, r, p, sz), ema_(p.signal_p1), atr_(p.signal_p1), mult_(p.signal_p3) {}
     void onBarImpl(double h, double l, double c) override {
         ema_.update(c); atr_.update(h, l, c);
         if (!ema_.ready() || !atr_.ready()) return;
@@ -266,8 +276,8 @@ public:
 class SupertrendStrat final : public BaseStrategy {
     StreamAtr atr_; double mult_; double upper_ = 0, lower_ = 0, prevC_ = 0; int prevDir_ = 0; bool init_ = false;
 public:
-    SupertrendStrat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
-        : BaseStrategy(sid, s, r, p), atr_(p.signal_p1), mult_(p.signal_p3) {}
+    SupertrendStrat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz = SizingMode::FixedNotional)
+        : BaseStrategy(sid, s, r, p, sz), atr_(p.signal_p1), mult_(p.signal_p3) {}
     void onBarImpl(double h, double l, double c) override {
         atr_.update(h, l, c);
         if (!atr_.ready()) return;
@@ -311,8 +321,8 @@ public:
 class Rsi2Strat final : public BaseStrategy {
     StreamRsi rsi_; StreamSma sma_;
 public:
-    Rsi2Strat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
-        : BaseStrategy(sid, s, r, p), rsi_(p.signal_p1), sma_(p.signal_p2) {}
+    Rsi2Strat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz = SizingMode::FixedNotional)
+        : BaseStrategy(sid, s, r, p, sz), rsi_(p.signal_p1), sma_(p.signal_p2) {}
     void onBarImpl(double, double, double c) override {
         rsi_.update(c); sma_.update(c);
         if (!rsi_.ready() || !sma_.ready()) return;
@@ -328,8 +338,8 @@ public:
 class RsiBbMrStrat final : public BaseStrategy {
     StreamRsi rsi_; StreamSma bbSma_; StreamStddev bbStd_; double bbMult_;
 public:
-    RsiBbMrStrat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
-        : BaseStrategy(sid, s, r, p), rsi_(p.signal_p1), bbSma_(p.signal_p2), bbStd_(p.signal_p2), bbMult_(p.signal_p3) {}
+    RsiBbMrStrat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz = SizingMode::FixedNotional)
+        : BaseStrategy(sid, s, r, p, sz), rsi_(p.signal_p1), bbSma_(p.signal_p2), bbStd_(p.signal_p2), bbMult_(p.signal_p3) {}
     void onBarImpl(double, double, double c) override {
         rsi_.update(c); bbSma_.update(c); bbStd_.update(c);
         if (!rsi_.ready() || !bbSma_.ready() || !bbStd_.ready()) return;
@@ -344,18 +354,18 @@ public:
 };
 
 // ── Factory ────────────────────────────────────────────────────────────
-using Factory = std::function<std::unique_ptr<BaseStrategy>(SubscriberId, SymbolId, const SymbolRegistry&, const Params&)>;
+using Factory = std::function<std::unique_ptr<BaseStrategy>(SubscriberId, SymbolId, const SymbolRegistry&, const Params&, SizingMode)>;
 
 std::vector<std::pair<std::string, Factory>> allStrats() {
     return {
-        {"donchian", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p) { return std::make_unique<DonchianStrat>(sid, s, r, p); }},
-        {"dual_momentum", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p) { return std::make_unique<DualMomStrat>(sid, s, r, p); }},
-        {"ema_crossover", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p) { return std::make_unique<EmaCrossStrat>(sid, s, r, p); }},
-        {"keltner_breakout", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p) { return std::make_unique<KeltnerBrkStrat>(sid, s, r, p); }},
-        {"supertrend", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p) { return std::make_unique<SupertrendStrat>(sid, s, r, p); }},
-        {"tsmom", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p) { return std::make_unique<TsmomStrat>(sid, s, r, p); }},
-        {"rsi2", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p) { return std::make_unique<Rsi2Strat>(sid, s, r, p); }},
-        {"rsi_bb_mr", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p) { return std::make_unique<RsiBbMrStrat>(sid, s, r, p); }},
+        {"donchian", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz) { return std::make_unique<DonchianStrat>(sid, s, r, p, sz); }},
+        {"dual_momentum", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz) { return std::make_unique<DualMomStrat>(sid, s, r, p, sz); }},
+        {"ema_crossover", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz) { return std::make_unique<EmaCrossStrat>(sid, s, r, p, sz); }},
+        {"keltner_breakout", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz) { return std::make_unique<KeltnerBrkStrat>(sid, s, r, p, sz); }},
+        {"supertrend", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz) { return std::make_unique<SupertrendStrat>(sid, s, r, p, sz); }},
+        {"tsmom", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz) { return std::make_unique<TsmomStrat>(sid, s, r, p, sz); }},
+        {"rsi2", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz) { return std::make_unique<Rsi2Strat>(sid, s, r, p, sz); }},
+        {"rsi_bb_mr", [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz) { return std::make_unique<RsiBbMrStrat>(sid, s, r, p, sz); }},
     };
 }
 
@@ -394,10 +404,11 @@ struct RunMetrics {
 };
 
 RunMetrics runSingle(const Factory& fac, SymbolId sid, const SymbolRegistry& reg,
-                     const Params& p, const std::vector<BarEvent>& events) {
+                     const Params& p, const std::vector<BarEvent>& events,
+                     SizingMode sizing = SizingMode::FixedNotional) {
     RunMetrics rm;
     try {
-        auto strat = fac(1, sid, reg, p);
+        auto strat = fac(1, sid, reg, p, sizing);
         BacktestConfig cfg; cfg.initialCapital = INITIAL_CAPITAL; cfg.feeRate = FEE_RATE;
         BacktestRunner runner(cfg); runner.setStrategy(strat.get());
         auto r = runner.runBars(events);
@@ -484,33 +495,37 @@ struct WFResult {
 };
 
 WFResult walkForward(const Factory& fac, SymbolId sid, const SymbolRegistry& reg,
-                     const Params& p, const std::vector<BarEvent>& events) {
+                     const Params& p, const std::vector<BarEvent>& events,
+                     SizingMode sizing = SizingMode::FixedNotional) {
     WFResult wf;
     size_t n = events.size();
     size_t windowSize = n / WF_FOLDS;
     size_t trainSize = size_t(windowSize * WF_TRAIN_PCT);
+    size_t purge = std::min(size_t(WF_PURGE_BARS), windowSize / 10);
 
     if (windowSize < 50 || trainSize < 30) return wf;
 
     double totalIs = 0, totalOos = 0;
-    int vf = 0;
+    int vf = 0, foldsPass = 0;
 
     for (int f = 0; f < WF_FOLDS; ++f) {
         size_t offset = f * windowSize;
         size_t trainEnd = offset + trainSize;
+        size_t testStart = trainEnd + purge;
         size_t testEnd = std::min(offset + windowSize, n);
-        if (trainEnd >= testEnd || trainEnd >= n) continue;
+        if (testStart >= testEnd || testStart >= n) continue;
 
         std::vector<BarEvent> trainSlice(events.begin() + offset, events.begin() + ptrdiff_t(trainEnd));
-        std::vector<BarEvent> testSlice(events.begin() + ptrdiff_t(trainEnd), events.begin() + ptrdiff_t(testEnd));
+        std::vector<BarEvent> testSlice(events.begin() + ptrdiff_t(testStart), events.begin() + ptrdiff_t(testEnd));
 
-        auto isR = runSingle(fac, sid, reg, p, trainSlice);
-        auto oosR = runSingle(fac, sid, reg, p, testSlice);
+        auto isR = runSingle(fac, sid, reg, p, trainSlice, sizing);
+        auto oosR = runSingle(fac, sid, reg, p, testSlice, sizing);
 
-        if (isR.trades >= MIN_TRADES / 2 && oosR.trades >= 5) {
+        if (isR.trades >= WF_MIN_IS_TRADES && oosR.trades >= WF_MIN_OOS_TRADES) {
             totalIs += isR.sharpe;
             totalOos += oosR.sharpe;
             vf++;
+            if (oosR.sharpe > 0) foldsPass++;
         }
     }
 
@@ -519,7 +534,8 @@ WFResult walkForward(const Factory& fac, SymbolId sid, const SymbolRegistry& reg
     wf.avgOosSharpe = totalOos / vf;
     double avgIs = totalIs / vf;
     wf.oosIsRatio = (std::abs(avgIs) > 1e-10) ? wf.avgOosSharpe / avgIs : 0;
-    wf.passed = wf.oosIsRatio >= WF_PASS_RATIO && wf.avgOosSharpe > 0;
+    double foldPassPct = double(foldsPass) / vf;
+    wf.passed = wf.oosIsRatio >= WF_PASS_RATIO && wf.avgOosSharpe > 0 && foldPassPct >= 0.6;
     return wf;
 }
 
@@ -566,15 +582,15 @@ double whitesRealityCheck(const std::vector<double>& strategyReturns,
 // Verify signals use only past data: run on full data, then on truncated
 // data (last 20% removed). First 80% of signals must be identical.
 bool checkNoLookahead(const Factory& fac, SymbolId sid, const SymbolRegistry& reg,
-                      const Params& p, const std::vector<BarEvent>& events) {
+                      const Params& p, const std::vector<BarEvent>& events,
+                      SizingMode sizing = SizingMode::FixedNotional) {
     if (events.size() < 100) return true;
     size_t cutoff = events.size() * 80 / 100;
 
-    auto fullR = runSingle(fac, sid, reg, p, events);
+    auto fullR = runSingle(fac, sid, reg, p, events, sizing);
     std::vector<BarEvent> truncated(events.begin(), events.begin() + ptrdiff_t(cutoff));
-    auto truncR = runSingle(fac, sid, reg, p, truncated);
+    auto truncR = runSingle(fac, sid, reg, p, truncated, sizing);
 
-    // Same number of trades (within 1) on the truncated portion means no lookahead
     size_t fullTradesInTrunc = fullR.trades * 80 / 100;
     return std::abs(int(fullTradesInTrunc) - int(truncR.trades)) <= int(fullTradesInTrunc * 0.15 + 1);
 }
@@ -582,21 +598,26 @@ bool checkNoLookahead(const Factory& fac, SymbolId sid, const SymbolRegistry& re
 // ── Main ───────────────────────────────────────────────────────────────
 int main(int argc, char** argv) {
     std::string data_dir = "data", tf = "4h", out_dir = "results";
-    int max_sym = 0;
+    int max_sym = 0, years_back = 0;
+    SizingMode sizingMode = SizingMode::FixedNotional;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--data-dir" && i + 1 < argc) data_dir = argv[++i];
         else if (a == "--tf" && i + 1 < argc) tf = argv[++i];
         else if (a == "--output" && i + 1 < argc) out_dir = argv[++i];
         else if (a == "--max-symbols" && i + 1 < argc) max_sym = std::stoi(argv[++i]);
+        else if (a == "--years-back" && i + 1 < argc) years_back = std::stoi(argv[++i]);
+        else if (a == "--sizing" && i + 1 < argc) { std::string m = argv[++i]; sizingMode = (m == "all_equity") ? SizingMode::AllEquity : SizingMode::FixedNotional; }
     }
     fs::create_directories(out_dir);
 
     auto csvs = findCsvFiles(data_dir, tf);
     if (max_sym > 0 && int(csvs.size()) > max_sym) csvs.resize(max_sym);
-    fmt::print("=== CRUSH Grid Search v2 ===\n");
-    fmt::print("Data:{} TF:{} Symbols:{} Notional:${:.0f} MinTrades:{}\n\n",
-               data_dir, tf, csvs.size(), NOTIONAL_USD, MIN_TRADES);
+    fmt::print("=== CRUSH Grid Search v3 ===\n");
+    fmt::print("Data:{} TF:{} Symbols:{} Years:{} Sizing:{} MinTrades:{}\n\n",
+               data_dir, tf, csvs.size(), years_back > 0 ? std::to_string(years_back) : "all",
+               sizingMode == SizingMode::AllEquity ? "all_equity" : "fixed_1k",
+               MIN_TRADES);
 
     auto strats = allStrats();
     std::vector<ExitMode> emodes = {ExitMode::Chandelier, ExitMode::ChandelierTimeStop, ExitMode::SignalBETrail};
@@ -626,6 +647,17 @@ int main(int argc, char** argv) {
         std::string sym = fn; auto pos = sym.find("USDT"); if (pos != std::string::npos) sym = sym.substr(0, pos + 4);
         auto bars = loadCsv(csv);
         if (bars.empty()) continue;
+
+        // Truncate to last N years if requested
+        if (years_back > 0 && bars.size() > 1) {
+            int64_t lastTs = bars.back().timestamp_ms;
+            int64_t cutoffTs = lastTs - int64_t(years_back) * 365LL * 24 * 3600 * 1000;
+            auto it = std::find_if(bars.begin(), bars.end(),
+                [cutoffTs](const CsvBar& b) { return b.timestamp_ms >= cutoffTs; });
+            bars.erase(bars.begin(), it);
+        }
+        if (bars.empty()) continue;
+
         SymbolInfo info; info.exchange = "binance"; info.symbol = sym; info.tickSize = Price::fromDouble(0.01);
         auto sid = registry.registerSymbol(info);
         auto events = csvToBarEvents(bars, sid);
@@ -646,15 +678,16 @@ int main(int argc, char** argv) {
                 // ── Phase 1: Grid search ──
                 std::vector<GridResult> results;
                 for (int p1 : gc->p1) for (int p2 : gc->p2) for (double p3 : gc->p3)
-                for (int ea : {10,14,21}) for (double sl : {1.5,2.0,2.5}) {
+                for (int ea : {10,14,21}) for (double sl : {0.8,1.0,1.2,1.5,2.0})
+                for (double trail : {1.8,2.5,3.0,3.5,4.0}) {
                     total_combos++;
                     Params gp; gp.symbol = sd.name; gp.signal_p1 = p1;
                     gp.signal_p2 = p2 > 0 ? p2 : p1; gp.signal_p3 = p3 == 0 ? 2.0 : p3;
                     gp.exit_mode = em; gp.exit_atr_period = ea; gp.exit_sl_mult = sl;
-                    gp.exit_trail_mult = 3.0; gp.exit_time_bars = (em == ExitMode::ChandelierTimeStop) ? 40 : 0;
+                    gp.exit_trail_mult = trail; gp.exit_time_bars = (em == ExitMode::ChandelierTimeStop) ? 40 : 0;
                     gp.exit_be_r_mult = 1.0;
 
-                    auto rm = runSingle(fac, sd.sid, registry, gp, sd.events);
+                    auto rm = runSingle(fac, sd.sid, registry, gp, sd.events, sizingMode);
                     if (rm.trades >= MIN_TRADES && std::isfinite(rm.sharpe)) {
                         GridResult gr;
                         gr.params = gp; gr.sharpe = rm.sharpe; gr.trades = rm.trades;
@@ -678,17 +711,17 @@ int main(int argc, char** argv) {
                 auto plateau = detectPlateau(results, bestIdx, *gc);
 
                 // ── Phase 3: Walk-forward (always, not just on plateaus) ──
-                auto wf = walkForward(fac, sd.sid, registry, bp, sd.events);
+                auto wf = walkForward(fac, sd.sid, registry, bp, sd.events, sizingMode);
 
                 // ── Phase 4: White's Reality Check on best strategy returns ──
-                auto bestRun = runSingle(fac, sd.sid, registry, bp, sd.events);
+                auto bestRun = runSingle(fac, sd.sid, registry, bp, sd.events, sizingMode);
                 double wrc_p = 1.0;
                 if (bestRun.barReturns.size() >= 30 && bs > 0) {
                     wrc_p = whitesRealityCheck(bestRun.barReturns);
                 }
 
                 // ── Phase 5: Lookahead guard ──
-                bool noLookahead = checkNoLookahead(fac, sd.sid, registry, bp, sd.events);
+                bool noLookahead = checkNoLookahead(fac, sd.sid, registry, bp, sd.events, sizingMode);
 
                 // ── Promotion gate ──
                 bool promoted = plateau.isPlateau && wf.passed && wrc_p < 0.05 && noLookahead && bs > 0;

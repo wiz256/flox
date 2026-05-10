@@ -555,7 +555,8 @@ std::vector<OptimizationResult<CombinedParams>> runParallel(
 }
 
 // =============================================================================
-// Walk-forward validation (custom, uses BacktestRunner::runBars with full OHLCV)
+// Walk-forward validation — rolling WFO with embargo (matches Trader7 config)
+// Uses BacktestRunner::runBars with full OHLCV (not FLOX's WalkForwardRunner)
 // =============================================================================
 
 struct WfoFoldResult
@@ -566,34 +567,47 @@ struct WfoFoldResult
     BacktestStats trainStats;
     BacktestStats testStats;
     double degradation;   // testSharpe / trainSharpe
+    bool skipped;         // skipped due to insufficient trades
     bool passed;
 };
 
+// Rolling WFO: fixed-size train window slides forward, test window follows with embargo gap.
+// Matches Trader7 quant_scout-7 config: 70% IS, 30% OOS, 24-bar embargo, per-fold trade gating.
 std::vector<WfoFoldResult> runWalkForward(
     const CombinedParams& p,
     size_t numFolds,
-    size_t minTrainBars,
-    double minDegradation,
-    size_t wfoMinTrades)
+    double isPct,           // fraction of fold period for in-sample (default 0.70)
+    size_t embargoBars,     // gap between train end and test start (default 24)
+    size_t minIsTrades,     // minimum trades in IS fold (default 50)
+    size_t minOosTrades,    // minimum trades in OOS fold (default 10)
+    double oosVsIsRatio,    // minimum OOS/IS Sharpe ratio (default 0.60)
+    double foldPassPct)     // fraction of folds that must pass (default 0.60)
 {
     size_t totalBars = g_bars.size();
-    if (totalBars < minTrainBars + numFolds) return {};
 
-    size_t testSize = (totalBars - minTrainBars) / numFolds;
-    if (testSize == 0) return {};
+    // Compute fold period: divide total bars into N folds
+    size_t foldPeriod = totalBars / numFolds;
+    if (foldPeriod < embargoBars + 100) return {};  // need enough bars per fold
+
+    size_t trainSize = static_cast<size_t>(static_cast<double>(foldPeriod) * isPct);
+    size_t testSize = foldPeriod - trainSize - embargoBars;
+    if (trainSize < 50 || testSize < 20) return {};
 
     std::vector<WfoFoldResult> folds;
 
     for (size_t fold = 0; fold < numFolds; ++fold)
     {
-        size_t trainEnd = minTrainBars + fold * testSize;
-        size_t testEnd = std::min(trainEnd + testSize, totalBars);
+        size_t foldStart = fold * foldPeriod;
+        size_t trainStart = foldStart;
+        size_t trainEnd = foldStart + trainSize;
+        size_t testStart = trainEnd + embargoBars;  // embargo gap
+        size_t testEnd = std::min(testStart + testSize, totalBars);
 
-        if (testEnd <= trainEnd || trainEnd < 1) break;
+        if (testEnd <= testStart || trainEnd > totalBars) break;
 
-        // Slice bars (anchored: train = [0, trainEnd), test = [trainEnd, testEnd))
-        std::vector<BarEvent> trainBars(g_bars.begin(), g_bars.begin() + trainEnd);
-        std::vector<BarEvent> testBars(g_bars.begin() + trainEnd, g_bars.begin() + testEnd);
+        // Slice bars: rolling window (not anchored)
+        std::vector<BarEvent> trainBars(g_bars.begin() + trainStart, g_bars.begin() + trainEnd);
+        std::vector<BarEvent> testBars(g_bars.begin() + testStart, g_bars.begin() + testEnd);
 
         BacktestResult trainBt = runBacktestOnSlice(p, trainBars);
         auto trainStats = trainBt.computeStats();
@@ -601,18 +615,36 @@ std::vector<WfoFoldResult> runWalkForward(
         BacktestResult testBt = runBacktestOnSlice(p, testBars);
         auto testStats = testBt.computeStats();
 
+        // Skip fold if insufficient trades
+        bool skipped = (trainStats.totalTrades < minIsTrades || testStats.totalTrades < minOosTrades);
+
         double degradation = trainStats.sharpeRatio > 0.0
             ? testStats.sharpeRatio / trainStats.sharpeRatio
             : 0.0;
 
-        bool passed = testStats.sharpeRatio > 0.0
-            && testStats.totalTrades >= wfoMinTrades
-            && degradation >= minDegradation;
+        // Per-fold pass: OOS Sharpe > 0, OOS/IS ratio >= threshold, enough trades
+        bool passed = !skipped
+            && testStats.sharpeRatio > 0.0
+            && degradation >= oosVsIsRatio;
 
-        folds.push_back({fold, 0, trainEnd, trainEnd, testEnd,
-                         trainStats, testStats, degradation, passed});
+        folds.push_back({fold, trainStart, trainEnd, testStart, testEnd,
+                         trainStats, testStats, degradation, skipped, passed});
     }
+
     return folds;
+}
+
+// Evaluate overall WFO pass/fail for a set of folds
+// Returns pass rate (0-1). Overall pass if passRate >= foldPassPct.
+double wfoPassRate(const std::vector<WfoFoldResult>& folds, double foldPassPct)
+{
+    if (folds.empty()) return 0.0;
+    size_t nonSkipped = 0, passed = 0;
+    for (const auto& f : folds)
+    {
+        if (!f.skipped) { nonSkipped++; if (f.passed) passed++; }
+    }
+    return nonSkipped > 0 ? static_cast<double>(passed) / static_cast<double>(nonSkipped) : 0.0;
 }
 
 // =============================================================================
@@ -752,9 +784,14 @@ int main(int argc, char* argv[])
                   << "  --no-wfo                Disable walk-forward validation\n"
                   << "  --top-k <n>             Top-K candidates for WFO (default: 50)\n"
                   << "  --plateau-min <f>       Min plateau ratio (default: 0.3)\n"
+                  << "  --recent-years <n>      Use only last N years of data (default: 0=all)\n"
                   << "  --wfo-folds <n>         WFO folds (default: 5)\n"
-                  << "  --wfo-degrad <f>        Min degradation ratio (default: 0.3)\n"
-                  << "  --wfo-min-trades <n>    Min trades in test window (default: 5)\n";
+                  << "  --wfo-is-pct <f>        IS fraction per fold (default: 0.70)\n"
+                  << "  --wfo-embargo <n>       Embargo bars between IS/OOS (default: 24)\n"
+                  << "  --wfo-min-is-trades <n> Min IS trades per fold (default: 50)\n"
+                  << "  --wfo-min-oos-trades <n> Min OOS trades per fold (default: 10)\n"
+                  << "  --wfo-degrad <f>        Min OOS/IS Sharpe ratio (default: 0.60)\n"
+                  << "  --wfo-fold-pass <f>     Fraction of folds that must pass (default: 0.60)\n";
         return 1;
     }
 
@@ -771,9 +808,14 @@ int main(int argc, char* argv[])
     bool wfoEnabled = true;
     size_t topK = 50;
     double plateauMin = 0.3;
+    double recentYears = 0.0;  // 0 = use all data
     size_t wfoFolds = 5;
-    double wfoDegradation = 0.3;
-    size_t wfoMinTrades = 5;
+    double wfoIsPct = 0.70;
+    size_t wfoEmbargo = 24;
+    size_t wfoMinIsTrades = 50;
+    size_t wfoMinOosTrades = 10;
+    double wfoDegradation = 0.60;
+    double wfoFoldPassPct = 0.60;
 
     for (int i = 2; i < argc; ++i)
     {
@@ -796,9 +838,14 @@ int main(int argc, char* argv[])
         else if (arg == "--no-wfo") { wfoEnabled = false; }
         else if (arg == "--top-k" && i + 1 < argc) { topK = std::stoul(argv[++i]); }
         else if (arg == "--plateau-min" && i + 1 < argc) { plateauMin = std::stod(argv[++i]); }
+        else if (arg == "--recent-years" && i + 1 < argc) { recentYears = std::stod(argv[++i]); }
         else if (arg == "--wfo-folds" && i + 1 < argc) { wfoFolds = std::stoul(argv[++i]); }
+        else if (arg == "--wfo-is-pct" && i + 1 < argc) { wfoIsPct = std::stod(argv[++i]); }
+        else if (arg == "--wfo-embargo" && i + 1 < argc) { wfoEmbargo = std::stoul(argv[++i]); }
+        else if (arg == "--wfo-min-is-trades" && i + 1 < argc) { wfoMinIsTrades = std::stoul(argv[++i]); }
+        else if (arg == "--wfo-min-oos-trades" && i + 1 < argc) { wfoMinOosTrades = std::stoul(argv[++i]); }
         else if (arg == "--wfo-degrad" && i + 1 < argc) { wfoDegradation = std::stod(argv[++i]); }
-        else if (arg == "--wfo-min-trades" && i + 1 < argc) { wfoMinTrades = std::stoul(argv[++i]); }
+        else if (arg == "--wfo-fold-pass" && i + 1 < argc) { wfoFoldPassPct = std::stod(argv[++i]); }
         else { numThreads = std::stoul(arg); }  // backward compat: positional thread count
     }
     if (numThreads == 0) numThreads = 1;
@@ -847,6 +894,22 @@ int main(int argc, char* argv[])
     info.tickSize = Price::fromDouble(0.01);
     g_registry.registerSymbol(info);
     g_bars = csvBarsToBarEvents(csvBars, g_symbolId);
+
+    // Truncate to recent years if requested
+    if (recentYears > 0.0 && numBars > 0)
+    {
+        // Estimate bars per year from data span
+        double dataYears = static_cast<double>(csvBars[numBars-1].timestampNs - csvBars[0].timestampNs) / 1e9 / (365.25 * 86400.0);
+        if (dataYears > recentYears)
+        {
+            size_t keepBars = static_cast<size_t>(static_cast<double>(numBars) * recentYears / dataYears);
+            keepBars = std::min(keepBars, numBars);
+            size_t startIdx = numBars - keepBars;
+            g_bars.erase(g_bars.begin(), g_bars.begin() + startIdx);
+            std::cerr << "  Truncated to last " << recentYears << " years: "
+                      << g_bars.size() << " bars\n";
+        }
+    }
 
     CombinedGrid grid;
     std::cerr << "\nGrid: " << grid.totalCombinations() << " combinations across " << NUM_STRATEGIES << " strategies\n";
@@ -914,28 +977,31 @@ int main(int argc, char* argv[])
                 wfoCandidates.push_back(&rr);
         }
 
-        std::cerr << "\nWalk-forward: " << wfoCandidates.size() << " candidates"
+        std::cerr << "\nWalk-forward (rolling): " << wfoCandidates.size() << " candidates"
                   << " | " << wfoFolds << " folds"
-                  << " | min degradation=" << wfoDegradation << "\n";
+                  << " | IS=" << (wfoIsPct * 100) << "%"
+                  << " | embargo=" << wfoEmbargo
+                  << " | OOS/IS≥" << wfoDegradation
+                  << " | fold-pass≥" << wfoFoldPassPct << "\n";
 
         for (size_t ci = 0; ci < wfoCandidates.size(); ++ci)
         {
             const auto& cand = *wfoCandidates[ci];
             auto folds = runWalkForward(cand.params, wfoFolds,
-                                        numBars / (wfoFolds + 1),  // minTrainBars
-                                        wfoDegradation, wfoMinTrades);
+                                        wfoIsPct, wfoEmbargo,
+                                        wfoMinIsTrades, wfoMinOosTrades,
+                                        wfoDegradation, wfoFoldPassPct);
             wfoAll.emplace_back(cand.params, folds);
 
-            // Update the robust result
-            size_t passCount = 0;
+            // Use wfoPassRate() which accounts for skipped folds
+            double passRate = wfoPassRate(folds, wfoFoldPassPct);
             double testSharpeSum = 0.0;
+            size_t nonSkipped = 0;
             for (const auto& f : folds)
             {
-                if (f.passed) ++passCount;
-                testSharpeSum += f.testStats.sharpeRatio;
+                if (!f.skipped) { testSharpeSum += f.testStats.sharpeRatio; ++nonSkipped; }
             }
-            double passRate = folds.empty() ? 0.0 : static_cast<double>(passCount) / static_cast<double>(folds.size());
-            double avgTestSharpe = folds.empty() ? 0.0 : testSharpeSum / static_cast<double>(folds.size());
+            double avgTestSharpe = nonSkipped > 0 ? testSharpeSum / static_cast<double>(nonSkipped) : 0.0;
 
             // Find and update the robust result
             for (auto& rr : robustRows)
