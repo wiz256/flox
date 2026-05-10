@@ -15,9 +15,11 @@
 #include "flox/position/position_tracker.h"
 
 #include <atomic>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <mutex>
+#include <sstream>
 #include <thread>
 
 using namespace flox;
@@ -63,7 +65,39 @@ struct CombinedParams
     double dp[6] = {};
     std::string toString() const
     {
-        return std::string(strategyName(kind));
+        std::ostringstream ss;
+        ss << strategyName(kind) << "(";
+        switch (kind) {
+        case BOLLINGER_BREAKOUT:
+            ss << "bb=" << ip[0] << ",std=" << dp[0] << ",vm=" << dp[1]; break;
+        case DONCHIAN_BREAKOUT:
+            ss << "cp=" << ip[0] << ",ep=" << ip[1] << ",vm=" << dp[0]; break;
+        case DUAL_MOMENTUM:
+            ss << "lb=" << ip[0] << ",mt=" << dp[0] << ",sm=" << ip[1]; break;
+        case EMA_CROSSOVER:
+            ss << "f=" << ip[0] << ",s=" << ip[1] << ",adx=" << ip[2]; break;
+        case KELTNER_BREAKOUT:
+            ss << "ema=" << ip[0] << ",atr=" << ip[1] << ",am=" << dp[0] << ",apm=" << dp[1]; break;
+        case KELTNER_SQUEEZE:
+            ss << "ke=" << ip[0] << ",km=" << dp[0] << ",bp=" << ip[1] << ",bs=" << dp[1]; break;
+        case MACD:
+            ss << "f=" << ip[0] << ",s=" << ip[1] << ",sig=" << ip[2] << ",tp=" << ip[3]; break;
+        case RSI_BB_MR:
+            ss << "rp=" << ip[0] << ",rl=" << dp[0] << ",rh=" << dp[1] << ",bp=" << ip[1] << ",bs=" << dp[2]; break;
+        case RSI2:
+            ss << "rp=" << ip[0] << ",el=" << dp[0] << ",eh=" << dp[1] << ",tp=" << ip[1]; break;
+        case SUPERTREND:
+            ss << "ap=" << ip[0] << ",am=" << dp[0] << ",adx=" << ip[1]; break;
+        case TREND_PULLBACK:
+            ss << "fe=" << ip[0] << ",se=" << ip[1] << ",rp=" << ip[2] << ",apm=" << dp[0]; break;
+        case TSMOM:
+            ss << "lb=" << ip[0] << ",sm=" << ip[1] << ",apm=" << dp[0]; break;
+        case VOL_COMPRESSION_BREAKOUT:
+            ss << "rw=" << ip[0] << ",cw=" << ip[1] << ",cp=" << dp[0] << ",vm=" << dp[1]; break;
+        default: break;
+        }
+        ss << ")";
+        return ss.str();
     }
 };
 
@@ -336,17 +370,23 @@ int main(int argc, char* argv[])
     if (argc < 2)
     {
         std::cerr << "Usage: " << argv[0] << " <data.csv> [options]\n"
-                  << "  --notional <usd>    Notional per trade (default: 1000)\n"
-                  << "  --min-trades <n>    Minimum trades filter (default: 30)\n"
-                  << "  --threads <n>       Number of threads (default: all cores)\n"
-                  << "  --capital <usd>     Initial capital (default: 10000)\n"
-                  << "  --fee <rate>        Fee rate (default: 0.0004 = 0.04%)\n";
+                  << "  --sizing-mode <mode>    all_equity|fixed_notional|percent_equity (default: fixed_notional)\n"
+                  << "  --notional <usd>        Notional per trade for fixed_notional mode (default: 1000)\n"
+                  << "  --percent-equity <pct>  Equity fraction for percent_equity mode (default: 0.01 = 1%%)\n"
+                  << "  --leverage <mult>       Leverage multiplier for all modes (default: 1.0)\n"
+                  << "  --min-trades <n>        Minimum trades filter (default: 30)\n"
+                  << "  --threads <n>           Number of threads (default: all cores)\n"
+                  << "  --capital <usd>         Initial capital (default: 10000)\n"
+                  << "  --fee <rate>            Fee rate (default: 0.0004 = 0.04%%)\n";
         return 1;
     }
 
     // Parse arguments
     std::string csvPath = argv[1];
+    SizingMode sizingMode = SizingMode::FIXED_NOTIONAL;
     double notional = 1000.0;
+    double percentEquity = 0.01;
+    double leverage = 1.0;
     size_t minTrades = 30;
     size_t numThreads = std::thread::hardware_concurrency();
     double capital = 10000.0;
@@ -355,7 +395,16 @@ int main(int argc, char* argv[])
     for (int i = 2; i < argc; ++i)
     {
         std::string arg = argv[i];
-        if (arg == "--notional" && i + 1 < argc) { notional = std::stod(argv[++i]); }
+        if (arg == "--sizing-mode" && i + 1 < argc) {
+            std::string mode = argv[++i];
+            if (mode == "all_equity") sizingMode = SizingMode::ALL_EQUITY;
+            else if (mode == "fixed_notional") sizingMode = SizingMode::FIXED_NOTIONAL;
+            else if (mode == "percent_equity") sizingMode = SizingMode::PERCENT_EQUITY;
+            else { std::cerr << "Unknown sizing mode: " << mode << "\n"; return 1; }
+        }
+        else if (arg == "--notional" && i + 1 < argc) { notional = std::stod(argv[++i]); }
+        else if (arg == "--percent-equity" && i + 1 < argc) { percentEquity = std::stod(argv[++i]); }
+        else if (arg == "--leverage" && i + 1 < argc) { leverage = std::stod(argv[++i]); }
         else if (arg == "--min-trades" && i + 1 < argc) { minTrades = std::stoul(argv[++i]); }
         else if (arg == "--threads" && i + 1 < argc) { numThreads = std::stoul(argv[++i]); }
         else if (arg == "--capital" && i + 1 < argc) { capital = std::stod(argv[++i]); }
@@ -370,10 +419,14 @@ int main(int argc, char* argv[])
     if (usdPos != std::string::npos) coin = coin.substr(0, usdPos + 4);
     else if (coin.find('_') != std::string::npos) coin = coin.substr(0, coin.find('_'));
 
-    // Set global notional for all strategies
+    // Set global sizing params for all strategies
+    g_sizingMode = sizingMode;
     g_notionalUsd = notional;
+    g_percentEquity = percentEquity;
+    g_leverage = leverage;
+    g_capitalForSizing = capital;
 
-    // Store capital and fee for runBacktest
+    // Backtest config
     g_initialCapital = capital;
     g_feeRate = feeRate;
 
@@ -389,10 +442,22 @@ int main(int argc, char* argv[])
     int64_t lastNs = numBars > 0 ? csvBars[numBars - 1].timestampNs : 0;
     double barHours = numBars > 1 ? static_cast<double>(lastNs - firstNs) / 1e9 / 3600.0 / static_cast<double>(numBars - 1) : 0.0;
 
+    // Compute effective notional for display
+    double effectiveNotional;
+    const char* modeStr;
+    switch (sizingMode) {
+    case SizingMode::ALL_EQUITY:    effectiveNotional = capital * leverage; modeStr = "all_equity"; break;
+    case SizingMode::FIXED_NOTIONAL: effectiveNotional = notional * leverage; modeStr = "fixed_notional"; break;
+    case SizingMode::PERCENT_EQUITY: effectiveNotional = capital * percentEquity * leverage; modeStr = "percent_equity"; break;
+    default: effectiveNotional = notional; modeStr = "fixed_notional";
+    }
+
     std::cerr << "Loaded " << numBars << " bars (" << coin << ")\n";
     std::cerr << "  Period: " << barHours << "h bars | First: $" << firstPrice << " | Last: $" << lastPrice << "\n";
-    std::cerr << "  Qty per trade: $" << notional << " / $" << lastPrice << " = "
-              << std::fixed << std::setprecision(6) << notional / lastPrice << " " << coin << "\n";
+    std::cerr << "  Sizing: " << modeStr << " | Notional: $" << effectiveNotional
+              << " | Leverage: " << leverage << "x\n";
+    std::cerr << "  Qty per trade: $" << effectiveNotional << " / $" << lastPrice << " = "
+              << std::fixed << std::setprecision(6) << effectiveNotional / lastPrice << " " << coin << "\n";
 
     SymbolInfo info;
     info.id = g_symbolId;
@@ -405,7 +470,7 @@ int main(int argc, char* argv[])
 
     CombinedGrid grid;
     std::cerr << "\nGrid: " << grid.totalCombinations() << " combinations across " << NUM_STRATEGIES << " strategies\n";
-    std::cerr << "Config: notional=$" << notional << " | capital=$" << capital
+    std::cerr << "Config: sizing=" << modeStr << " | notional=$" << effectiveNotional << " | capital=$" << capital
               << " | fee=" << (feeRate * 100) << "% | min-trades=" << minTrades
               << " | " << numThreads << " threads\n\n";
 
@@ -414,32 +479,41 @@ int main(int argc, char* argv[])
     // Global ranking
     auto ranked = BacktestOptimizer<CombinedParams, CombinedGrid>::rankResults(results, RankMetric::SharpeRatio);
 
-    std::cout << "\n=== Top 30 Results (" << coin << " | $" << notional << " notional | min " << minTrades << " trades) ===\n";
+    // Filter by min-trades BEFORE display and export
+    std::vector<OptimizationResult<CombinedParams>> filtered;
+    for (const auto& r : ranked) {
+        if (r.totalTrades() >= minTrades) {
+            filtered.push_back(r);
+        }
+    }
+
+    std::cout << "\n=== Top 30 Results (" << coin << " | " << modeStr << " $" << effectiveNotional
+              << " | min " << minTrades << " trades | " << filtered.size() << " passed filter) ===\n";
     int shown = 0;
-    for (size_t i = 0; i < ranked.size() && shown < 30; ++i)
+    for (size_t i = 0; i < filtered.size() && shown < 30; ++i)
     {
-        if (ranked[i].totalTrades() < minTrades) continue;
-        std::cout << shown + 1 << ". " << ranked[i].parameters.toString() << "\n"
-                  << "   Sharpe: " << std::fixed << std::setprecision(2) << ranked[i].sharpeRatio()
-                  << " | Return: " << std::setprecision(1) << ranked[i].totalReturn() << "%"
-                  << " | MaxDD: " << ranked[i].maxDrawdownPct() << "%"
-                  << " | Trades: " << ranked[i].totalTrades()
-                  << " | Win%: " << std::setprecision(1) << (ranked[i].winRate() * 100) << "\n";
+        std::cout << shown + 1 << ". " << filtered[i].parameters.toString() << "\n"
+                  << "   Sharpe: " << std::fixed << std::setprecision(2) << filtered[i].sharpeRatio()
+                  << " | Return: " << std::setprecision(1) << filtered[i].totalReturn() << "%"
+                  << " | MaxDD: " << filtered[i].maxDrawdownPct() << "%"
+                  << " | Trades: " << filtered[i].totalTrades()
+                  << " | Win%: " << std::setprecision(1) << (filtered[i].winRate() * 100) << "\n";
         ++shown;
     }
     if (shown == 0) std::cout << "  (no strategies with >= " << minTrades << " trades)\n";
 
-    // Per-strategy breakdown
+    // Per-strategy breakdown (uses all results, not just filtered)
     printPerStrategySummary(results);
 
     // Statistical summary
     using Stats = OptimizationStatistics<CombinedParams, CombinedGrid>;
     Stats::printSummary(results);
 
-    // Export with coin name
-    std::string csvOut = coin + "_grid_results.csv";
-    BacktestOptimizer<CombinedParams, CombinedGrid>::exportToCSV(ranked, csvOut);
-    std::cerr << "\nResults exported to " << csvOut << "\n";
+    // Export filtered results to results/ folder
+    std::filesystem::create_directories("results");
+    std::string csvOut = "results/" + coin + "_grid_results.csv";
+    BacktestOptimizer<CombinedParams, CombinedGrid>::exportToCSV(filtered, csvOut);
+    std::cerr << "\nExported " << filtered.size() << " results (>= " << minTrades << " trades) to " << csvOut << "\n";
 
     return 0;
 }

@@ -19,15 +19,36 @@ namespace flox::strategy
 {
 
 // =====================================================================
-// Global notional sizing — set once before grid search, read by all strategies
+// Position sizing — set once before grid search, read by all strategies
+// Modes match Python run.py: all_equity, fixed_notional, percent_equity
 // =====================================================================
 
-inline double g_notionalUsd = 1000.0;  // $1000 per trade by default
+enum class SizingMode { ALL_EQUITY, FIXED_NOTIONAL, PERCENT_EQUITY };
+
+inline SizingMode g_sizingMode = SizingMode::FIXED_NOTIONAL;
+inline double g_notionalUsd = 1000.0;       // for fixed_notional mode
+inline double g_percentEquity = 0.01;        // for percent_equity mode (1%)
+inline double g_leverage = 1.0;              // multiplier for all modes
+inline double g_capitalForSizing = 10000.0;  // initial capital for sizing
 
 inline Quantity qtyFromNotional(double price)
 {
     if (price <= 0.0) return Quantity::fromDouble(0.0);
-    return Quantity::fromDouble(g_notionalUsd / price);
+    double notional;
+    switch (g_sizingMode) {
+    case SizingMode::ALL_EQUITY:
+        notional = g_capitalForSizing * g_leverage;
+        break;
+    case SizingMode::FIXED_NOTIONAL:
+        notional = g_notionalUsd * g_leverage;
+        break;
+    case SizingMode::PERCENT_EQUITY:
+        notional = g_capitalForSizing * g_percentEquity * g_leverage;
+        break;
+    default:
+        notional = g_notionalUsd;
+    }
+    return Quantity::fromDouble(notional / price);
 }
 
 // =====================================================================
