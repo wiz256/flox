@@ -679,9 +679,11 @@ struct RobustResult
 
 // Trader7-style composite score: Sharpe is only 25% of the total.
 // Prioritizes stable plateaus over high-Sharpe spikes.
+// Fills CompositeComponents with each weighted sub-score for reporting.
 inline double computeCompositeScore(double sharpe, double calmar, double profitFactor,
                                      double plateauRatio, double winRate, size_t trades,
-                                     double maxDrawdownPct, double costStressSharpe)
+                                     double maxDrawdownPct, double costStressSharpe,
+                                     CompositeComponents& cc)
 {
     // Normalize each component using tanh to bound [0, 1]
     auto norm = [](double v, double scale) { return std::tanh(std::max(v, 0.0) / scale); };
@@ -708,6 +710,16 @@ inline double computeCompositeScore(double sharpe, double calmar, double profitF
                  + 0.10 * nCost
                  + 0.05 * nWinRate
                  - ddPenalty;
+
+    // Fill component breakdown (weighted values)
+    cc.sharpe      = 0.25 * nSharpe;
+    cc.calmar      = 0.20 * nCalmar;
+    cc.profitFactor = 0.15 * nPF;
+    cc.plateau     = 0.15 * nPlateau;
+    cc.trades      = 0.10 * nTrades;
+    cc.costStress  = 0.10 * nCost;
+    cc.winRate     = 0.05 * nWinRate;
+    cc.ddPenalty   = ddPenalty;
 
     return score;
 }
@@ -769,6 +781,7 @@ void exportRobustCSV(const std::string& path, const std::vector<RobustResult>& r
 
     f << "sharpe_ratio,sortino_ratio,calmar_ratio,total_return,max_drawdown_pct,win_rate,"
       << "profit_factor,total_trades,parameters,plateau_ratio,avg_neighbor_sharpe,neighbor_count,composite_score,"
+      << "cc_sharpe,cc_calmar,cc_profit_factor,cc_plateau,cc_trades,cc_cost_stress,cc_win_rate,cc_dd_penalty,"
       << "wfo_pass_rate,wfo_avg_test_sharpe\n";
 
     f << std::fixed << std::setprecision(4);
@@ -779,6 +792,9 @@ void exportRobustCSV(const std::string& path, const std::vector<RobustResult>& r
           << r.profitFactor << "," << r.totalTrades << ",\"" << r.params.toString() << "\","
           << r.plateauRatio << "," << r.avgNeighborSharpe << ","
           << r.neighborCount << "," << r.compositeScore << ","
+          << r.cc.sharpe << "," << r.cc.calmar << "," << r.cc.profitFactor << ","
+          << r.cc.plateau << "," << r.cc.trades << "," << r.cc.costStress << ","
+          << r.cc.winRate << "," << r.cc.ddPenalty << ","
           << r.wfoPassRate << "," << r.wfoAvgTestSharpe << "\n";
     }
 }
@@ -1000,7 +1016,8 @@ int main(int argc, char* argv[])
         double costStressSharpe = rr.sharpe * 0.5;
         rr.compositeScore = computeCompositeScore(
             rr.sharpe, rr.calmar, rr.profitFactor, rr.plateauRatio,
-            rr.winRate, rr.totalTrades, rr.maxDrawdownPct, costStressSharpe);
+            rr.winRate, rr.totalTrades, rr.maxDrawdownPct, costStressSharpe,
+            rr.cc);
         rr.wfoPassRate = -1.0;
         rr.wfoAvgTestSharpe = 0.0;
         robustRows.push_back(rr);
@@ -1014,6 +1031,31 @@ int main(int argc, char* argv[])
 
     // ===== Step 4: Walk-forward for top-K =====
     std::vector<std::pair<CombinedParams, std::vector<WfoFoldResult>>> wfoAll;
+
+    // Auto-adaptive fold count: reduce folds when bars-per-fold is too small.
+    // With 4h bars: ~2190 bars/year. 5 folds → ~438 bars/fold → ~306 IS + ~108 OOS.
+    // For recent-years or short data, we may need fewer folds to get meaningful trade counts.
+    if (wfoEnabled)
+    {
+        size_t totalWfoBars = g_bars.size();
+        size_t barsPerFold = totalWfoBars / wfoFolds;
+        size_t isBars = static_cast<size_t>(static_cast<double>(barsPerFold) * wfoIsPct);
+        size_t oosBars = barsPerFold - isBars - wfoEmbargo;
+
+        // If OOS window < 80 bars (20 days at 4h), or IS window < 200 bars, reduce folds
+        while (wfoFolds > 2 && (oosBars < 80 || isBars < 200))
+        {
+            wfoFolds--;
+            barsPerFold = totalWfoBars / wfoFolds;
+            isBars = static_cast<size_t>(static_cast<double>(barsPerFold) * wfoIsPct);
+            oosBars = barsPerFold - isBars - wfoEmbargo;
+        }
+
+        if (wfoFolds < 5)
+            std::cerr << "  Auto-adapted WFO folds: " << wfoFolds << " ("
+                      << totalWfoBars << " bars → " << isBars << " IS + "
+                      << oosBars << " OOS per fold)\n";
+    }
 
     if (wfoEnabled && !robustRows.empty())
     {
@@ -1097,6 +1139,16 @@ int main(int argc, char* argv[])
         else
             std::cout << " n/a";
         std::cout << " | " << r.params.toString() << "\n";
+
+        // Show composite component breakdown
+        std::cout << "     Score breakdown: sharpe=" << std::setprecision(3) << r.cc.sharpe
+                  << " calmar=" << r.cc.calmar
+                  << " profit_factor=" << r.cc.profitFactor
+                  << " plateau=" << r.cc.plateau
+                  << " trades=" << r.cc.trades
+                  << " cost=" << r.cc.costStress
+                  << " win_rate=" << r.cc.winRate
+                  << " dd_penalty=" << r.cc.ddPenalty << "\n";
         ++shown;
     }
     if (shown == 0) std::cout << "  (no strategies with >= " << minTrades << " trades)\n";
