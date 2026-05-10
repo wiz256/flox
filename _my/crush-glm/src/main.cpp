@@ -1,5 +1,7 @@
 #include "csv_reader.h"
 
+#include "flox/aggregator/bar.h"
+#include "flox/aggregator/events/bar_event.h"
 #include "flox/backtest/backtest_config.h"
 #include "flox/backtest/backtest_result.h"
 #include "flox/backtest/backtest_runner.h"
@@ -12,10 +14,10 @@
 #include "flox/indicator/sma.h"
 #include "flox/indicator/supertrend.h"
 #include "flox/strategy/strategy.h"
-#include "flox/replay/ohlcv_replay_source.h"
 
 #include <algorithm>
 #include <cmath>
+#include <deque>
 #include <filesystem>
 #include <fmt/format.h>
 #include <numeric>
@@ -50,121 +52,102 @@ struct Params {
 
 class BaseStrategy : public Strategy {
 public:
-    BaseStrategy(SymbolId sym, const SymbolRegistry& reg, const Params& p,
-                 const std::vector<CsvBar>* csvBars)
-        : Strategy(1, sym, reg), p_(p), atr_(p.exit_atr_period),
-          csvBars_(csvBars), qty_(Quantity::fromDouble(0.01)) {}
+    BaseStrategy(SubscriberId sid, SymbolId sym, const SymbolRegistry& reg, const Params& p)
+        : Strategy(sid, sym, reg), p_(p), atr_(p.exit_atr_period),
+          qty_(Quantity::fromDouble(0.01)) {}
 
-    void start() override { running_ = true; }
-    void stop() override { running_ = false; }
+    void start() override {}
+    void stop() override {}
 
 protected:
-    void onSymbolTrade(SymbolContext& ctx, const TradeEvent& ev) override {
-        if (!running_) return;
-        if (barIdx_ >= csvBars_->size()) return;
-
-        const CsvBar& bar = (*csvBars_)[barIdx_];
-        double o = bar.open, h = bar.high, l = bar.low, c = bar.close;
-        barIdx_++;
-        closes_.push_back(c);
-        highs_.push_back(h);
-        lows_.push_back(l);
+    void onSymbolBar(SymbolContext& ctx, const BarEvent& ev) override {
+        double o = ev.bar.open.toDouble(), h = ev.bar.high.toDouble();
+        double l = ev.bar.low.toDouble(), c = ev.bar.close.toDouble();
+        closes_.push_back(c); highs_.push_back(h); lows_.push_back(l);
         atr_.update(h, l, c);
-
         onBarImpl(o, h, l, c);
 
-        if (inPos_) {
+        Quantity pos = position(ev.symbol);
+        if (pos.raw() != 0) {
             barsInTrade_++;
-            checkExit(c, h, l, atr_.ready() ? atr_.value() : 0);
+            double atr = atr_.ready() ? atr_.value() : 0;
+            if (atr > 0) checkExit(ev.symbol, c, h, l, atr);
         }
     }
 
     virtual void onBarImpl(double open, double high, double low, double close) = 0;
 
-    void enterLong(double price) {
-        if (inPos_) return;
+    void enterLong(SymbolId sym, double price) {
+        if (position(sym).raw() != 0) return;
         entryPrice_ = price; highSince_ = price; lowSince_ = price;
-        barsInTrade_ = 0; inPos_ = true; side_ = 1; beAct_ = false; trail_ = 0;
-        emitMarketBuy(symbol(), qty_);
+        barsInTrade_ = 0; side_ = 1; beAct_ = false; trail_ = 0;
+        emitMarketBuy(sym, qty_);
     }
-    void enterShort(double price) {
-        if (inPos_) return;
+    void enterShort(SymbolId sym, double price) {
+        if (position(sym).raw() != 0) return;
         entryPrice_ = price; highSince_ = price; lowSince_ = price;
-        barsInTrade_ = 0; inPos_ = true; side_ = -1; beAct_ = false; trail_ = 0;
-        emitMarketSell(symbol(), qty_);
+        barsInTrade_ = 0; side_ = -1; beAct_ = false; trail_ = 0;
+        emitMarketSell(sym, qty_);
     }
-    void exitPos() {
-        if (!inPos_) return;
-        if (side_ == 1) emitMarketSell(symbol(), qty_);
-        else emitMarketBuy(symbol(), qty_);
-        inPos_ = false;
+    void exitPos(SymbolId sym) {
+        Quantity pos = position(sym);
+        if (pos.raw() == 0) return;
+        if (pos.raw() > 0) emitMarketSell(sym, qty_);
+        else emitMarketBuy(sym, qty_);
     }
 
-    void checkExit(double c, double h, double l, double atr) {
-        if (atr <= 0) return;
+    void checkExit(SymbolId sym, double c, double h, double l, double atr) {
         double initialRisk = p_.exit_sl_mult * atr;
+        Quantity pos = position(sym);
+        if (pos.raw() == 0) return;
 
-        if (side_ == 1) {
+        if (pos.raw() > 0) {
             highSince_ = std::max(highSince_, h);
-
             if (p_.exit_mode == ExitMode::Chandelier ||
                 p_.exit_mode == ExitMode::ChandelierTimeStop) {
-                if (c <= highSince_ - p_.exit_trail_mult * atr) { exitPos(); return; }
+                if (c <= highSince_ - p_.exit_trail_mult * atr) { exitPos(sym); return; }
             }
-
             if (p_.exit_mode == ExitMode::SignalBETrail) {
                 if (!beAct_ && (c - entryPrice_) >= p_.exit_be_r_mult * initialRisk) {
-                    beAct_ = true;
-                    trail_ = entryPrice_;
+                    beAct_ = true; trail_ = entryPrice_;
                 }
                 if (beAct_) {
                     trail_ = std::max(trail_, c - p_.exit_trail_mult * atr);
-                    if (c <= trail_) { exitPos(); return; }
+                    if (c <= trail_) { exitPos(sym); return; }
                 }
-                if (c <= entryPrice_ - initialRisk) { exitPos(); return; }
-                if (p_.exit_tp_mult > 0 && c >= entryPrice_ + p_.exit_tp_mult * atr) { exitPos(); return; }
+                if (c <= entryPrice_ - initialRisk) { exitPos(sym); return; }
+                if (p_.exit_tp_mult > 0 && c >= entryPrice_ + p_.exit_tp_mult * atr) { exitPos(sym); return; }
             }
-
             if (p_.exit_mode == ExitMode::ChandelierTimeStop &&
-                p_.exit_time_bars > 0 && barsInTrade_ >= p_.exit_time_bars) {
-                exitPos(); return;
-            }
-        } else if (side_ == -1) {
+                p_.exit_time_bars > 0 && barsInTrade_ >= p_.exit_time_bars) { exitPos(sym); return; }
+        } else {
             lowSince_ = std::min(lowSince_, l);
-
             if (p_.exit_mode == ExitMode::Chandelier ||
                 p_.exit_mode == ExitMode::ChandelierTimeStop) {
-                if (c >= lowSince_ + p_.exit_trail_mult * atr) { exitPos(); return; }
+                if (c >= lowSince_ + p_.exit_trail_mult * atr) { exitPos(sym); return; }
             }
-
             if (p_.exit_mode == ExitMode::SignalBETrail) {
                 if (!beAct_ && (entryPrice_ - c) >= p_.exit_be_r_mult * initialRisk) {
-                    beAct_ = true;
-                    trail_ = entryPrice_;
+                    beAct_ = true; trail_ = entryPrice_;
                 }
                 if (beAct_) {
                     trail_ = std::min(trail_, c + p_.exit_trail_mult * atr);
-                    if (c >= trail_) { exitPos(); return; }
+                    if (c >= trail_) { exitPos(sym); return; }
                 }
-                if (c >= entryPrice_ + initialRisk) { exitPos(); return; }
-                if (p_.exit_tp_mult > 0 && c <= entryPrice_ - p_.exit_tp_mult * atr) { exitPos(); return; }
+                if (c >= entryPrice_ + initialRisk) { exitPos(sym); return; }
+                if (p_.exit_tp_mult > 0 && c <= entryPrice_ - p_.exit_tp_mult * atr) { exitPos(sym); return; }
             }
-
             if (p_.exit_mode == ExitMode::ChandelierTimeStop &&
-                p_.exit_time_bars > 0 && barsInTrade_ >= p_.exit_time_bars) {
-                exitPos(); return;
-            }
+                p_.exit_time_bars > 0 && barsInTrade_ >= p_.exit_time_bars) { exitPos(sym); return; }
         }
     }
 
     const Params p_;
     ATR atr_;
-    const std::vector<CsvBar>* csvBars_;
     Quantity qty_;
     std::vector<double> closes_, highs_, lows_;
-    bool running_ = false, inPos_ = false, beAct_ = false;
+    bool beAct_ = false;
     int side_ = 0, barsInTrade_ = 0;
-    size_t barIdx_ = 0;
     double entryPrice_ = 0, highSince_ = 0, lowSince_ = 1e18, trail_ = 0;
 };
 
@@ -176,10 +159,12 @@ public:
         if (closes_.size() < w + 1) return;
         double pu = *std::max_element(highs_.end() - static_cast<ptrdiff_t>(w) - 1, highs_.end() - 1);
         double pl = *std::min_element(lows_.end() - static_cast<ptrdiff_t>(w) - 1, lows_.end() - 1);
-        if (!inPos_ && c > pu) enterLong(c);
-        else if (!inPos_ && c < pl) enterShort(c);
-        else if (inPos_ && side_ == 1 && c < pl) exitPos();
-        else if (inPos_ && side_ == -1 && c > pu) exitPos();
+        SymbolId sym = symbol();
+        Quantity pos = position(sym);
+        if (pos.raw() == 0 && c > pu) enterLong(sym, c);
+        else if (pos.raw() == 0 && c < pl) enterShort(sym, c);
+        else if (pos.raw() > 0 && c < pl) exitPos(sym);
+        else if (pos.raw() < 0 && c > pu) exitPos(sym);
     }
 };
 
@@ -191,28 +176,30 @@ public:
         if (static_cast<int>(closes_.size()) < lb + 2) return;
         double m = (closes_.back() - closes_[closes_.size() - 1 - lb]) / closes_[closes_.size() - 1 - lb];
         double mp = (closes_[closes_.size() - 2] - closes_[closes_.size() - 2 - lb]) / closes_[closes_.size() - 2 - lb];
-        if (!inPos_ && m > 0 && mp <= 0) enterLong(c);
-        else if (!inPos_ && m < 0 && mp >= 0) enterShort(c);
-        else if (inPos_ && side_ == 1 && m <= 0) exitPos();
-        else if (inPos_ && side_ == -1 && m >= 0) exitPos();
+        SymbolId sym = symbol();
+        Quantity pos = position(sym);
+        if (pos.raw() == 0 && m > 0 && mp <= 0) enterLong(sym, c);
+        else if (pos.raw() == 0 && m < 0 && mp >= 0) enterShort(sym, c);
+        else if (pos.raw() > 0 && m <= 0) exitPos(sym);
+        else if (pos.raw() < 0 && m >= 0) exitPos(sym);
     }
 };
 
 class EmaCrossStrat final : public BaseStrategy {
-    EMA fast_, slow_;
-    bool prevAbove_ = false;
+    EMA fast_, slow_; bool prevAbove_ = false;
 public:
-    EmaCrossStrat(SymbolId s, const SymbolRegistry& r, const Params& p,
-                  const std::vector<CsvBar>* bars)
-        : BaseStrategy(s, r, p, bars), fast_(p.signal_p1), slow_(p.signal_p2) {}
+    EmaCrossStrat(SubscriberId sid, SymbolId sym, const SymbolRegistry& r, const Params& p)
+        : BaseStrategy(sid, sym, r, p), fast_(p.signal_p1), slow_(p.signal_p2) {}
     void onBarImpl(double, double, double, double c) override {
         fast_.update(c); slow_.update(c);
         if (!fast_.ready() || !slow_.ready()) return;
         bool above = fast_.value() > slow_.value();
-        if (!inPos_ && above && !prevAbove_) enterLong(c);
-        else if (!inPos_ && !above && prevAbove_) enterShort(c);
-        else if (inPos_ && side_ == 1 && !above) exitPos();
-        else if (inPos_ && side_ == -1 && above) exitPos();
+        SymbolId sym = symbol();
+        Quantity pos = position(sym);
+        if (pos.raw() == 0 && above && !prevAbove_) enterLong(sym, c);
+        else if (pos.raw() == 0 && !above && prevAbove_) enterShort(sym, c);
+        else if (pos.raw() > 0 && !above) exitPos(sym);
+        else if (pos.raw() < 0 && above) exitPos(sym);
         prevAbove_ = above;
     }
 };
@@ -220,28 +207,27 @@ public:
 class KeltnerBrkStrat final : public BaseStrategy {
     Keltner kc_;
 public:
-    KeltnerBrkStrat(SymbolId s, const SymbolRegistry& r, const Params& p,
-                    const std::vector<CsvBar>* bars)
-        : BaseStrategy(s, r, p, bars), kc_(p.signal_p1, p.signal_p1, p.signal_p3) {}
+    KeltnerBrkStrat(SubscriberId sid, SymbolId sym, const SymbolRegistry& r, const Params& p)
+        : BaseStrategy(sid, sym, r, p), kc_(p.signal_p1, p.signal_p1, p.signal_p3) {}
     void onBarImpl(double, double h, double l, double c) override {
         kc_.update(h, l, c);
         if (!kc_.ready()) return;
-        double u = kc_.upperValue(), m = kc_.middleValue(), lo = kc_.lowerValue();
+        double u = kc_.upperValue(), lo = kc_.lowerValue(), m = kc_.middleValue();
         if (std::isnan(u)) return;
-        if (!inPos_ && c > u) enterLong(c);
-        else if (!inPos_ && c < lo) enterShort(c);
-        else if (inPos_ && side_ == 1 && c < m) exitPos();
-        else if (inPos_ && side_ == -1 && c > m) exitPos();
+        SymbolId sym = symbol();
+        Quantity pos = position(sym);
+        if (pos.raw() == 0 && c > u) enterLong(sym, c);
+        else if (pos.raw() == 0 && c < lo) enterShort(sym, c);
+        else if (pos.raw() > 0 && c < m) exitPos(sym);
+        else if (pos.raw() < 0 && c > m) exitPos(sym);
     }
 };
 
 class SupertrendStrat final : public BaseStrategy {
-    Supertrend st_;
-    int prevDir_ = 0;
+    Supertrend st_; int prevDir_ = 0;
 public:
-    SupertrendStrat(SymbolId s, const SymbolRegistry& r, const Params& p,
-                    const std::vector<CsvBar>* bars)
-        : BaseStrategy(s, r, p, bars), st_(p.signal_p1, p.signal_p3) {}
+    SupertrendStrat(SubscriberId sid, SymbolId sym, const SymbolRegistry& r, const Params& p)
+        : BaseStrategy(sid, sym, r, p), st_(p.signal_p1, p.signal_p3) {}
     void onBarImpl(double, double h, double l, double c) override {
         st_.update(h, l, c);
         if (!st_.ready()) return;
@@ -250,10 +236,12 @@ public:
             std::span<const double>(lows_),
             std::span<const double>(closes_));
         int d = r.direction.empty() ? 0 : r.direction.back();
-        if (d == 1 && prevDir_ == -1 && !inPos_) enterLong(c);
-        else if (d == -1 && prevDir_ == 1 && !inPos_) enterShort(c);
-        else if (inPos_ && side_ == 1 && d == -1) exitPos();
-        else if (inPos_ && side_ == -1 && d == 1) exitPos();
+        SymbolId sym = symbol();
+        Quantity pos = position(sym);
+        if (d == 1 && prevDir_ == -1 && pos.raw() == 0) enterLong(sym, c);
+        else if (d == -1 && prevDir_ == 1 && pos.raw() == 0) enterShort(sym, c);
+        else if (pos.raw() > 0 && d == -1) exitPos(sym);
+        else if (pos.raw() < 0 && d == 1) exitPos(sym);
         if (d != 0) prevDir_ = d;
     }
 };
@@ -275,102 +263,115 @@ public:
         double sq = 0;
         for (double r : rets) sq += (r - mean) * (r - mean);
         double vol = std::sqrt(sq / rets.size()) * std::sqrt(252.0);
-        if (vol < p_.signal_p3 && !inPos_ && m > 0 && prevMom_ <= 0) enterLong(c);
-        else if (vol < p_.signal_p3 && !inPos_ && m < 0 && prevMom_ >= 0) enterShort(c);
-        else if (inPos_ && side_ == 1 && m <= 0) exitPos();
-        else if (inPos_ && side_ == -1 && m >= 0) exitPos();
+        SymbolId sym = symbol();
+        Quantity pos = position(sym);
+        if (vol < p_.signal_p3 && pos.raw() == 0 && m > 0 && prevMom_ <= 0) enterLong(sym, c);
+        else if (vol < p_.signal_p3 && pos.raw() == 0 && m < 0 && prevMom_ >= 0) enterShort(sym, c);
+        else if (pos.raw() > 0 && m <= 0) exitPos(sym);
+        else if (pos.raw() < 0 && m >= 0) exitPos(sym);
         prevMom_ = m;
     }
 };
 
 class Rsi2Strat final : public BaseStrategy {
-    RSI rsi_;
-    SMA sma_;
+    RSI rsi_; SMA sma_;
 public:
-    Rsi2Strat(SymbolId s, const SymbolRegistry& r, const Params& p,
-              const std::vector<CsvBar>* bars)
-        : BaseStrategy(s, r, p, bars), rsi_(p.signal_p1), sma_(p.signal_p2) {}
+    Rsi2Strat(SubscriberId sid, SymbolId sym, const SymbolRegistry& r, const Params& p)
+        : BaseStrategy(sid, sym, r, p), rsi_(p.signal_p1), sma_(p.signal_p2) {}
     void onBarImpl(double, double, double, double c) override {
         rsi_.update(c); sma_.update(c);
         if (!rsi_.ready() || !sma_.ready()) return;
         double rv = rsi_.value(), sv = sma_.value();
         double os = p_.signal_p3, ob = 100.0 - os;
         bool up = c > sv;
-        if (!inPos_ && rv < os && up) enterLong(c);
-        else if (!inPos_ && rv > ob && !up) enterShort(c);
-        else if (inPos_ && side_ == 1 && (rv > ob || c < sv)) exitPos();
-        else if (inPos_ && side_ == -1 && (rv < os || c > sv)) exitPos();
+        SymbolId sym = symbol();
+        Quantity pos = position(sym);
+        if (pos.raw() == 0 && rv < os && up) enterLong(sym, c);
+        else if (pos.raw() == 0 && rv > ob && !up) enterShort(sym, c);
+        else if (pos.raw() > 0 && (rv > ob || c < sv)) exitPos(sym);
+        else if (pos.raw() < 0 && (rv < os || c > sv)) exitPos(sym);
     }
 };
 
 class RsiBbMrStrat final : public BaseStrategy {
-    RSI rsi_;
-    Bollinger bb_;
+    RSI rsi_; Bollinger bb_;
 public:
-    RsiBbMrStrat(SymbolId s, const SymbolRegistry& r, const Params& p,
-                 const std::vector<CsvBar>* bars)
-        : BaseStrategy(s, r, p, bars), rsi_(p.signal_p1), bb_(p.signal_p2, p.signal_p3) {}
+    RsiBbMrStrat(SubscriberId sid, SymbolId sym, const SymbolRegistry& r, const Params& p)
+        : BaseStrategy(sid, sym, r, p), rsi_(p.signal_p1), bb_(p.signal_p2, p.signal_p3) {}
     void onBarImpl(double, double, double, double c) override {
         rsi_.update(c); bb_.update(c);
         if (!rsi_.ready() || !bb_.ready()) return;
         double rv = rsi_.value(), lo = bb_.lowerValue(), hi = bb_.upperValue(), mid = bb_.middleValue();
         if (std::isnan(lo) || std::isnan(hi)) return;
-        if (!inPos_ && rv < 30 && c < lo) enterLong(c);
-        else if (!inPos_ && rv > 70 && c > hi) enterShort(c);
-        else if (inPos_ && side_ == 1 && c >= mid) exitPos();
-        else if (inPos_ && side_ == -1 && c <= mid) exitPos();
+        SymbolId sym = symbol();
+        Quantity pos = position(sym);
+        if (pos.raw() == 0 && rv < 30 && c < lo) enterLong(sym, c);
+        else if (pos.raw() == 0 && rv > 70 && c > hi) enterShort(sym, c);
+        else if (pos.raw() > 0 && c >= mid) exitPos(sym);
+        else if (pos.raw() < 0 && c <= mid) exitPos(sym);
     }
 };
 
 using Factory = std::function<std::unique_ptr<BaseStrategy>(
-    SymbolId, const SymbolRegistry&, const Params&, const std::vector<CsvBar>*)>;
+    SubscriberId, SymbolId, const SymbolRegistry&, const Params&)>;
 
 struct StratDef { std::string name; Factory factory; };
 
 std::vector<StratDef> allStrats() {
     return {
-        {"donchian",        [](SymbolId s, const SymbolRegistry& r, const Params& p, const std::vector<CsvBar>* b)
-                             { return std::make_unique<DonchianStrat>(s, r, p, b); }},
-        {"dual_momentum",   [](SymbolId s, const SymbolRegistry& r, const Params& p, const std::vector<CsvBar>* b)
-                             { return std::make_unique<DualMomStrat>(s, r, p, b); }},
-        {"ema_crossover",   [](SymbolId s, const SymbolRegistry& r, const Params& p, const std::vector<CsvBar>* b)
-                             { return std::make_unique<EmaCrossStrat>(s, r, p, b); }},
-        {"keltner_breakout",[](SymbolId s, const SymbolRegistry& r, const Params& p, const std::vector<CsvBar>* b)
-                             { return std::make_unique<KeltnerBrkStrat>(s, r, p, b); }},
-        {"supertrend",      [](SymbolId s, const SymbolRegistry& r, const Params& p, const std::vector<CsvBar>* b)
-                             { return std::make_unique<SupertrendStrat>(s, r, p, b); }},
-        {"tsmom",           [](SymbolId s, const SymbolRegistry& r, const Params& p, const std::vector<CsvBar>* b)
-                             { return std::make_unique<TsmomStrat>(s, r, p, b); }},
-        {"rsi2",            [](SymbolId s, const SymbolRegistry& r, const Params& p, const std::vector<CsvBar>* b)
-                             { return std::make_unique<Rsi2Strat>(s, r, p, b); }},
-        {"rsi_bb_mr",       [](SymbolId s, const SymbolRegistry& r, const Params& p, const std::vector<CsvBar>* b)
-                             { return std::make_unique<RsiBbMrStrat>(s, r, p, b); }},
+        {"donchian",        [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
+                             { return std::make_unique<DonchianStrat>(sid, s, r, p); }},
+        {"dual_momentum",   [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
+                             { return std::make_unique<DualMomStrat>(sid, s, r, p); }},
+        {"ema_crossover",   [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
+                             { return std::make_unique<EmaCrossStrat>(sid, s, r, p); }},
+        {"keltner_breakout",[](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
+                             { return std::make_unique<KeltnerBrkStrat>(sid, s, r, p); }},
+        {"supertrend",      [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
+                             { return std::make_unique<SupertrendStrat>(sid, s, r, p); }},
+        {"tsmom",           [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
+                             { return std::make_unique<TsmomStrat>(sid, s, r, p); }},
+        {"rsi2",            [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
+                             { return std::make_unique<Rsi2Strat>(sid, s, r, p); }},
+        {"rsi_bb_mr",       [](SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p)
+                             { return std::make_unique<RsiBbMrStrat>(sid, s, r, p); }},
     };
 }
 
-BacktestResult runBt(const std::vector<CsvBar>& bars, SymbolId sym, const SymbolRegistry& reg,
-                     const Factory& fac, const Params& p) {
-    auto strat = fac(sym, reg, p, &bars);
+std::vector<BarEvent> csvToBarEvents(const std::vector<CsvBar>& bars, SymbolId sym) {
+    std::vector<BarEvent> events;
+    events.reserve(bars.size());
+    for (const auto& b : bars) {
+        BarEvent ev;
+        ev.symbol = sym;
+        ev.barType = BarType::Time;
+        ev.barTypeParam = 4 * 3600ULL * 1'000'000'000ULL;
+        ev.bar.open = Price::fromDouble(b.open);
+        ev.bar.high = Price::fromDouble(b.high);
+        ev.bar.low = Price::fromDouble(b.low);
+        ev.bar.close = Price::fromDouble(b.close);
+        ev.bar.volume = Volume::fromDouble(b.volume);
+        ev.bar.startTime = TimePoint{} + std::chrono::nanoseconds(b.timestamp_ms * 1'000'000LL - 14'400'000'000'000LL);
+        ev.bar.endTime = TimePoint{} + std::chrono::nanoseconds(b.timestamp_ms * 1'000'000LL);
+        events.push_back(ev);
+    }
+    return events;
+}
+
+BacktestResult runBt(const std::vector<BarEvent>& barEvents, SymbolId sym,
+                     const SymbolRegistry& reg, const Factory& fac, const Params& p) {
+    auto strat = fac(1, sym, reg, p);
     BacktestConfig cfg;
     cfg.initialCapital = 10000.0;
     cfg.feeRate = 0.0004;
     BacktestRunner runner(cfg);
     runner.setStrategy(strat.get());
-
-    std::vector<OhlcvReplaySource::Bar> obars;
-    obars.reserve(bars.size());
-    for (const auto& b : bars) {
-        obars.push_back({b.timestamp_ms * 1'000'000LL,
-                         static_cast<int64_t>(b.close * 100'000'000.0), sym});
-    }
-    OhlcvReplaySource source(std::move(obars));
-
-    return runner.run(source);
+    return runner.runBars(barEvents);
 }
 
 struct WFResult { double avg_sharpe = 0; std::string report; };
 
-WFResult walkForward(const std::vector<CsvBar>& bars, SymbolId sym, const SymbolRegistry& reg,
+WFResult walkForward(const std::vector<BarEvent>& bars, SymbolId sym, const SymbolRegistry& reg,
                      const Factory& fac, const Params& bp, int folds = 5) {
     WFResult w;
     size_t segSize = bars.size() / (folds * 2);
@@ -379,12 +380,11 @@ WFResult walkForward(const std::vector<CsvBar>& bars, SymbolId sym, const Symbol
     double sharpeSum = 0;
     int validFolds = 0;
     for (int f = 0; f < folds; ++f) {
-        size_t trainStart = f * segSize * 2;
-        size_t testStart = trainStart + segSize;
+        size_t testStart = f * segSize * 2 + segSize;
         size_t testEnd = std::min(testStart + segSize, bars.size());
         if (testEnd <= testStart) continue;
 
-        std::vector<CsvBar> testSlice(bars.begin() + testStart, bars.begin() + testEnd);
+        std::vector<BarEvent> testSlice(bars.begin() + testStart, bars.begin() + testEnd);
         auto r = runBt(testSlice, sym, reg, fac, bp);
         auto s = r.computeStats();
         sharpeSum += s.sharpeRatio;
@@ -459,7 +459,6 @@ int main(int argc, char** argv) {
     fmt::print("=== CRUSH Grid Search ===\nData:{} TF:{} Symbols:{} Out:{}\n\n",
                data_dir, tf, csvs.size(), out_dir);
 
-    SymbolRegistry registry;
     auto strats = allStrats();
     std::vector<ExitMode> emodes = {
         ExitMode::Chandelier,
@@ -486,10 +485,7 @@ int main(int argc, char** argv) {
 
     std::string csv_path = out_dir + "/grid_summary.csv";
     FILE* csvf = std::fopen(csv_path.c_str(), "w");
-    if (!csvf) {
-        fmt::print("ERROR: Cannot open {}\n", csv_path);
-        return 1;
-    }
+    if (!csvf) { fmt::print("ERROR: Cannot open {}\n", csv_path); return 1; }
     fmt::print(csvf, "symbol,strategy,exit_mode,p1,p2,p3,atr_per,sl_mult,trail_mult,"
                      "sharpe,return_pct,max_dd,trades,plateau,wf_sharpe,wrc_p,wrc_sig\n");
 
@@ -501,15 +497,18 @@ int main(int argc, char** argv) {
         auto pos = sym.find("USDT");
         if (pos != std::string::npos) sym = sym.substr(0, pos + 4);
 
-        auto bars = loadCsv(csvFile);
-        if (bars.empty()) { fmt::print("[{}] no bars\n", sym); continue; }
-        fmt::print("[{}] {} bars\n", sym, bars.size());
+        auto csvBars = loadCsv(csvFile);
+        if (csvBars.empty()) { fmt::print("[{}] no bars\n", sym); continue; }
+        fmt::print("[{}] {} bars\n", sym, csvBars.size());
 
-        SymbolInfo symInfo;
-        symInfo.exchange = "binance";
-        symInfo.symbol = sym;
-        symInfo.tickSize = Price::fromDouble(0.01);
-        auto sid = registry.registerSymbol(symInfo);
+        SymbolRegistry registry;
+        SymbolInfo info;
+        info.exchange = "binance";
+        info.symbol = sym;
+        info.tickSize = Price::fromDouble(0.01);
+        auto sid = registry.registerSymbol(info);
+
+        auto barEvents = csvToBarEvents(csvBars, sid);
 
         for (const auto& sd : strats) {
             const GridConfig* gc = nullptr;
@@ -539,7 +538,7 @@ int main(int argc, char** argv) {
                     gp.exit_be_r_mult = 1.0;
 
                     try {
-                        auto r = runBt(bars, sid, registry, sd.factory, gp);
+                        auto r = runBt(barEvents, sid, registry, sd.factory, gp);
                         auto s = r.computeStats();
                         if (s.totalTrades >= 10) {
                             results.push_back({gp, s.sharpeRatio});
@@ -547,8 +546,6 @@ int main(int argc, char** argv) {
                         }
                     } catch (const std::exception& e) {
                         fmt::print("    ERR: {} params={}\n", e.what(), gp.toString());
-                    } catch (...) {
-                        fmt::print("    ERR: unknown params={}\n", gp.toString());
                     }
                 }
 
@@ -563,12 +560,11 @@ int main(int argc, char** argv) {
                 WFResult wf;
                 WRCResult wrc;
                 if (pl.found && bestSharpe > 0.3) {
-                    wf = walkForward(bars, sid, registry, sd.factory, bp, 5);
-                    auto wr = runBt(bars, sid, registry, sd.factory, bp);
+                    wf = walkForward(barEvents, sid, registry, sd.factory, bp, 5);
                     std::vector<double> barReturns;
-                    barReturns.reserve(bars.size());
-                    for (size_t i = 1; i < bars.size(); ++i)
-                        barReturns.push_back((bars[i].close - bars[i-1].close) / bars[i-1].close);
+                    barReturns.reserve(csvBars.size());
+                    for (size_t i = 1; i < csvBars.size(); ++i)
+                        barReturns.push_back((csvBars[i].close - csvBars[i-1].close) / csvBars[i-1].close);
                     wrc = whitesRC(barReturns, 1000);
                 }
 
@@ -585,6 +581,8 @@ int main(int argc, char** argv) {
                     pl.found, wf.avg_sharpe, wrc.p, wrc.sig);
             }
         }
+        fmt::print(csvf, "");
+        std::fflush(csvf);
     }
     std::fclose(csvf);
     fmt::print("\nCombos tested: {} | With >=10 trades: {}\n", total_combos, total_with_trades);
