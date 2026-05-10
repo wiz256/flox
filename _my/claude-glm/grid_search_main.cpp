@@ -15,6 +15,7 @@
 #include "flox/position/position_tracker.h"
 
 #include <atomic>
+#include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <thread>
@@ -181,6 +182,8 @@ struct CombinedGrid
 static std::vector<BarEvent> g_bars;
 static SymbolRegistry g_registry;
 static SymbolId g_symbolId = 1;
+static double g_initialCapital = 10000.0;
+static double g_feeRate = 0.0004;
 
 // =============================================================================
 // Strategy factory from CombinedParams
@@ -237,8 +240,8 @@ Strategy* createStrategy(const CombinedParams& p)
 BacktestResult runBacktest(const CombinedParams& p)
 {
     BacktestConfig config;
-    config.initialCapital = 10000.0;
-    config.feeRate = 0.0004;
+    config.initialCapital = g_initialCapital;
+    config.feeRate = g_feeRate;
 
     BacktestRunner runner(config);
     Strategy* strat = createStrategy(p);
@@ -332,50 +335,99 @@ int main(int argc, char* argv[])
 {
     if (argc < 2)
     {
-        std::cerr << "Usage: " << argv[0] << " <data.csv> [num_threads]\n";
+        std::cerr << "Usage: " << argv[0] << " <data.csv> [options]\n"
+                  << "  --notional <usd>    Notional per trade (default: 1000)\n"
+                  << "  --min-trades <n>    Minimum trades filter (default: 30)\n"
+                  << "  --threads <n>       Number of threads (default: all cores)\n"
+                  << "  --capital <usd>     Initial capital (default: 10000)\n"
+                  << "  --fee <rate>        Fee rate (default: 0.0004 = 0.04%)\n";
         return 1;
     }
 
+    // Parse arguments
     std::string csvPath = argv[1];
-    size_t numThreads = (argc > 2) ? std::stoul(argv[2]) : std::thread::hardware_concurrency();
+    double notional = 1000.0;
+    size_t minTrades = 30;
+    size_t numThreads = std::thread::hardware_concurrency();
+    double capital = 10000.0;
+    double feeRate = 0.0004;
+
+    for (int i = 2; i < argc; ++i)
+    {
+        std::string arg = argv[i];
+        if (arg == "--notional" && i + 1 < argc) { notional = std::stod(argv[++i]); }
+        else if (arg == "--min-trades" && i + 1 < argc) { minTrades = std::stoul(argv[++i]); }
+        else if (arg == "--threads" && i + 1 < argc) { numThreads = std::stoul(argv[++i]); }
+        else if (arg == "--capital" && i + 1 < argc) { capital = std::stod(argv[++i]); }
+        else if (arg == "--fee" && i + 1 < argc) { feeRate = std::stod(argv[++i]); }
+        else { numThreads = std::stoul(arg); }  // backward compat: positional thread count
+    }
     if (numThreads == 0) numThreads = 1;
+
+    // Extract coin name from filename (e.g., data/BTCUSDT_4h.csv -> BTCUSDT)
+    std::string coin = std::filesystem::path(csvPath).stem().string();
+    auto usdPos = coin.find("USDT");
+    if (usdPos != std::string::npos) coin = coin.substr(0, usdPos + 4);
+    else if (coin.find('_') != std::string::npos) coin = coin.substr(0, coin.find('_'));
+
+    // Set global notional for all strategies
+    g_notionalUsd = notional;
+
+    // Store capital and fee for runBacktest
+    g_initialCapital = capital;
+    g_feeRate = feeRate;
 
     std::cerr << "Loading " << csvPath << "...\n";
     auto csvBars = readCsvBars(csvPath);
     if (csvBars.empty()) { std::cerr << "Error: no bars loaded\n"; return 1; }
-    std::cerr << "Loaded " << csvBars.size() << " bars\n";
+
+    // Compute bar period from data
+    size_t numBars = csvBars.size();
+    double firstPrice = numBars > 0 ? csvBars[0].close : 0.0;
+    double lastPrice = numBars > 0 ? csvBars[numBars - 1].close : 0.0;
+    int64_t firstNs = numBars > 0 ? csvBars[0].timestampNs : 0;
+    int64_t lastNs = numBars > 0 ? csvBars[numBars - 1].timestampNs : 0;
+    double barHours = numBars > 1 ? static_cast<double>(lastNs - firstNs) / 1e9 / 3600.0 / static_cast<double>(numBars - 1) : 0.0;
+
+    std::cerr << "Loaded " << numBars << " bars (" << coin << ")\n";
+    std::cerr << "  Period: " << barHours << "h bars | First: $" << firstPrice << " | Last: $" << lastPrice << "\n";
+    std::cerr << "  Qty per trade: $" << notional << " / $" << lastPrice << " = "
+              << std::fixed << std::setprecision(6) << notional / lastPrice << " " << coin << "\n";
 
     SymbolInfo info;
     info.id = g_symbolId;
     info.exchange = "BACKTEST";
-    info.symbol = "ASSET";
+    info.symbol = coin;
     info.tickSize = Price::fromDouble(0.01);
     g_registry.registerSymbol(info);
 
     g_bars = csvBarsToBarEvents(csvBars, g_symbolId);
 
     CombinedGrid grid;
-    std::cerr << "Grid: " << grid.totalCombinations() << " combinations across " << NUM_STRATEGIES << " strategies\n";
-    std::cerr << "Using " << numThreads << " threads\n\n";
+    std::cerr << "\nGrid: " << grid.totalCombinations() << " combinations across " << NUM_STRATEGIES << " strategies\n";
+    std::cerr << "Config: notional=$" << notional << " | capital=$" << capital
+              << " | fee=" << (feeRate * 100) << "% | min-trades=" << minTrades
+              << " | " << numThreads << " threads\n\n";
 
     auto results = runParallel(grid, numThreads);
 
     // Global ranking
     auto ranked = BacktestOptimizer<CombinedParams, CombinedGrid>::rankResults(results, RankMetric::SharpeRatio);
 
-    std::cout << "\n=== Top 30 Results (by Sharpe, min 5 trades) ===\n";
+    std::cout << "\n=== Top 30 Results (" << coin << " | $" << notional << " notional | min " << minTrades << " trades) ===\n";
     int shown = 0;
     for (size_t i = 0; i < ranked.size() && shown < 30; ++i)
     {
-        if (ranked[i].totalTrades() < 5) continue;
+        if (ranked[i].totalTrades() < minTrades) continue;
         std::cout << shown + 1 << ". " << ranked[i].parameters.toString() << "\n"
-                  << "   Sharpe: " << ranked[i].sharpeRatio()
-                  << " | Return: " << ranked[i].totalReturn()
-                  << "% | MaxDD: " << ranked[i].maxDrawdownPct() << "%"
+                  << "   Sharpe: " << std::fixed << std::setprecision(2) << ranked[i].sharpeRatio()
+                  << " | Return: " << std::setprecision(1) << ranked[i].totalReturn() << "%"
+                  << " | MaxDD: " << ranked[i].maxDrawdownPct() << "%"
                   << " | Trades: " << ranked[i].totalTrades()
-                  << " | Win%: " << (ranked[i].winRate() * 100) << "\n";
+                  << " | Win%: " << std::setprecision(1) << (ranked[i].winRate() * 100) << "\n";
         ++shown;
     }
+    if (shown == 0) std::cout << "  (no strategies with >= " << minTrades << " trades)\n";
 
     // Per-strategy breakdown
     printPerStrategySummary(results);
@@ -384,9 +436,10 @@ int main(int argc, char* argv[])
     using Stats = OptimizationStatistics<CombinedParams, CombinedGrid>;
     Stats::printSummary(results);
 
-    // Export
-    BacktestOptimizer<CombinedParams, CombinedGrid>::exportToCSV(ranked, "grid_search_results.csv");
-    std::cerr << "\nResults exported to grid_search_results.csv\n";
+    // Export with coin name
+    std::string csvOut = coin + "_grid_results.csv";
+    BacktestOptimizer<CombinedParams, CombinedGrid>::exportToCSV(ranked, csvOut);
+    std::cerr << "\nResults exported to " << csvOut << "\n";
 
     return 0;
 }

@@ -19,6 +19,18 @@ namespace flox::strategy
 {
 
 // =====================================================================
+// Global notional sizing — set once before grid search, read by all strategies
+// =====================================================================
+
+inline double g_notionalUsd = 1000.0;  // $1000 per trade by default
+
+inline Quantity qtyFromNotional(double price)
+{
+    if (price <= 0.0) return Quantity::fromDouble(0.0);
+    return Quantity::fromDouble(g_notionalUsd / price);
+}
+
+// =====================================================================
 // Streaming indicator helpers
 // =====================================================================
 
@@ -190,10 +202,10 @@ protected:
             // Breakout: close outside BB, prior bar inside
             bool prevInside = (!std::isnan(_prevC)) && _prevC <= (mean + _p.bbStd * sd) && _prevC >= (mean - _p.bbStd * sd);
             if (c > upper && prevInside && volOk) {
-                emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
+                emitMarketBuy(ev.symbol, qtyFromNotional(c));
                 _trail = c - 2.0 * _atr.value();
             } else if (c < lower && prevInside && volOk) {
-                emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+                emitMarketSell(ev.symbol, qtyFromNotional(c));
                 _trail = c + 2.0 * _atr.value();
             }
         }
@@ -259,8 +271,8 @@ protected:
 
         if (pos.raw() == 0)
         {
-            if (c > upper && volOk) emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
-            else if (c < lower && volOk) emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            if (c > upper && volOk) emitMarketBuy(ev.symbol, qtyFromNotional(c));
+            else if (c < lower && volOk) emitMarketSell(ev.symbol, qtyFromNotional(c));
         }
         else
         {
@@ -326,8 +338,8 @@ protected:
         Quantity pos = position(ev.symbol);
 
         if (pos.raw() == 0) {
-            if (smoothed > _p.momThreshold && c > trend) emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
-            else if (smoothed < -_p.momThreshold && c < trend) emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            if (smoothed > _p.momThreshold && c > trend) emitMarketBuy(ev.symbol, qtyFromNotional(c));
+            else if (smoothed < -_p.momThreshold && c < trend) emitMarketSell(ev.symbol, qtyFromNotional(c));
         } else {
             if (pos.raw() > 0 && (smoothed < -_p.momThreshold || c < trend)) emitClosePosition(ev.symbol);
             else if (pos.raw() < 0 && (smoothed > _p.momThreshold || c > trend)) emitClosePosition(ev.symbol);
@@ -381,10 +393,10 @@ protected:
 
         if (above && !_prevAbove && pos.raw() <= 0) {
             if (pos.raw() < 0) emitClosePosition(ev.symbol);
-            emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
+            emitMarketBuy(ev.symbol, qtyFromNotional(c));
         } else if (!above && _prevAbove && pos.raw() >= 0) {
             if (pos.raw() > 0) emitClosePosition(ev.symbol);
-            emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            emitMarketSell(ev.symbol, qtyFromNotional(c));
         }
         _prevAbove = above;
     }
@@ -434,8 +446,8 @@ protected:
 
         Quantity pos = position(ev.symbol);
         if (pos.raw() == 0) {
-            if (c > upper) emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
-            else if (c < lower) emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            if (c > upper) emitMarketBuy(ev.symbol, qtyFromNotional(c));
+            else if (c < lower) emitMarketSell(ev.symbol, qtyFromNotional(c));
         } else {
             if (pos.raw() > 0 && c < mid) emitClosePosition(ev.symbol);
             else if (pos.raw() < 0 && c > mid) emitClosePosition(ev.symbol);
@@ -499,8 +511,8 @@ protected:
 
         // Enter on squeeze release + directional breakout
         if (!_wasSqueeze && _prevSqueeze && pos.raw() == 0) {
-            if (c > bbUp && mom > 0) emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
-            else if (c < bbLo && mom < 0) emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            if (c > bbUp && mom > 0) emitMarketBuy(ev.symbol, qtyFromNotional(c));
+            else if (c < bbLo && mom < 0) emitMarketSell(ev.symbol, qtyFromNotional(c));
         }
         // Exit on re-squeeze or momentum reversal
         else if (pos.raw() > 0 && (squeezing || mom < 0)) emitClosePosition(ev.symbol);
@@ -571,10 +583,10 @@ protected:
 
         if (above && !_prevAbove && pos.raw() <= 0) {
             if (pos.raw() < 0) emitClosePosition(ev.symbol);
-            emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
+            emitMarketBuy(ev.symbol, qtyFromNotional(c));
         } else if (!above && _prevAbove && pos.raw() >= 0) {
             if (pos.raw() > 0) emitClosePosition(ev.symbol);
-            emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            emitMarketSell(ev.symbol, qtyFromNotional(c));
         }
         _prevAbove = above;
     }
@@ -626,8 +638,8 @@ protected:
         Quantity pos = position(ev.symbol);
 
         if (pos.raw() == 0) {
-            if (c < bbLo && rsi < _p.rsiLow) emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
-            else if (c > bbUp && rsi > _p.rsiHigh) emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            if (c < bbLo && rsi < _p.rsiLow) emitMarketBuy(ev.symbol, qtyFromNotional(c));
+            else if (c > bbUp && rsi > _p.rsiHigh) emitMarketSell(ev.symbol, qtyFromNotional(c));
         } else {
             if (pos.raw() > 0 && c >= mean) emitClosePosition(ev.symbol);
             else if (pos.raw() < 0 && c <= mean) emitClosePosition(ev.symbol);
@@ -673,8 +685,8 @@ protected:
         Quantity pos = position(ev.symbol);
 
         if (pos.raw() == 0) {
-            if (rsi < _p.entryLow && c > trend) emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
-            else if (rsi > _p.entryHigh && c < trend) emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            if (rsi < _p.entryLow && c > trend) emitMarketBuy(ev.symbol, qtyFromNotional(c));
+            else if (rsi > _p.entryHigh && c < trend) emitMarketSell(ev.symbol, qtyFromNotional(c));
         } else {
             if (pos.raw() > 0 && rsi > 50.0) emitClosePosition(ev.symbol);
             else if (pos.raw() < 0 && rsi < 50.0) emitClosePosition(ev.symbol);
@@ -731,10 +743,10 @@ protected:
         Quantity pos = position(ev.symbol);
         if (dir == 1 && _prevDir == -1 && pos.raw() <= 0) {
             if (pos.raw() < 0) emitClosePosition(ev.symbol);
-            emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
+            emitMarketBuy(ev.symbol, qtyFromNotional(c));
         } else if (dir == -1 && _prevDir == 1 && pos.raw() >= 0) {
             if (pos.raw() > 0) emitClosePosition(ev.symbol);
-            emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            emitMarketSell(ev.symbol, qtyFromNotional(c));
         }
         _prevC = c; _prevDir = dir;
     }
@@ -789,12 +801,12 @@ protected:
         if (pos.raw() == 0) {
             // Long: uptrend + RSI pulled back + price reclaims fast EMA
             if (uptrend && rsi < _p.rsiPullback && c > fast) {
-                emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
+                emitMarketBuy(ev.symbol, qtyFromNotional(c));
                 _trail = c - 3.0 * atrVal;
             }
             // Short: downtrend + RSI overbought + price loses fast EMA
             else if (!uptrend && rsi > (100 - _p.rsiPullback) && c < fast) {
-                emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+                emitMarketSell(ev.symbol, qtyFromNotional(c));
                 _trail = c + 3.0 * atrVal;
             }
         } else {
@@ -866,10 +878,10 @@ protected:
         Quantity pos = position(ev.symbol);
         if (smoothed > 0 && pos.raw() <= 0) {
             if (pos.raw() < 0) emitClosePosition(ev.symbol);
-            emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
+            emitMarketBuy(ev.symbol, qtyFromNotional(c));
         } else if (smoothed < 0 && pos.raw() >= 0) {
             if (pos.raw() > 0) emitClosePosition(ev.symbol);
-            emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            emitMarketSell(ev.symbol, qtyFromNotional(c));
         }
     }
 private:
@@ -937,8 +949,8 @@ protected:
         Quantity pos = position(ev.symbol);
 
         if (pos.raw() == 0 && compressed) {
-            if (c > rangeHigh && volOk) emitMarketBuy(ev.symbol, Quantity::fromDouble(1.0));
-            else if (c < rangeLow && volOk) emitMarketSell(ev.symbol, Quantity::fromDouble(1.0));
+            if (c > rangeHigh && volOk) emitMarketBuy(ev.symbol, qtyFromNotional(c));
+            else if (c < rangeLow && volOk) emitMarketSell(ev.symbol, qtyFromNotional(c));
         } else if (pos.raw() > 0 && c < rangeLow) {
             emitClosePosition(ev.symbol);
         } else if (pos.raw() < 0 && c > rangeHigh) {

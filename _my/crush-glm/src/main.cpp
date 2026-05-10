@@ -90,10 +90,7 @@ protected:
         emitMarketSell(sym, qty_);
     }
     void exitPos(SymbolId sym) {
-        Quantity pos = position(sym);
-        if (pos.raw() == 0) return;
-        if (pos.raw() > 0) emitMarketSell(sym, qty_);
-        else emitMarketBuy(sym, qty_);
+        emitClosePosition(sym);
     }
 
     void checkExit(SymbolId sym, double c, double h, double l, double atr) {
