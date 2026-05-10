@@ -1,0 +1,1 @@
+symbol,strategy,exit_mode,p1,p2,p3,atr_per,sl_mult,trail_mult,sharpe,trades,return_pct,dd_pct,win_rate,plateau,neighbors,plateau_ratio,rel_variance,wf_sharpe,wf_oos_is_ratio,wf_passed,wf_folds,wrc_p,wrc_sig,no_lookahead

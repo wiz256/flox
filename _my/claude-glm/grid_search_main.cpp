@@ -61,6 +61,37 @@ inline const char* strategyName(StrategyKind k)
     return names[k];
 }
 
+inline const char* strategyExitMode(StrategyKind k)
+{
+    static const char* modes[] = {
+        "bb_reverse",          // BOLLINGER_BREAKOUT: exit on BB opposite band touch
+        "channel_midline",     // DONCHIAN_BREAKOUT: exit on exit-channel midline cross
+        "momentum_flip",       // DUAL_MOMENTUM: exit on momentum sign flip
+        "ema_cross",           // EMA_CROSSOVER: exit on EMA cross back
+        "channel_break",       // KELTNER_BREAKOUT: exit on Keltner channel break back
+        "squeeze_release",     // KELTNER_SQUEEZE: exit on squeeze release signal
+        "signal_cross",        // MACD: exit on MACD signal cross
+        "bb_mean_revert",      // RSI_BB_MR: exit on RSI exit zone or BB mean
+        "rsi_exit_zone",       // RSI2: exit on RSI crossing exit threshold
+        "trend_flip",          // SUPERTREND: exit on supertrend direction flip
+        "chandelier_trail",    // TREND_PULLBACK: chandelier trailing stop (3xATR)
+        "sign_flip",           // TSMOM: exit on return sign flip
+        "range_break"          // VOL_COMPRESSION_BREAKOUT: exit on range break reversal
+    };
+    return modes[k];
+}
+
+// Format Unix nanoseconds to YYYY-MM-DD
+inline std::string formatDateNs(int64_t timestampNs)
+{
+    time_t secs = static_cast<time_t>(timestampNs / 1000000000LL);
+    struct tm tm_buf;
+    gmtime_r(&secs, &tm_buf);
+    char buf[32];
+    strftime(buf, sizeof(buf), "%Y-%m-%d", &tm_buf);
+    return std::string(buf);
+}
+
 // Flattened params: kind + up to 6 ints + 6 doubles
 struct CombinedParams
 {
@@ -660,6 +691,7 @@ struct CompositeComponents
 struct RobustResult
 {
     CombinedParams params;
+    const char* exitMode;      // strategy exit mode description
     double sharpe;
     double sortino;
     double calmar;
@@ -774,22 +806,28 @@ void printPerStrategySummary(const std::vector<OptimizationResult<CombinedParams
 // Custom CSV export with robustness columns
 // =============================================================================
 
-void exportRobustCSV(const std::string& path, const std::vector<RobustResult>& rows)
+void exportRobustCSV(const std::string& path, const std::vector<RobustResult>& rows,
+                     const std::string& timeframe, const std::string& dateFrom,
+                     const std::string& dateTo, size_t barsCount,
+                     double priceStart, double priceEnd)
 {
     std::ofstream f(path);
     if (!f.is_open()) { std::cerr << "Error: cannot write " << path << "\n"; return; }
 
-    f << "sharpe_ratio,sortino_ratio,calmar_ratio,total_return,max_drawdown_pct,win_rate,"
-      << "profit_factor,total_trades,parameters,plateau_ratio,avg_neighbor_sharpe,neighbor_count,composite_score,"
+    f << "timeframe,date_from,date_to,bars_count,price_start,price_end,"
+      << "sharpe_ratio,sortino_ratio,calmar_ratio,total_return,max_drawdown_pct,win_rate,"
+      << "profit_factor,total_trades,exit_mode,parameters,plateau_ratio,avg_neighbor_sharpe,neighbor_count,composite_score,"
       << "cc_sharpe,cc_calmar,cc_profit_factor,cc_plateau,cc_trades,cc_cost_stress,cc_win_rate,cc_dd_penalty,"
       << "wfo_pass_rate,wfo_avg_test_sharpe\n";
 
     f << std::fixed << std::setprecision(4);
     for (const auto& r : rows)
     {
-        f << r.sharpe << "," << r.sortino << "," << r.calmar << ","
+        f << timeframe << "," << dateFrom << "," << dateTo << "," << barsCount << ","
+          << priceStart << "," << priceEnd << ","
+          << r.sharpe << "," << r.sortino << "," << r.calmar << ","
           << r.totalReturn << "," << r.maxDrawdownPct << "," << r.winRate << ","
-          << r.profitFactor << "," << r.totalTrades << ",\"" << r.params.toString() << "\","
+          << r.profitFactor << "," << r.totalTrades << "," << r.exitMode << ",\"" << r.params.toString() << "\","
           << r.plateauRatio << "," << r.avgNeighborSharpe << ","
           << r.neighborCount << "," << r.compositeScore << ","
           << r.cc.sharpe << "," << r.cc.calmar << "," << r.cc.profitFactor << ","
@@ -909,11 +947,19 @@ int main(int argc, char* argv[])
     }
     if (numThreads == 0) numThreads = 1;
 
-    // Extract coin name from filename
+    // Extract coin name and timeframe from filename (e.g., "BTCUSDT_4h" → coin="BTCUSDT", timeframe="4h")
     std::string coin = fs::path(csvPath).stem().string();
+    std::string timeframe = "unknown";
     auto usdPos = coin.find("USDT");
     if (usdPos != std::string::npos) coin = coin.substr(0, usdPos + 4);
     else if (coin.find('_') != std::string::npos) coin = coin.substr(0, coin.find('_'));
+    // Extract timeframe from original filename
+    {
+        std::string stem = fs::path(csvPath).stem().string();
+        auto lastUnderscore = stem.rfind('_');
+        if (lastUnderscore != std::string::npos && lastUnderscore + 1 < stem.size())
+            timeframe = stem.substr(lastUnderscore + 1);
+    }
 
     // Set global sizing params
     g_sizingMode = sizingMode;
@@ -931,6 +977,8 @@ int main(int argc, char* argv[])
     size_t numBars = csvBars.size();
     double firstPrice = csvBars[0].close;
     double lastPrice = csvBars[numBars - 1].close;
+    std::string dateFrom = formatDateNs(csvBars[0].timestampNs);
+    std::string dateTo = formatDateNs(csvBars[numBars - 1].timestampNs);
 
     double effectiveNotional;
     const char* modeStr;
@@ -941,8 +989,9 @@ int main(int argc, char* argv[])
     default: effectiveNotional = notional; modeStr = "fixed_notional";
     }
 
-    std::cerr << "Loaded " << numBars << " bars (" << coin << ")\n";
-    std::cerr << "  Period: First: $" << firstPrice << " | Last: $" << lastPrice << "\n";
+    std::cerr << "Loaded " << numBars << " " << timeframe << " bars (" << coin << ")\n";
+    std::cerr << "  Period: " << dateFrom << " → " << dateTo
+              << " | $" << firstPrice << " → $" << lastPrice << "\n";
     std::cerr << "  Sizing: " << modeStr << " | Notional: $" << effectiveNotional
               << " | Leverage: " << leverage << "x\n";
 
@@ -965,8 +1014,11 @@ int main(int argc, char* argv[])
             keepBars = std::min(keepBars, numBars);
             size_t startIdx = numBars - keepBars;
             g_bars.erase(g_bars.begin(), g_bars.begin() + startIdx);
+            // Update date range and prices to reflect truncated data
+            dateFrom = formatDateNs(csvBars[startIdx].timestampNs);
+            firstPrice = csvBars[startIdx].close;
             std::cerr << "  Truncated to last " << recentYears << " years: "
-                      << g_bars.size() << " bars\n";
+                      << g_bars.size() << " bars (" << dateFrom << " → " << dateTo << ")\n";
         }
     }
 
@@ -1001,6 +1053,7 @@ int main(int argc, char* argv[])
 
         RobustResult rr;
         rr.params = results[i].parameters;
+        rr.exitMode = strategyExitMode(results[i].parameters.kind);
         rr.sharpe = results[i].sharpeRatio();
         rr.sortino = results[i].sortinoRatio();
         rr.calmar = results[i].calmarRatio();
@@ -1117,10 +1170,19 @@ int main(int argc, char* argv[])
               });
 
     // ===== Step 5: Display results =====
-    std::cout << "\n=== Top 30 by Composite Score (" << coin << " | " << modeStr << " $" << effectiveNotional
-              << " | min " << minTrades << " trades | " << robustRows.size() << " passed filter) ===\n";
-    std::cout << "   Sharpe | Calmar | PF   | Trades | Plateau | Composite | WFO% | Params\n";
-    std::cout << "  --------|--------|------|--------|---------|-----------|------|-------\n";
+    std::cout << "\n=== Top 30 by Composite Score ===\n";
+    std::cout << "  Coin: " << coin << " | Timeframe: " << timeframe << " | Bars: " << g_bars.size() << "\n";
+    std::cout << "  Period: " << dateFrom << " → " << dateTo
+              << " | $" << firstPrice << " → $" << lastPrice << "\n";
+    std::cout << "  Sizing: " << modeStr << " $" << effectiveNotional << " | Leverage: " << leverage
+              << "x | Fee: " << (feeRate * 100) << "%\n";
+    std::cout << "  Filter: min " << minTrades << " trades | " << robustRows.size() << " passed\n";
+    std::cout << "  WFO: " << (wfoEnabled ? "ON" : "OFF");
+    if (wfoEnabled) std::cout << " | " << wfoFolds << " folds | IS=" << (wfoIsPct*100) << "% | embargo=" << wfoEmbargo;
+    std::cout << "\n\n";
+
+    std::cout << "   Sharpe | Calmar | PF   | Trades | Plateau | Composite | WFO% | Exit            | Params\n";
+    std::cout << "  --------|--------|------|--------|---------|-----------|------|-----------------|-------\n";
 
     int shown = 0;
     for (size_t i = 0; i < robustRows.size() && shown < 30; ++i)
@@ -1138,7 +1200,8 @@ int main(int argc, char* argv[])
             std::cout << std::setw(3) << std::setprecision(0) << (r.wfoPassRate * 100) << "%";
         else
             std::cout << " n/a";
-        std::cout << " | " << r.params.toString() << "\n";
+        std::cout << " | " << std::left << std::setw(15) << r.exitMode << std::right
+                  << " | " << r.params.toString() << "\n";
 
         // Show composite component breakdown
         std::cout << "     Score breakdown: sharpe=" << std::setprecision(3) << r.cc.sharpe
@@ -1163,7 +1226,7 @@ int main(int argc, char* argv[])
     // ===== Step 6: Export =====
     fs::create_directories("results");
     std::string csvOut = "results/" + coin + "_grid_results.csv";
-    exportRobustCSV(csvOut, robustRows);
+    exportRobustCSV(csvOut, robustRows, timeframe, dateFrom, dateTo, g_bars.size(), firstPrice, lastPrice);
     std::cerr << "\nExported " << robustRows.size() << " results to " << csvOut << "\n";
 
     if (wfoEnabled && !wfoAll.empty())
