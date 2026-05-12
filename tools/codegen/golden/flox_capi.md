@@ -2,7 +2,7 @@
 
 Generated from `include/flox/capi/flox_capi_spec.hpp`. Source of truth for FFI consumers (Codon, QuickJS, Rust, Go cgo, Python ctypes). The pybind11 (Python) and NAPI (Node) bindings wrap this surface but expose richer language-native APIs that live in `python/` and `node/` respectively — see those for the Python/TS-flavored interfaces.
 
-**Surface:** 475 functions, 42 handles, 48 structs, 33 callback typedefs, 2 enums, 57 groups.
+**Surface:** 503 functions, 44 handles, 51 structs, 35 callback typedefs, 2 enums, 59 groups.
 
 ## Opaque handles
 
@@ -27,7 +27,7 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 - `FloxDataWriterHandle`
 - `FloxDataReaderHandle`
 - `FloxBacktestResultHandle`
-- `FloxDataRecorderHandle`
+- `FloxMergedTapeReaderHandle`
 - `FloxPartitionerHandle`
 - `FloxRiskManagerHandle`
 - `FloxKillSwitchHandle`
@@ -35,6 +35,7 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 - `FloxPnLTrackerHandle`
 - `FloxStorageSinkHandle`
 - `FloxMarketDataRecorderHandle`
+- `FloxBinaryLogRecorderHookHandle`
 - `FloxReplaySourceHandle`
 - `FloxExecutionListenerHandle`
 - `FloxExecutorHandle`
@@ -50,6 +51,7 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 - `FloxDeltaBookReplayerHandle`
 - `FloxRunRecorderHandle`
 - `FloxRunReaderHandle`
+- `FloxBarDispatchRecorderHandle`
 
 ## Enums
 
@@ -71,6 +73,8 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 - `typedef void (*FloxOnTradeCallback)(void *, const FloxSymbolContext *, const FloxTradeData *);`
 - `typedef void (*FloxOnBookCallback)(void *, const FloxSymbolContext *, const FloxBookData *);`
 - `typedef void (*FloxOnBarCallback)(void *, const FloxSymbolContext *, const FloxBarData *);`
+- `typedef void (*FloxOnFillCallback)(void *, const FloxSymbolContext *, const FloxOrderEventData *);`
+- `typedef void (*FloxOnOrderUpdateCallback)(void *, const FloxSymbolContext *, const FloxOrderEventData *);`
 - `typedef void (*FloxOnStartCallback)(void *);`
 - `typedef void (*FloxOnStopCallback)(void *);`
 - `typedef const double * (*FloxGraphNodeFn)(void *, FloxIndicatorGraphHandle, uint32_t, size_t *);`
@@ -170,6 +174,21 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 | `last_update_ns` | `int64_t` |
 | `book` | `FloxBookSnapshot` |
 
+### `FloxOrderEventData`
+
+| field | type |
+|---|---|
+| `order_id` | `uint64_t` |
+| `symbol_id` | `uint32_t` |
+| `side` | `uint8_t` |
+| `order_type` | `uint8_t` |
+| `status` | `uint8_t` |
+| `_pad` | `uint8_t` |
+| `fill_qty_raw` | `int64_t` |
+| `fill_price_raw` | `int64_t` |
+| `exchange_ts_ns` | `int64_t` |
+| `reject_reason` | `const char *` |
+
 ### `FloxStrategyCallbacks`
 
 | field | type |
@@ -179,6 +198,8 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 | `on_bar` | `FloxOnBarCallback` |
 | `on_start` | `FloxOnStartCallback` |
 | `on_stop` | `FloxOnStopCallback` |
+| `on_fill` | `FloxOnFillCallback` |
+| `on_order_update` | `FloxOnOrderUpdateCallback` |
 | `user_data` | `void *` |
 
 ### `FloxBar`
@@ -383,6 +404,27 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 | `price_raw` | `int64_t` |
 | `qty_raw` | `int64_t` |
 | `side` | `uint8_t` |
+
+### `FloxMergedSymbol`
+
+| field | type |
+|---|---|
+| `global_id` | `uint32_t` |
+| `price_precision` | `int8_t` |
+| `qty_precision` | `int8_t` |
+| `_pad` | `uint8_t[2]` |
+| `exchange` | `const char *` |
+| `name` | `const char *` |
+
+### `FloxMergedTapeStats`
+
+| field | type |
+|---|---|
+| `first_event_ns` | `int64_t` |
+| `last_event_ns` | `int64_t` |
+| `trades` | `uint64_t` |
+| `books` | `uint64_t` |
+| `path` | `const char *` |
 
 ### `FloxWriterStats`
 
@@ -714,16 +756,43 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 - `void flox_backtest_runner_destroy(FloxBacktestRunnerHandle runner)`
 - `void flox_backtest_runner_set_strategy(FloxBacktestRunnerHandle runner, FloxStrategyHandle strategy)`
 - `int flox_backtest_runner_run_csv(FloxBacktestRunnerHandle runner, const char * path, const char * symbol, FloxBacktestStats * stats_out)`
+- `int flox_backtest_runner_run_tape(FloxBacktestRunnerHandle runner, const char * tape_dir, FloxBacktestStats * stats_out)`
+- `int flox_backtest_runner_run_tapes(FloxBacktestRunnerHandle runner, const char *const * tape_dirs, uint32_t n_dirs, FloxBacktestStats * stats_out)`
 - `int flox_backtest_runner_run_ohlcv(FloxBacktestRunnerHandle runner, const int64_t * timestamps_ns, const double * close_prices, uint32_t n, const char * symbol, FloxBacktestStats * stats_out)`
 - `int flox_backtest_runner_run_bars(FloxBacktestRunnerHandle runner, const int64_t * start_time_ns, const int64_t * end_time_ns, const double * open, const double * high, const double * low, const double * close, const double * volume, uint32_t n, const char * symbol, uint8_t bar_type, uint64_t bar_type_param, FloxBacktestStats * stats_out)`
 - `int flox_backtest_runner_run_replay_source(FloxBacktestRunnerHandle runner, FloxReplaySourceHandle source, FloxBacktestStats * stats_out)`
 - `FloxBacktestResultHandle flox_backtest_runner_take_result(FloxBacktestRunnerHandle runner)`
+- `void flox_backtest_runner_set_risk_manager(FloxBacktestRunnerHandle runner, FloxRiskManagerHandle rm)`
+- `void flox_backtest_runner_set_kill_switch(FloxBacktestRunnerHandle runner, FloxKillSwitchHandle ks)`
+- `void flox_backtest_runner_set_order_validator(FloxBacktestRunnerHandle runner, FloxOrderValidatorHandle ov)`
+- `void flox_backtest_runner_set_pnl_tracker(FloxBacktestRunnerHandle runner, FloxPnLTrackerHandle tracker)`
 
 ### bar_aggregation
 
 - `uint32_t flox_aggregate_time_bars(const int64_t * timestamps, const double * prices, const double * quantities, const uint8_t * is_buy, size_t len, double interval_seconds, FloxBar * bars_out, uint32_t max_bars)`
 - `uint32_t flox_aggregate_tick_bars(const int64_t * timestamps, const double * prices, const double * quantities, const uint8_t * is_buy, size_t len, uint32_t tick_count, FloxBar * bars_out, uint32_t max_bars)`
 - `uint32_t flox_aggregate_volume_bars(const int64_t * timestamps, const double * prices, const double * quantities, const uint8_t * is_buy, size_t len, double volume_threshold, FloxBar * bars_out, uint32_t max_bars)`
+
+### bar_dispatch
+
+- `FloxBarDispatchRecorderHandle flox_bar_dispatch_recorder_create(void)`
+- `void flox_bar_dispatch_recorder_destroy(FloxBarDispatchRecorderHandle h)`
+- `uint32_t flox_bar_dispatch_recorder_add_time_seconds(FloxBarDispatchRecorderHandle h, uint32_t seconds)`
+- `void flox_bar_dispatch_recorder_on_trade(FloxBarDispatchRecorderHandle h, uint32_t symbol, double price, double qty, int64_t ts_ns)`
+- `void flox_bar_dispatch_recorder_finalize(FloxBarDispatchRecorderHandle h)`
+- `uint32_t flox_bar_dispatch_recorder_count(FloxBarDispatchRecorderHandle h)`
+- `uint8_t flox_bar_dispatch_recorder_type_at(FloxBarDispatchRecorderHandle h, uint32_t index)`
+- `uint64_t flox_bar_dispatch_recorder_param_at(FloxBarDispatchRecorderHandle h, uint32_t index)`
+
+### binary_log_recorder_hook
+
+- `FloxBinaryLogRecorderHookHandle flox_binary_log_recorder_hook_create(const char * output_dir, uint64_t max_segment_mb, uint8_t exchange_id, uint8_t compression)`
+- `FloxBinaryLogRecorderHookHandle flox_binary_log_recorder_hook_create_ex(const char * output_dir, uint64_t max_segment_mb, uint8_t exchange_id, uint8_t compression, const char * exchange_name, const char * instrument_type)`
+- `void flox_binary_log_recorder_hook_destroy(FloxBinaryLogRecorderHookHandle hook)`
+- `FloxMarketDataRecorderHandle flox_binary_log_recorder_hook_as_recorder(FloxBinaryLogRecorderHookHandle hook)`
+- `void flox_binary_log_recorder_hook_add_symbol(FloxBinaryLogRecorderHookHandle hook, uint32_t symbol_id, const char * name, const char * base, const char * quote, int8_t price_precision, int8_t qty_precision)`
+- `void flox_binary_log_recorder_hook_flush(FloxBinaryLogRecorderHookHandle hook)`
+- `FloxWriterStats flox_binary_log_recorder_hook_stats(FloxBinaryLogRecorderHookHandle hook)`
 
 ### composite_book
 
@@ -756,6 +825,7 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 - `FloxDataWriterHandle flox_data_writer_create(const char * output_dir, uint64_t max_segment_mb, uint8_t exchange_id)`
 - `void flox_data_writer_destroy(FloxDataWriterHandle writer)`
 - `uint8_t flox_data_writer_write_trade(FloxDataWriterHandle writer, int64_t exchange_ts_ns, int64_t recv_ts_ns, double price, double qty, uint64_t trade_id, uint32_t symbol_id, uint8_t side)`
+- `uint8_t flox_data_writer_write_book(FloxDataWriterHandle writer, int64_t exchange_ts_ns, int64_t recv_ts_ns, int64_t seq, uint32_t symbol_id, uint8_t is_snapshot, const FloxBookLevel * bids, uint32_t n_bids, const FloxBookLevel * asks, uint32_t n_asks)`
 - `void flox_data_writer_flush(FloxDataWriterHandle writer)`
 - `void flox_data_writer_close(FloxDataWriterHandle writer)`
 
@@ -773,19 +843,10 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 - `uint64_t flox_data_reader_count_book_updates_from(FloxDataReaderHandle reader, int64_t start_ts_ns, uint64_t * total_levels_out)`
 - `uint64_t flox_data_reader_read_book_updates_from(FloxDataReaderHandle reader, int64_t start_ts_ns, FloxBookUpdateHeader * headers_out, uint64_t max_events, FloxLevel * levels_out, uint64_t max_levels)`
 
-### datarecorder
-
-- `FloxDataRecorderHandle flox_data_recorder_create(const char * output_dir, const char * exchange_name, uint64_t max_segment_mb)`
-- `void flox_data_recorder_destroy(FloxDataRecorderHandle recorder)`
-- `void flox_data_recorder_add_symbol(FloxDataRecorderHandle recorder, uint32_t symbol_id, const char * name, const char * base, const char * quote, int8_t price_precision, int8_t qty_precision)`
-- `void flox_data_recorder_start(FloxDataRecorderHandle recorder)`
-- `void flox_data_recorder_stop(FloxDataRecorderHandle recorder)`
-- `void flox_data_recorder_flush(FloxDataRecorderHandle recorder)`
-- `uint8_t flox_data_recorder_is_recording(FloxDataRecorderHandle recorder)`
-
 ### datawriter
 
 - `FloxWriterStats flox_data_writer_stats(FloxDataWriterHandle writer)`
+- `uint64_t flox_data_writer_write_books(FloxDataWriterHandle writer, const FloxBookUpdateHeader * headers, uint64_t n_events, const FloxLevel * levels, uint64_t total_levels)`
 
 ### delta_book
 
@@ -1033,6 +1094,20 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 - `uint32_t flox_market_profile_num_levels(FloxMarketProfileHandle profile)`
 - `void flox_market_profile_clear(FloxMarketProfileHandle profile)`
 
+### merged_tape_reader
+
+- `FloxMergedTapeReaderHandle flox_merged_tape_reader_create(const char *const * paths, uint32_t n_paths, int64_t from_ns, int64_t to_ns, const uint32_t * symbol_filter, uint32_t n_filter)`
+- `void flox_merged_tape_reader_destroy(FloxMergedTapeReaderHandle reader)`
+- `uint32_t flox_merged_tape_reader_symbol_count(FloxMergedTapeReaderHandle reader)`
+- `uint32_t flox_merged_tape_reader_get_symbols(FloxMergedTapeReaderHandle reader, FloxMergedSymbol * out, uint32_t max)`
+- `uint32_t flox_merged_tape_reader_tape_count(FloxMergedTapeReaderHandle reader)`
+- `uint32_t flox_merged_tape_reader_get_tape_stats(FloxMergedTapeReaderHandle reader, FloxMergedTapeStats * out, uint32_t max)`
+- `void flox_merged_tape_reader_time_range(FloxMergedTapeReaderHandle reader, int64_t * min_first_ns_out, int64_t * max_last_ns_out)`
+- `uint64_t flox_merged_tape_reader_count_trades(FloxMergedTapeReaderHandle reader)`
+- `uint64_t flox_merged_tape_reader_read_trades(FloxMergedTapeReaderHandle reader, FloxTradeRecord * trades_out, uint64_t max_trades)`
+- `uint64_t flox_merged_tape_reader_count_books(FloxMergedTapeReaderHandle reader, uint64_t * total_levels_out)`
+- `uint64_t flox_merged_tape_reader_read_books(FloxMergedTapeReaderHandle reader, FloxBookUpdateHeader * headers_out, uint64_t max_events, FloxLevel * levels_out, uint64_t max_levels)`
+
 ### metrics
 
 - `FloxPnLTrackerHandle flox_pnl_tracker_create(FloxPnLTrackerCallbacks callbacks)`
@@ -1115,6 +1190,7 @@ All handles are typedef'd `void*`. Treat them as opaque; manage lifetime via the
 - `void flox_data_reader_summary_p(FloxDataReaderHandle reader, void * out)`
 - `void flox_data_reader_stats_p(FloxDataReaderHandle reader, void * out)`
 - `void flox_data_writer_stats_p(FloxDataWriterHandle writer, void * out)`
+- `void flox_binary_log_recorder_hook_stats_p(void * hook, void * out)`
 - `void flox_segment_merge_full_p(const char * input_paths, size_t num_paths, const char * output_dir, const char * output_name, uint8_t sort, void * out)`
 - `void flox_segment_merge_dir_p(const char * input_dir, const char * output_dir, void * out)`
 - `void flox_segment_split_p(const char * input_path, const char * output_dir, uint8_t mode, int64_t time_interval_ns, uint64_t events_per_file, void * out)`

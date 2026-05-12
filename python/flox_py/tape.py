@@ -1,41 +1,29 @@
 """Tape recording / replay primitives backing ``flox tape``.
 
-The ``.floxlog`` binary format is the on-disk format flox uses for
-deterministic event capture. This module wraps the existing
-``flox_py.DataWriter`` / ``DataReader`` (C++ binary log writer /
-reader) into hook-shaped helpers for the ``flox tape record`` and
-``flox tape replay`` CLI subcommands in :mod:`flox_py.cli`.
+``.floxlog`` is flox's on-disk format for deterministic event capture.
+This module wraps ``flox_py.DataWriter`` / ``DataReader`` (the C++
+writer/reader) and ``flox_py.BinaryLogRecorderHook`` for the
+``flox tape record`` and ``flox tape replay`` CLI subcommands in
+:mod:`flox_py.cli`.
 
-Scope limitations of v1:
-
-* Records **trades** today. Book snapshots / deltas aren't yet on the
-  Python ``DataWriter`` C-API surface; they're tracked as a follow-up
-  via the existing C++ ``BinaryLogWriter::writeBook``. ``--include-book``
-  surfaces a clear error rather than silently dropping data.
-* The recorder hook works against any ``Runner``-driven source — the
-  ``flox tape record`` CLI uses :class:`flox_py.ccxt.CcxtBroker`, but
-  the same hook runs in any pipeline that calls ``set_market_data_recorder``.
+Trades and book updates are both written. The hook stays in C++ on the
+hot path, so there's no Python callback per event.
 """
 from __future__ import annotations
 
-import asyncio
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, List, Optional
+from typing import Any, List, Optional
 
 
 @dataclass
 class TapeRecorderStats:
     trades_written: int = 0
-    book_updates_skipped: int = 0
-    started_at_ns: int = 0
-    last_event_ns: int = 0
-    error: Optional[str] = None
-
-
-def _now_ns() -> int:
-    return time.time_ns()
+    book_updates_written: int = 0
+    bytes_written: int = 0
+    segments_created: int = 0
+    errors: int = 0
 
 
 def make_recorder_hook(
@@ -44,71 +32,46 @@ def make_recorder_hook(
     max_segment_mb: int = 256,
     exchange_id: int = 0,
     compression: str = "none",
+    exchange_name: str = "",
+    instrument_type: str = "",
 ) -> Any:
-    """Return a ``MarketDataRecorderHook`` subclass instance that
-    persists every observed trade to ``output_dir`` via
-    :class:`flox_py.DataWriter`.
+    """Return a :class:`flox_py.BinaryLogRecorderHook` ready to plug
+    into ``runner.set_market_data_recorder(hook)``. Writes both trades
+    and book updates to ``output_dir`` via the in-tree
+    ``BinaryLogWriter``.
 
-    Book updates are counted but not written (see module docstring).
-    The instance also exposes a ``stats: TapeRecorderStats`` attribute
-    + a ``close()`` method for clean shutdown.
+    ``exchange_name`` and ``instrument_type`` are stamped into the
+    tape's ``metadata.json`` so :class:`flox_py.MergedTapeReader` can
+    key it by ``(exchange, name)`` against other tapes — leaving them
+    empty produces a tape that merges into the unnamed-exchange bucket.
+
+    Differs from subclassing :class:`flox_py.MarketDataRecorderHook` in
+    three ways: no Python callback per event, raw int64 prices/quantities
+    (no float64 round-trip), and book capture, not trades only.
     """
-    import flox_py  # imported lazily so test discovery doesn't fail without binding
+    import flox_py
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    writer = flox_py.DataWriter(
+    return flox_py.BinaryLogRecorderHook(
         str(output_dir),
-        max_segment_mb=max_segment_mb,
+        max_segment_mb=int(max_segment_mb),
         exchange_id=int(exchange_id),
         compression=compression,
+        exchange_name=exchange_name,
+        instrument_type=instrument_type,
     )
 
-    class _Recorder(flox_py.MarketDataRecorderHook):
-        def __init__(self) -> None:
-            super().__init__()
-            self.stats = TapeRecorderStats()
-            self._writer = writer
 
-        def on_start(self) -> None:
-            self.stats.started_at_ns = _now_ns()
-
-        def on_stop(self) -> None:
-            try:
-                self._writer.flush()
-                self._writer.close()
-            except Exception as exc:  # pragma: no cover — defensive
-                self.stats.error = f"writer close failed: {exc!r}"
-
-        def on_trade(self, trade: Any) -> None:
-            recv_ns = _now_ns()
-            self.stats.last_event_ns = recv_ns
-            try:
-                ok = self._writer.write_trade(
-                    exchange_ts_ns=int(trade.exchange_ts_ns or 0),
-                    recv_ts_ns=recv_ns,
-                    price=float(trade.price),
-                    qty=float(trade.quantity),
-                    trade_id=0,
-                    symbol_id=int(trade.symbol),
-                    side=0 if bool(trade.is_buy) else 1,
-                )
-                if ok:
-                    self.stats.trades_written += 1
-            except Exception as exc:  # pragma: no cover — defensive
-                self.stats.error = f"write_trade failed: {exc!r}"
-
-        def on_book_update(self, symbol: int, is_snapshot: bool,
-                           bids: Any, asks: Any, ts_ns: int) -> None:
-            # v1: book-write API not yet on DataWriter. Track count so
-            # CLI tooling can flag what got skipped.
-            self.stats.book_updates_skipped += 1
-
-        def close(self) -> None:
-            self.on_stop()
-
-    return _Recorder()
+def _hook_stats_to_dataclass(stats_dict: dict) -> TapeRecorderStats:
+    return TapeRecorderStats(
+        trades_written=int(stats_dict.get("trades_written", 0)),
+        book_updates_written=int(stats_dict.get("book_updates_written", 0)),
+        bytes_written=int(stats_dict.get("bytes_written", 0)),
+        segments_created=int(stats_dict.get("segments_created", 0)),
+        errors=int(stats_dict.get("errors", 0)),
+    )
 
 
 # ── Replay helpers ──────────────────────────────────────────────────
@@ -244,12 +207,100 @@ def diff_tapes(
     )
 
 
+@dataclass
+class MultiTapeStats:
+    """Result of :func:`replay_tapes`. ``trades`` / ``books`` are totals
+    across all tapes after merge-sort; ``tapes`` is a per-tape
+    contribution list: ``{path, trades, books, first_event_ns,
+    last_event_ns}`` — useful for debugging "one of the tapes is empty"."""
+
+    trades: int = 0
+    books: int = 0
+    tapes: List[dict] = field(default_factory=list)
+
+
+def replay_tapes(
+    paths: List[str | Path],
+    *,
+    on_trade: Optional[Any] = None,
+    on_book: Optional[Any] = None,
+    from_ns: Optional[int] = None,
+    to_ns: Optional[int] = None,
+    symbols: Optional[List[int]] = None,
+) -> MultiTapeStats:
+    """Replay the merged event stream from N ``.floxlog`` directories.
+
+    Symbols are rekeyed into a global id space keyed by
+    ``(metadata.exchange, name)``. Events emit in ``exchange_ts_ns``
+    order; ties break by ``paths`` order.
+
+    Callbacks (any may be ``None``):
+
+      ``on_trade(ts_ns, global_symbol_id, price, qty, side)``
+      ``on_book(ts_ns, global_symbol_id, is_snapshot, bids, asks)``
+        — ``bids`` / ``asks`` are lists of ``(price, qty)`` tuples.
+    """
+    import flox_py
+
+    paths = [str(Path(p).expanduser()) for p in paths]
+    reader = flox_py.MergedTapeReader(
+        paths,
+        from_ns=from_ns,
+        to_ns=to_ns,
+        symbols=symbols,
+    )
+
+    trades = reader.read_trades()
+    headers, levels = reader.read_books()
+
+    if on_trade is not None and trades.size:
+        for row in trades:
+            on_trade(
+                int(row["exchange_ts_ns"]),
+                int(row["symbol_id"]),
+                float(row["price_raw"]) / 1e8,
+                float(row["qty_raw"]) / 1e8,
+                int(row["side"]),
+            )
+
+    if on_book is not None and headers.size:
+        for h in headers:
+            offset = int(h["level_offset"])
+            n_bid = int(h["bid_count"])
+            n_ask = int(h["ask_count"])
+            bids = [
+                (float(levels[offset + i]["price_raw"]) / 1e8,
+                 float(levels[offset + i]["qty_raw"]) / 1e8)
+                for i in range(n_bid)
+            ]
+            asks = [
+                (float(levels[offset + n_bid + i]["price_raw"]) / 1e8,
+                 float(levels[offset + n_bid + i]["qty_raw"]) / 1e8)
+                for i in range(n_ask)
+            ]
+            on_book(
+                int(h["exchange_ts_ns"]),
+                int(h["symbol_id"]),
+                int(h["event_type"]) == 2,
+                bids,
+                asks,
+            )
+
+    return MultiTapeStats(
+        trades=int(trades.size),
+        books=int(headers.size),
+        tapes=list(reader.per_tape_stats()),
+    )
+
+
 __all__ = [
     "TapeRecorderStats",
     "TapeStats",
     "TapeDiff",
+    "MultiTapeStats",
     "make_recorder_hook",
     "inspect_tape",
     "replay_tape",
+    "replay_tapes",
     "diff_tapes",
 ]

@@ -91,13 +91,15 @@
 #include "flox/execution/order_tracker.h"
 #include "flox/position/position_group.h"
 #include "flox/position/position_tracker.h"
-#include "flox/replay/market_data_recorder.h"
+#include "flox/replay/binary_log_recorder_hook.h"
+#include "flox/replay/merged_tape_reader.h"
 #include "flox/replay/ops/partitioner.h"
 #include "flox/replay/ops/segment_ops.h"
 #include "flox/replay/ops/validator.h"
 #include "flox/replay/readers/binary_log_reader.h"
 #include "flox/replay/writers/binary_log_writer.h"
 #include "flox/strategy/abstract_signal_handler.h"
+#include "flox/testing/bar_dispatch_recorder.h"
 #include "flox/util/memory/pool.h"
 
 #include <random>
@@ -2170,6 +2172,81 @@ uint8_t flox_data_writer_write_trade(FloxDataWriterHandle h, int64_t exchange_ts
   return static_cast<replay::BinaryLogWriter*>(h)->writeTrade(tr) ? 1 : 0;
 }
 
+uint8_t flox_data_writer_write_book(FloxDataWriterHandle h,
+                                    int64_t exchange_ts_ns,
+                                    int64_t recv_ts_ns,
+                                    int64_t seq,
+                                    uint32_t symbol_id,
+                                    uint8_t is_snapshot,
+                                    const FloxBookLevel* bids, uint32_t n_bids,
+                                    const FloxBookLevel* asks, uint32_t n_asks)
+{
+  replay::BookRecordHeader header{};
+  header.exchange_ts_ns = exchange_ts_ns;
+  header.recv_ts_ns = recv_ts_ns;
+  header.seq = seq;
+  header.symbol_id = symbol_id;
+  header.bid_count = static_cast<uint16_t>(n_bids);
+  header.ask_count = static_cast<uint16_t>(n_asks);
+  header.type = is_snapshot ? 0 : 1;
+
+  // FloxBookLevel and replay::BookLevel are layout-compatible
+  // (int64 price_raw, int64 qty_raw). Cast is intentional.
+  auto* bid_levels = reinterpret_cast<const replay::BookLevel*>(bids);
+  auto* ask_levels = reinterpret_cast<const replay::BookLevel*>(asks);
+  std::span<const replay::BookLevel> bid_span(bid_levels, n_bids);
+  std::span<const replay::BookLevel> ask_span(ask_levels, n_asks);
+
+  return static_cast<replay::BinaryLogWriter*>(h)->writeBook(header, bid_span, ask_span) ? 1 : 0;
+}
+
+uint64_t flox_data_writer_write_books(FloxDataWriterHandle h,
+                                      const FloxBookUpdateHeader* headers,
+                                      uint64_t n_events,
+                                      const FloxLevel* levels,
+                                      uint64_t /*total_levels*/)
+{
+  auto* writer = static_cast<replay::BinaryLogWriter*>(h);
+  if (!writer || !headers)
+  {
+    return 0;
+  }
+
+  // FloxLevel has an extra `side` byte we ignore on write — copy into
+  // contiguous replay::BookLevel buffers per event.
+  std::vector<replay::BookLevel> scratch;
+  uint64_t written = 0;
+  for (uint64_t i = 0; i < n_events; ++i)
+  {
+    const auto& fh = headers[i];
+    const uint64_t total = static_cast<uint64_t>(fh.bid_count) + fh.ask_count;
+    scratch.clear();
+    scratch.reserve(total);
+    for (uint64_t k = 0; k < total; ++k)
+    {
+      const auto& lv = levels[fh.level_offset + k];
+      scratch.push_back({lv.price_raw, lv.qty_raw});
+    }
+
+    replay::BookRecordHeader rh{};
+    rh.exchange_ts_ns = fh.exchange_ts_ns;
+    rh.recv_ts_ns = fh.recv_ts_ns;
+    rh.seq = fh.seq;
+    rh.symbol_id = fh.symbol_id;
+    rh.bid_count = fh.bid_count;
+    rh.ask_count = fh.ask_count;
+    rh.type = (fh.event_type == 2) ? 0 : 1;
+
+    std::span<const replay::BookLevel> bid_span(scratch.data(), fh.bid_count);
+    std::span<const replay::BookLevel> ask_span(scratch.data() + fh.bid_count, fh.ask_count);
+    if (writer->writeBook(rh, bid_span, ask_span))
+    {
+      ++written;
+    }
+  }
+  return written;
+}
+
 void flox_data_writer_flush(FloxDataWriterHandle h)
 {
   static_cast<replay::BinaryLogWriter*>(h)->flush();
@@ -3053,52 +3130,316 @@ FloxWriterStats flox_data_writer_stats(FloxDataWriterHandle h)
 }
 
 // ============================================================
-// DataRecorder
+// MergedTapeReader — N-tape merged consumption
 // ============================================================
-
-FloxDataRecorderHandle flox_data_recorder_create(const char* output_dir,
-                                                 const char* exchange_name,
-                                                 uint64_t max_segment_mb)
+namespace capi_impl
 {
-  MarketDataRecorderConfig cfg;
-  cfg.output_dir = output_dir;
-  cfg.exchange_name = exchange_name;
-  cfg.max_segment_bytes = max_segment_mb * 1024 * 1024;
-  return new MarketDataRecorder(cfg);
+struct FloxMergedTapeReaderImpl
+{
+  std::unique_ptr<flox::replay::MergedTapeReader> reader;
+  // Cached result of readTrades / readBooks so two-phase count→read
+  // doesn't re-merge. Cleared on first read of each kind.
+  std::optional<std::vector<flox::replay::MergedTradeRow>> cached_trades;
+  std::optional<std::pair<std::vector<flox::replay::MergedBookRow>,
+                          std::vector<flox::replay::BookLevel>>>
+      cached_books;
+
+  // Owning strings for symbol_table and per-tape paths so the borrowed
+  // const char* pointers we hand out stay valid for the reader's lifetime.
+  std::vector<std::string> sym_exchanges;
+  std::vector<std::string> sym_names;
+  std::vector<std::string> tape_paths;
+};
+}  // namespace capi_impl
+
+FloxMergedTapeReaderHandle
+flox_merged_tape_reader_create(const char* const* paths, uint32_t n_paths,
+                               int64_t from_ns, int64_t to_ns,
+                               const uint32_t* symbol_filter,
+                               uint32_t n_filter)
+{
+  if (!paths || n_paths == 0)
+  {
+    return nullptr;
+  }
+  flox::replay::MergedTapeReaderConfig cfg{};
+  cfg.tape_dirs.reserve(n_paths);
+  for (uint32_t i = 0; i < n_paths; ++i)
+  {
+    cfg.tape_dirs.emplace_back(paths[i] ? paths[i] : "");
+  }
+  if (from_ns >= 0)
+  {
+    cfg.from_ns = from_ns;
+  }
+  if (to_ns >= 0)
+  {
+    cfg.to_ns = to_ns;
+  }
+  if (symbol_filter && n_filter > 0)
+  {
+    cfg.symbol_filter.assign(symbol_filter, symbol_filter + n_filter);
+  }
+
+  try
+  {
+    auto impl = std::make_unique<capi_impl::FloxMergedTapeReaderImpl>();
+    impl->reader =
+        std::make_unique<flox::replay::MergedTapeReader>(std::move(cfg));
+    // Cache symbol / path strings now so const char* pointers stay stable.
+    for (const auto& s : impl->reader->symbols())
+    {
+      impl->sym_exchanges.push_back(s.exchange);
+      impl->sym_names.push_back(s.name);
+    }
+    for (const auto& t : impl->reader->perTapeStats())
+    {
+      impl->tape_paths.push_back(t.path.string());
+    }
+    return static_cast<FloxMergedTapeReaderHandle>(impl.release());
+  }
+  catch (...)
+  {
+    // Construction may throw on bad input or overlapping book streams;
+    // surface as a NULL handle, leaving caller to decide.
+    return nullptr;
+  }
 }
 
-void flox_data_recorder_destroy(FloxDataRecorderHandle h)
+void flox_merged_tape_reader_destroy(FloxMergedTapeReaderHandle h)
 {
-  delete static_cast<MarketDataRecorder*>(h);
+  delete static_cast<capi_impl::FloxMergedTapeReaderImpl*>(h);
 }
 
-void flox_data_recorder_add_symbol(FloxDataRecorderHandle h, uint32_t symbol_id, const char* name,
-                                   const char* base, const char* quote, int8_t price_precision,
-                                   int8_t qty_precision)
+uint32_t flox_merged_tape_reader_symbol_count(FloxMergedTapeReaderHandle h)
 {
-  static_cast<MarketDataRecorder*>(h)->addSymbol(symbol_id, name, base ? base : "",
-                                                 quote ? quote : "", price_precision,
-                                                 qty_precision);
+  if (!h)
+  {
+    return 0;
+  }
+  auto* impl = static_cast<capi_impl::FloxMergedTapeReaderImpl*>(h);
+  return static_cast<uint32_t>(impl->reader->symbols().size());
 }
 
-void flox_data_recorder_start(FloxDataRecorderHandle h)
+uint32_t flox_merged_tape_reader_get_symbols(FloxMergedTapeReaderHandle h,
+                                             FloxMergedSymbol* out,
+                                             uint32_t max)
 {
-  static_cast<MarketDataRecorder*>(h)->start();
+  if (!h)
+  {
+    return 0;
+  }
+  auto* impl = static_cast<capi_impl::FloxMergedTapeReaderImpl*>(h);
+  const auto& syms = impl->reader->symbols();
+  uint32_t n = std::min(static_cast<uint32_t>(syms.size()), max);
+  if (!out)
+  {
+    return static_cast<uint32_t>(syms.size());
+  }
+  for (uint32_t i = 0; i < n; ++i)
+  {
+    out[i].global_id = syms[i].global_id;
+    out[i].price_precision = syms[i].price_precision;
+    out[i].qty_precision = syms[i].qty_precision;
+    out[i]._pad[0] = out[i]._pad[1] = 0;
+    out[i].exchange = impl->sym_exchanges[i].c_str();
+    out[i].name = impl->sym_names[i].c_str();
+  }
+  return n;
 }
 
-void flox_data_recorder_stop(FloxDataRecorderHandle h)
+uint32_t flox_merged_tape_reader_tape_count(FloxMergedTapeReaderHandle h)
 {
-  static_cast<MarketDataRecorder*>(h)->stop();
+  if (!h)
+  {
+    return 0;
+  }
+  return static_cast<uint32_t>(
+      static_cast<capi_impl::FloxMergedTapeReaderImpl*>(h)
+          ->reader->perTapeStats()
+          .size());
 }
 
-void flox_data_recorder_flush(FloxDataRecorderHandle h)
+uint32_t flox_merged_tape_reader_get_tape_stats(FloxMergedTapeReaderHandle h,
+                                                FloxMergedTapeStats* out,
+                                                uint32_t max)
 {
-  static_cast<MarketDataRecorder*>(h)->flush();
+  if (!h)
+  {
+    return 0;
+  }
+  auto* impl = static_cast<capi_impl::FloxMergedTapeReaderImpl*>(h);
+  const auto& stats = impl->reader->perTapeStats();
+  uint32_t n = std::min(static_cast<uint32_t>(stats.size()), max);
+  if (!out)
+  {
+    return static_cast<uint32_t>(stats.size());
+  }
+  for (uint32_t i = 0; i < n; ++i)
+  {
+    out[i].first_event_ns = stats[i].first_event_ns;
+    out[i].last_event_ns = stats[i].last_event_ns;
+    out[i].trades = stats[i].trades;
+    out[i].books = stats[i].books;
+    out[i].path = impl->tape_paths[i].c_str();
+  }
+  return n;
 }
 
-uint8_t flox_data_recorder_is_recording(FloxDataRecorderHandle h)
+void flox_merged_tape_reader_time_range(FloxMergedTapeReaderHandle h,
+                                        int64_t* min_first_ns_out,
+                                        int64_t* max_last_ns_out)
 {
-  return static_cast<MarketDataRecorder*>(h)->isRecording() ? 1 : 0;
+  if (!h)
+  {
+    if (min_first_ns_out)
+    {
+      *min_first_ns_out = 0;
+    }
+    if (max_last_ns_out)
+    {
+      *max_last_ns_out = 0;
+    }
+    return;
+  }
+  auto* impl = static_cast<capi_impl::FloxMergedTapeReaderImpl*>(h);
+  auto [a, b] = impl->reader->timeRange();
+  if (min_first_ns_out)
+  {
+    *min_first_ns_out = a;
+  }
+  if (max_last_ns_out)
+  {
+    *max_last_ns_out = b;
+  }
+}
+
+uint64_t flox_merged_tape_reader_count_trades(FloxMergedTapeReaderHandle h)
+{
+  if (!h)
+  {
+    return 0;
+  }
+  auto* impl = static_cast<capi_impl::FloxMergedTapeReaderImpl*>(h);
+  if (!impl->cached_trades)
+  {
+    impl->cached_trades = impl->reader->readTrades();
+  }
+  return impl->cached_trades->size();
+}
+
+uint64_t flox_merged_tape_reader_read_trades(FloxMergedTapeReaderHandle h,
+                                             FloxTradeRecord* trades_out,
+                                             uint64_t max_trades)
+{
+  if (!h)
+  {
+    return 0;
+  }
+  auto* impl = static_cast<capi_impl::FloxMergedTapeReaderImpl*>(h);
+  if (!impl->cached_trades)
+  {
+    impl->cached_trades = impl->reader->readTrades();
+  }
+  const auto& src = *impl->cached_trades;
+  uint64_t n = std::min<uint64_t>(src.size(), max_trades);
+  if (!trades_out)
+  {
+    return src.size();
+  }
+  for (uint64_t i = 0; i < n; ++i)
+  {
+    trades_out[i].exchange_ts_ns = src[i].exchange_ts_ns;
+    trades_out[i].recv_ts_ns = src[i].recv_ts_ns;
+    trades_out[i].price_raw = src[i].price_raw;
+    trades_out[i].qty_raw = src[i].qty_raw;
+    trades_out[i].trade_id = src[i].trade_id;
+    trades_out[i].symbol_id = src[i].global_symbol_id;
+    trades_out[i].side = src[i].side;
+  }
+  return n;
+}
+
+uint64_t flox_merged_tape_reader_count_books(FloxMergedTapeReaderHandle h,
+                                             uint64_t* total_levels_out)
+{
+  if (!h)
+  {
+    if (total_levels_out)
+    {
+      *total_levels_out = 0;
+    }
+    return 0;
+  }
+  auto* impl = static_cast<capi_impl::FloxMergedTapeReaderImpl*>(h);
+  if (!impl->cached_books)
+  {
+    impl->cached_books = impl->reader->readBooks();
+  }
+  if (total_levels_out)
+  {
+    *total_levels_out = impl->cached_books->second.size();
+  }
+  return impl->cached_books->first.size();
+}
+
+uint64_t flox_merged_tape_reader_read_books(FloxMergedTapeReaderHandle h,
+                                            FloxBookUpdateHeader* headers_out,
+                                            uint64_t max_events,
+                                            FloxLevel* levels_out,
+                                            uint64_t max_levels)
+{
+  if (!h)
+  {
+    return 0;
+  }
+  auto* impl = static_cast<capi_impl::FloxMergedTapeReaderImpl*>(h);
+  if (!impl->cached_books)
+  {
+    impl->cached_books = impl->reader->readBooks();
+  }
+  const auto& [rows, levels] = *impl->cached_books;
+  uint64_t n_ev = std::min<uint64_t>(rows.size(), max_events);
+  uint64_t n_lv = std::min<uint64_t>(levels.size(), max_levels);
+
+  if (headers_out)
+  {
+    for (uint64_t i = 0; i < n_ev; ++i)
+    {
+      headers_out[i].exchange_ts_ns = rows[i].exchange_ts_ns;
+      headers_out[i].recv_ts_ns = rows[i].recv_ts_ns;
+      headers_out[i].seq = rows[i].seq;
+      headers_out[i].level_offset = rows[i].level_offset;
+      headers_out[i].symbol_id = rows[i].global_symbol_id;
+      headers_out[i].bid_count = rows[i].bid_count;
+      headers_out[i].ask_count = rows[i].ask_count;
+      headers_out[i].event_type = rows[i].event_type;
+    }
+  }
+  if (levels_out)
+  {
+    // Reader stores levels flat (bids then asks per event). The side
+    // byte is reconstructed here using the corresponding header's
+    // bid_count split.
+    uint64_t k = 0;
+    for (uint64_t i = 0; i < rows.size() && k < n_lv; ++i)
+    {
+      const auto& r = rows[i];
+      for (uint16_t b = 0; b < r.bid_count && k < n_lv; ++b, ++k)
+      {
+        levels_out[k].price_raw = levels[k].price_raw;
+        levels_out[k].qty_raw = levels[k].qty_raw;
+        levels_out[k].side = 0;
+      }
+      for (uint16_t a = 0; a < r.ask_count && k < n_lv; ++a, ++k)
+      {
+        levels_out[k].price_raw = levels[k].price_raw;
+        levels_out[k].qty_raw = levels[k].qty_raw;
+        levels_out[k].side = 1;
+      }
+    }
+  }
+  return n_ev;
 }
 
 // ============================================================
@@ -4635,6 +4976,128 @@ class OhlcvBacktestReader : public replay::IMultiSegmentReader
 };
 
 // ──────────────────────────────────────────────────────────────
+// Adapters: wrap callback-shaped FloxRiskManagerImpl /
+// FloxKillSwitchImpl / FloxOrderValidatorImpl / FloxPnLTrackerImpl
+// into engine-side I* interfaces so the new BacktestRunner setters
+// (which are C++-typed) accept the existing C ABI handles bindings
+// already create. The live runner doesn't need this bridge — it
+// gates at signal-level inside RunnerSignalHandler — but the
+// engine-level BacktestRunner takes Order-shaped callbacks, so we
+// build a FloxSignal from the Order and forward.
+// ──────────────────────────────────────────────────────────────
+
+inline FloxSignal orderToFloxSignal(const Order& order) noexcept
+{
+  FloxSignal fs{};
+  fs.order_id = order.id;
+  fs.symbol = order.symbol;
+  fs.side = (order.side == Side::BUY) ? 0 : 1;
+  fs.price = order.price.toDouble();
+  fs.quantity = order.quantity.toDouble();
+  fs.order_type = static_cast<uint8_t>(order.type);
+  return fs;
+}
+
+class CapiBacktestRiskManager : public flox::IRiskManager
+{
+ public:
+  explicit CapiBacktestRiskManager(FloxRiskManagerImpl* impl) : _impl(impl) {}
+
+  bool allow(const Order& order) const override
+  {
+    if (_impl == nullptr || _impl->cb.allow == nullptr)
+    {
+      return true;
+    }
+    FloxSignal fs = orderToFloxSignal(order);
+    return _impl->cb.allow(_impl->cb.user_data, &fs) != 0;
+  }
+
+ private:
+  FloxRiskManagerImpl* _impl;
+};
+
+class CapiBacktestKillSwitch : public flox::IKillSwitch
+{
+ public:
+  explicit CapiBacktestKillSwitch(FloxKillSwitchImpl* impl) : _impl(impl) {}
+
+  // The C ABI kill switch is a per-signal check. The engine contract
+  // is "check(order) may trigger; isTriggered() reports current state".
+  // Cache the latest check result so the runner's gate logic
+  // (`check(order); if (isTriggered()) drop`) maps cleanly.
+  void check(const Order& order) override
+  {
+    if (_impl == nullptr || _impl->cb.check == nullptr)
+    {
+      _triggered = false;
+      return;
+    }
+    FloxSignal fs = orderToFloxSignal(order);
+    // C ABI: 0 → drop / kill-switch active.
+    _triggered = (_impl->cb.check(_impl->cb.user_data, &fs) == 0);
+  }
+  void trigger(const std::string& reason) override
+  {
+    _triggered = true;
+    _reason = reason;
+  }
+  bool isTriggered() const override { return _triggered; }
+  std::string reason() const override { return _reason; }
+
+ private:
+  FloxKillSwitchImpl* _impl;
+  bool _triggered{false};
+  std::string _reason;
+};
+
+class CapiBacktestOrderValidator : public flox::IOrderValidator
+{
+ public:
+  explicit CapiBacktestOrderValidator(FloxOrderValidatorImpl* impl) : _impl(impl) {}
+
+  // The C ABI validator returns 0/1 without a reason string. Engine
+  // contract returns a `reason` parameter — leave it empty when the
+  // C ABI rejects so the rejected event still surfaces upward; the
+  // user-visible reason can be plumbed through the binding's own
+  // PyOrderValidator if richer messaging is needed.
+  bool validate(const Order& order, std::string& /*reason*/) const override
+  {
+    if (_impl == nullptr || _impl->cb.validate == nullptr)
+    {
+      return true;
+    }
+    FloxSignal fs = orderToFloxSignal(order);
+    return _impl->cb.validate(_impl->cb.user_data, &fs) != 0;
+  }
+
+ private:
+  FloxOrderValidatorImpl* _impl;
+};
+
+class CapiBacktestPnLTracker : public flox::IPnLTracker
+{
+ public:
+  explicit CapiBacktestPnLTracker(FloxPnLTrackerImpl* impl) : _impl(impl) {}
+
+  // Engine fires onOrderFilled per fill; C ABI signature takes a
+  // FloxSignal. Convert and forward — bindings that want richer fill
+  // detail should attach an ExecutionListener instead.
+  void onOrderFilled(const Order& order) override
+  {
+    if (_impl == nullptr || _impl->cb.on_signal == nullptr)
+    {
+      return;
+    }
+    FloxSignal fs = orderToFloxSignal(order);
+    _impl->cb.on_signal(_impl->cb.user_data, &fs);
+  }
+
+ private:
+  FloxPnLTrackerImpl* _impl;
+};
+
+// ──────────────────────────────────────────────────────────────
 // FloxBacktestRunnerImpl
 // ──────────────────────────────────────────────────────────────
 
@@ -4648,6 +5111,14 @@ struct FloxBacktestRunnerImpl
   // Adapter for the binding-supplied executor. Owned so it outlives the
   // runner's non-owning pointer. Replaced on every set call.
   std::unique_ptr<CapiExecutor> executorAdapter;
+  // Adapters for the four pre-trade gate hooks. The runner stores
+  // raw IRiskManager / IKillSwitch / etc pointers; we own the
+  // adapters so they outlive the runner's non-owning references.
+  // Replaced on every set call (NULL detaches).
+  std::unique_ptr<CapiBacktestRiskManager> riskAdapter;
+  std::unique_ptr<CapiBacktestKillSwitch> killAdapter;
+  std::unique_ptr<CapiBacktestOrderValidator> validatorAdapter;
+  std::unique_ptr<CapiBacktestPnLTracker> pnlAdapter;
   // Most recent BacktestResult, kept after each run_* call so bindings
   // can fetch the equity curve / trades without re-running the
   // backtest. Replaced on every run.
@@ -4690,6 +5161,54 @@ struct FloxBacktestRunnerImpl
   void setStrategy(BridgeStrategy* bridge)
   {
     runner->setStrategy(bridge);
+  }
+
+  // Pre-trade gate parity with the live runner. NULL detaches.
+  // The adapter owns conversion from FloxSignal-shaped callbacks
+  // into the engine's Order-shaped I* interfaces.
+  void setRiskManager(FloxRiskManagerImpl* rm)
+  {
+    if (rm == nullptr)
+    {
+      runner->setRiskManager(nullptr);
+      riskAdapter.reset();
+      return;
+    }
+    riskAdapter = std::make_unique<CapiBacktestRiskManager>(rm);
+    runner->setRiskManager(riskAdapter.get());
+  }
+  void setKillSwitch(FloxKillSwitchImpl* ks)
+  {
+    if (ks == nullptr)
+    {
+      runner->setKillSwitch(nullptr);
+      killAdapter.reset();
+      return;
+    }
+    killAdapter = std::make_unique<CapiBacktestKillSwitch>(ks);
+    runner->setKillSwitch(killAdapter.get());
+  }
+  void setOrderValidator(FloxOrderValidatorImpl* ov)
+  {
+    if (ov == nullptr)
+    {
+      runner->setOrderValidator(nullptr);
+      validatorAdapter.reset();
+      return;
+    }
+    validatorAdapter = std::make_unique<CapiBacktestOrderValidator>(ov);
+    runner->setOrderValidator(validatorAdapter.get());
+  }
+  void setPnLTracker(FloxPnLTrackerImpl* tracker)
+  {
+    if (tracker == nullptr)
+    {
+      runner->setPnLTracker(nullptr);
+      pnlAdapter.reset();
+      return;
+    }
+    pnlAdapter = std::make_unique<CapiBacktestPnLTracker>(tracker);
+    runner->setPnLTracker(pnlAdapter.get());
   }
 
   static int64_t normalizeTs(int64_t t)
@@ -4764,6 +5283,57 @@ struct FloxBacktestRunnerImpl
     }
     lastResult = std::move(result);
     return 1;
+  }
+
+  int runTape(const char* tape_dir, FloxBacktestStats* out)
+  {
+    if (!runner)
+    {
+      return 0;
+    }
+    try
+    {
+      BacktestResult result = runner->runTape(std::filesystem::path(tape_dir));
+      if (out)
+      {
+        fillStats(result.computeStats(), out);
+      }
+      lastResult = std::move(result);
+      return 1;
+    }
+    catch (const std::exception&)
+    {
+      return 0;
+    }
+  }
+
+  int runTapes(const char* const* tape_dirs, uint32_t n_dirs,
+               FloxBacktestStats* out)
+  {
+    if (!runner || !tape_dirs || n_dirs == 0)
+    {
+      return 0;
+    }
+    try
+    {
+      std::vector<std::filesystem::path> paths;
+      paths.reserve(n_dirs);
+      for (uint32_t i = 0; i < n_dirs; ++i)
+      {
+        paths.emplace_back(tape_dirs[i] ? tape_dirs[i] : "");
+      }
+      BacktestResult result = runner->runTapes(paths);
+      if (out)
+      {
+        fillStats(result.computeStats(), out);
+      }
+      lastResult = std::move(result);
+      return 1;
+    }
+    catch (const std::exception&)
+    {
+      return 0;
+    }
   }
 
   int runCsv(const char* path, const char* symbol, FloxBacktestStats* out)
@@ -4983,6 +5553,171 @@ FloxMarketDataRecorderHandle flox_market_data_recorder_create_p(
 void flox_market_data_recorder_destroy(FloxMarketDataRecorderHandle recorder)
 {
   delete static_cast<FloxMarketDataRecorderImpl*>(recorder);
+}
+
+// ── Binary-log recorder hook ──────────────────────────────────────────
+namespace capi_impl
+{
+struct FloxBinaryLogRecorderHookImpl
+{
+  flox::replay::BinaryLogRecorderHook hook;
+  // FloxMarketDataRecorderImpl whose callbacks bridge engine events
+  // straight into hook.onTrade / onBookUpdate. user_data points at
+  // `this`. Lifetime is tied to the owning impl — DO NOT separately
+  // free via flox_market_data_recorder_destroy.
+  FloxMarketDataRecorderImpl recorder_view{};
+
+  explicit FloxBinaryLogRecorderHookImpl(flox::replay::BinaryLogRecorderHookConfig cfg)
+      : hook(std::move(cfg))
+  {
+  }
+};
+
+static void blrhOnTrade(void* ud, const FloxTradeData* t)
+{
+  if (!t)
+  {
+    return;
+  }
+  auto* self = static_cast<FloxBinaryLogRecorderHookImpl*>(ud);
+  self->hook.onTrade(t->symbol, t->price_raw, t->quantity_raw,
+                     t->is_buy != 0, t->exchange_ts_ns, /*recv_ts_ns=*/0);
+}
+
+static void blrhOnBookUpdate(void* ud, uint32_t symbol, uint8_t is_snapshot,
+                             const FloxBookLevel* bids, uint32_t n_bids,
+                             const FloxBookLevel* asks, uint32_t n_asks,
+                             int64_t exchange_ts_ns)
+{
+  auto* self = static_cast<FloxBinaryLogRecorderHookImpl*>(ud);
+  auto* bid_levels = reinterpret_cast<const flox::replay::BookLevel*>(bids);
+  auto* ask_levels = reinterpret_cast<const flox::replay::BookLevel*>(asks);
+  self->hook.onBookUpdate(symbol, is_snapshot != 0, bid_levels, n_bids,
+                          ask_levels, n_asks, exchange_ts_ns, /*recv_ts_ns=*/0);
+}
+
+static void blrhOnStart(void* ud)
+{
+  static_cast<FloxBinaryLogRecorderHookImpl*>(ud)->hook.start();
+}
+
+static void blrhOnStop(void* ud)
+{
+  static_cast<FloxBinaryLogRecorderHookImpl*>(ud)->hook.stop();
+}
+}  // namespace capi_impl
+
+FloxBinaryLogRecorderHookHandle
+flox_binary_log_recorder_hook_create(const char* output_dir,
+                                     uint64_t max_segment_mb,
+                                     uint8_t exchange_id,
+                                     uint8_t compression)
+{
+  return flox_binary_log_recorder_hook_create_ex(output_dir, max_segment_mb,
+                                                 exchange_id, compression,
+                                                 nullptr, nullptr);
+}
+
+FloxBinaryLogRecorderHookHandle
+flox_binary_log_recorder_hook_create_ex(const char* output_dir,
+                                        uint64_t max_segment_mb,
+                                        uint8_t exchange_id,
+                                        uint8_t compression,
+                                        const char* exchange_name,
+                                        const char* instrument_type)
+{
+  flox::replay::BinaryLogRecorderHookConfig cfg{};
+  cfg.output_dir = output_dir ? output_dir : "";
+  cfg.max_segment_bytes = max_segment_mb * 1024ull * 1024ull;
+  cfg.exchange_id = exchange_id;
+  cfg.compression = static_cast<flox::replay::CompressionType>(compression);
+
+  const bool has_exchange = exchange_name && *exchange_name;
+  const bool has_instrument = instrument_type && *instrument_type;
+  if (has_exchange || has_instrument)
+  {
+    flox::replay::RecordingMetadata meta{};
+    if (has_exchange)
+    {
+      meta.exchange = exchange_name;
+    }
+    if (has_instrument)
+    {
+      meta.instrument_type = instrument_type;
+    }
+    cfg.metadata = std::move(meta);
+  }
+
+  auto* impl = new capi_impl::FloxBinaryLogRecorderHookImpl(std::move(cfg));
+  impl->recorder_view.cb.on_trade = &capi_impl::blrhOnTrade;
+  impl->recorder_view.cb.on_book_update = &capi_impl::blrhOnBookUpdate;
+  impl->recorder_view.cb.on_start = &capi_impl::blrhOnStart;
+  impl->recorder_view.cb.on_stop = &capi_impl::blrhOnStop;
+  impl->recorder_view.cb.user_data = impl;
+  return static_cast<FloxBinaryLogRecorderHookHandle>(impl);
+}
+
+void flox_binary_log_recorder_hook_destroy(FloxBinaryLogRecorderHookHandle h)
+{
+  delete static_cast<capi_impl::FloxBinaryLogRecorderHookImpl*>(h);
+}
+
+FloxMarketDataRecorderHandle
+flox_binary_log_recorder_hook_as_recorder(FloxBinaryLogRecorderHookHandle h)
+{
+  if (!h)
+  {
+    return nullptr;
+  }
+  return static_cast<FloxMarketDataRecorderHandle>(
+      &static_cast<capi_impl::FloxBinaryLogRecorderHookImpl*>(h)->recorder_view);
+}
+
+void flox_binary_log_recorder_hook_add_symbol(FloxBinaryLogRecorderHookHandle h,
+                                              uint32_t symbol_id,
+                                              const char* name,
+                                              const char* base,
+                                              const char* quote,
+                                              int8_t price_precision,
+                                              int8_t qty_precision)
+{
+  if (!h)
+  {
+    return;
+  }
+  flox::replay::SymbolInfo info;
+  info.symbol_id = symbol_id;
+  info.name = name ? name : "";
+  info.base_asset = base ? base : "";
+  info.quote_asset = quote ? quote : "";
+  info.price_precision = price_precision;
+  info.qty_precision = qty_precision;
+  static_cast<capi_impl::FloxBinaryLogRecorderHookImpl*>(h)->hook.addSymbol(info);
+}
+
+void flox_binary_log_recorder_hook_flush(FloxBinaryLogRecorderHookHandle h)
+{
+  if (h)
+  {
+    static_cast<capi_impl::FloxBinaryLogRecorderHookImpl*>(h)->hook.flush();
+  }
+}
+
+FloxWriterStats flox_binary_log_recorder_hook_stats(FloxBinaryLogRecorderHookHandle h)
+{
+  if (!h)
+  {
+    return {};
+  }
+  auto s = static_cast<capi_impl::FloxBinaryLogRecorderHookImpl*>(h)->hook.stats();
+  return {s.bytes_written, s.trades_written + s.book_updates_written,
+          s.segments_created, s.trades_written};
+}
+
+void flox_binary_log_recorder_hook_stats_p(void* h, void* out)
+{
+  auto s = flox_binary_log_recorder_hook_stats(static_cast<FloxBinaryLogRecorderHookHandle>(h));
+  memcpy(out, &s, sizeof(s));
 }
 
 FloxReplaySourceHandle flox_replay_source_create(FloxReplaySourceCallbacks callbacks)
@@ -5426,6 +6161,21 @@ int flox_backtest_runner_run_csv(FloxBacktestRunnerHandle h,
   return toBacktestRunner(h)->runCsv(path, symbol, out);
 }
 
+int flox_backtest_runner_run_tape(FloxBacktestRunnerHandle h,
+                                  const char* tape_dir,
+                                  FloxBacktestStats* out)
+{
+  return toBacktestRunner(h)->runTape(tape_dir, out);
+}
+
+int flox_backtest_runner_run_tapes(FloxBacktestRunnerHandle h,
+                                   const char* const* tape_dirs,
+                                   uint32_t n_dirs,
+                                   FloxBacktestStats* out)
+{
+  return toBacktestRunner(h)->runTapes(tape_dirs, n_dirs, out);
+}
+
 int flox_backtest_runner_run_ohlcv(FloxBacktestRunnerHandle h,
                                    const int64_t* ts,
                                    const double* close,
@@ -5488,6 +6238,38 @@ void flox_backtest_runner_set_executor(FloxBacktestRunnerHandle h,
 {
   toBacktestRunner(h)->setExecutor(
       static_cast<capi_impl::FloxExecutorImpl*>(executor));
+}
+
+// Pre-trade gate parity with the live runner. The Impl wrappers
+// already inherit from the IRiskManager / IKillSwitch / IOrderValidator
+// / IPnLTracker interfaces, so the cast handed to the BacktestRunner
+// setters is direct.
+void flox_backtest_runner_set_risk_manager(FloxBacktestRunnerHandle h,
+                                           FloxRiskManagerHandle rm)
+{
+  toBacktestRunner(h)->setRiskManager(
+      static_cast<capi_impl::FloxRiskManagerImpl*>(rm));
+}
+
+void flox_backtest_runner_set_kill_switch(FloxBacktestRunnerHandle h,
+                                          FloxKillSwitchHandle ks)
+{
+  toBacktestRunner(h)->setKillSwitch(
+      static_cast<capi_impl::FloxKillSwitchImpl*>(ks));
+}
+
+void flox_backtest_runner_set_order_validator(FloxBacktestRunnerHandle h,
+                                              FloxOrderValidatorHandle ov)
+{
+  toBacktestRunner(h)->setOrderValidator(
+      static_cast<capi_impl::FloxOrderValidatorImpl*>(ov));
+}
+
+void flox_backtest_runner_set_pnl_tracker(FloxBacktestRunnerHandle h,
+                                          FloxPnLTrackerHandle tracker)
+{
+  toBacktestRunner(h)->setPnLTracker(
+      static_cast<capi_impl::FloxPnLTrackerImpl*>(tracker));
 }
 
 // ============================================================
@@ -7201,4 +7983,57 @@ extern "C" void flox_run_reader_fill(FloxRunReaderHandle handle, uint64_t index,
   {
     *out_liquidity = f.liquidity;
   }
+}
+
+namespace
+{
+inline flox::testing::BarDispatchRecorder* toBarDispatchRecorder(FloxBarDispatchRecorderHandle h)
+{
+  return static_cast<flox::testing::BarDispatchRecorder*>(h);
+}
+}  // namespace
+
+extern "C" FloxBarDispatchRecorderHandle flox_bar_dispatch_recorder_create(void)
+{
+  return new flox::testing::BarDispatchRecorder();
+}
+
+extern "C" void flox_bar_dispatch_recorder_destroy(FloxBarDispatchRecorderHandle h)
+{
+  delete toBarDispatchRecorder(h);
+}
+
+extern "C" uint32_t flox_bar_dispatch_recorder_add_time_seconds(FloxBarDispatchRecorderHandle h,
+                                                                uint32_t seconds)
+{
+  return static_cast<uint32_t>(toBarDispatchRecorder(h)->addTimeIntervalSeconds(seconds));
+}
+
+extern "C" void flox_bar_dispatch_recorder_on_trade(FloxBarDispatchRecorderHandle h,
+                                                    uint32_t symbol, double price, double qty,
+                                                    int64_t ts_ns)
+{
+  toBarDispatchRecorder(h)->onTrade(symbol, price, qty, ts_ns);
+}
+
+extern "C" void flox_bar_dispatch_recorder_finalize(FloxBarDispatchRecorderHandle h)
+{
+  toBarDispatchRecorder(h)->finalize();
+}
+
+extern "C" uint32_t flox_bar_dispatch_recorder_count(FloxBarDispatchRecorderHandle h)
+{
+  return static_cast<uint32_t>(toBarDispatchRecorder(h)->count());
+}
+
+extern "C" uint8_t flox_bar_dispatch_recorder_type_at(FloxBarDispatchRecorderHandle h,
+                                                      uint32_t index)
+{
+  return toBarDispatchRecorder(h)->typeAt(index);
+}
+
+extern "C" uint64_t flox_bar_dispatch_recorder_param_at(FloxBarDispatchRecorderHandle h,
+                                                        uint32_t index)
+{
+  return toBarDispatchRecorder(h)->paramAt(index);
 }

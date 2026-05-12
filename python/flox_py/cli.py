@@ -234,81 +234,173 @@ def _normalize_ccxt_symbol(sym: str) -> str:
     return sym
 
 
+def _parse_venue_arg(arg: str) -> tuple[str, list[str]]:
+    """Parse `EXCHANGE:SYM1,SYM2,...` into `(exchange, [sym1, sym2, ...])`.
+
+    Raises ValueError on a malformed token so argparse-level errors
+    surface before we open any websocket.
+    """
+    if ":" not in arg:
+        raise ValueError(
+            f"--venue expects 'exchange:symbol[,symbol2]...', got {arg!r}"
+        )
+    exchange, _, sym_list = arg.partition(":")
+    exchange = exchange.strip()
+    if not exchange:
+        raise ValueError(f"--venue missing exchange in {arg!r}")
+    syms = [s.strip() for s in sym_list.split(",") if s.strip()]
+    if not syms:
+        raise ValueError(f"--venue {arg!r} has no symbols after ':'")
+    return exchange, syms
+
+
+async def _record_one_venue(exchange: str, ccxt_syms: list[str],
+                            out: Path, max_segment_mb: int,
+                            book_depth: int | None, testnet: bool,
+                            duration: float | None,
+                            stop_event: Any) -> dict:
+    """Drive a single CcxtBroker → BinaryLogRecorderHook pipeline.
+    Used by both the single-venue and multi-venue CLI paths."""
+    from .ccxt import CcxtBroker
+    from . import tape as tape_mod
+
+    out.mkdir(parents=True, exist_ok=True)
+    instrument_type = "perpetual" if any(":" in s for s in ccxt_syms) else "spot"
+    recorder = tape_mod.make_recorder_hook(
+        out, max_segment_mb=max_segment_mb,
+        exchange_name=exchange, instrument_type=instrument_type,
+    )
+
+    broker = CcxtBroker(exchange_id=exchange, sandbox=testnet)
+    async with broker:
+        broker.set_market_data_recorder(recorder)
+        for sym in ccxt_syms:
+            await broker.add_symbol(sym)
+        import asyncio
+        run_task = asyncio.create_task(
+            broker.run(streams=("trades", "book"),
+                       book_depth=book_depth, reconcile=False)
+        )
+        try:
+            if duration is not None:
+                try:
+                    await asyncio.wait_for(stop_event.wait(), timeout=duration)
+                except asyncio.TimeoutError:
+                    pass
+            else:
+                await stop_event.wait()
+        finally:
+            run_task.cancel()
+            try:
+                await run_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            recorder.close()
+
+    return {
+        "exchange": exchange,
+        "symbols": list(ccxt_syms),
+        "out": str(out),
+        "stats": recorder.stats(),
+    }
+
+
 def cmd_tape_record(args: argparse.Namespace) -> int:
     import asyncio
     import signal
 
-    from . import tape as tape_mod
-
     duration = _parse_duration(args.duration) if args.duration else None
-    ccxt_sym = _normalize_ccxt_symbol(args.symbol)
-    out = Path(args.output).expanduser().resolve()
+    out_root = Path(args.output).expanduser().resolve()
 
-    print(f"flox tape record: {args.exchange} {ccxt_sym} → {out}")
+    # Resolve the venue list. Either:
+    #   - one or more `--venue EXCHANGE:SYM1[,SYM2]` flags, OR
+    #   - the legacy positional `exchange symbol` (one venue, one symbol).
+    venues: list[tuple[str, list[str]]] = []
+    if args.venue:
+        for raw in args.venue:
+            try:
+                venues.append(_parse_venue_arg(raw))
+            except ValueError as exc:
+                print(f"flox tape record: {exc}", file=sys.stderr)
+                return 1
+        if args.exchange or args.symbol:
+            print("flox tape record: pass either --venue or the positional "
+                  "exchange/symbol form, not both.",
+                  file=sys.stderr)
+            return 1
+    else:
+        if not args.exchange or not args.symbol:
+            print("flox tape record: need either --venue or "
+                  "`exchange symbol` positional args.",
+                  file=sys.stderr)
+            return 1
+        venues.append((args.exchange, [_normalize_ccxt_symbol(args.symbol)]))
+
+    # Normalise ccxt symbol shape for every venue (accept BTCUSDT shorthand).
+    venues = [
+        (exch, [_normalize_ccxt_symbol(s) for s in syms])
+        for exch, syms in venues
+    ]
+
+    # Single-venue keeps the original output-dir contract (everything
+    # under `<output>/`). Multi-venue spreads into `<output>/<exchange>/`
+    # so each venue produces an independent `.floxlog` directory the
+    # merge can consume.
+    multi = len(venues) > 1
+    print(f"flox tape record: {len(venues)} venue(s) → {out_root}")
+    for exch, syms in venues:
+        print(f"  {exch}: {', '.join(syms)}"
+              + (f"  → {out_root}/{exch}" if multi else ""))
     if duration is not None:
         print(f"  duration: {args.duration} ({duration:.0f}s)")
     else:
         print("  duration: until SIGINT")
 
     try:
-        from .ccxt import CcxtBroker
+        from .ccxt import CcxtBroker  # noqa: F401 — import-time check
     except Exception as exc:  # pragma: no cover — ccxt is an optional dep
         print(f"flox tape record: ccxt-side helpers unavailable: {exc}",
               file=sys.stderr)
         return 1
 
-    recorder = tape_mod.make_recorder_hook(
-        out, max_segment_mb=args.max_segment_mb,
-    )
-
     async def _run() -> int:
-        broker = CcxtBroker(
-            exchange_id=args.exchange,
-            sandbox=args.testnet,
-        )
-        async with broker:
-            await broker.add_symbol(ccxt_sym)
-            broker.set_market_data_recorder(recorder)
-            run_task = asyncio.create_task(
-                broker.run(streams=("trades",), reconcile=False)
-            )
+        stop_event = asyncio.Event()
+        loop = asyncio.get_running_loop()
 
-            stop_event = asyncio.Event()
-            loop = asyncio.get_running_loop()
+        def _stop(*_args: Any) -> None:
+            stop_event.set()
 
-            def _stop(*_args: Any) -> None:
-                stop_event.set()
-
-            for sig in (signal.SIGINT, signal.SIGTERM):
-                try:
-                    loop.add_signal_handler(sig, _stop)
-                except (NotImplementedError, RuntimeError):
-                    pass  # Windows / non-main thread
-
+        for sig in (signal.SIGINT, signal.SIGTERM):
             try:
-                if duration is not None:
-                    await asyncio.wait_for(stop_event.wait(), timeout=duration)
-                else:
-                    await stop_event.wait()
-            except asyncio.TimeoutError:
-                pass
-            finally:
-                run_task.cancel()
-                try:
-                    await run_task
-                except (asyncio.CancelledError, Exception):
-                    pass
-                recorder.close()
+                loop.add_signal_handler(sig, _stop)
+            except (NotImplementedError, RuntimeError):
+                pass  # Windows / non-main thread
 
-        s = recorder.stats
-        print(f"  trades written : {s.trades_written}")
-        if s.book_updates_skipped:
-            print(f"  book updates   : {s.book_updates_skipped} skipped "
-                  f"(book write API not yet exposed; trades only in v1)")
-        if s.error:
-            print(f"  ERROR          : {s.error}", file=sys.stderr)
-            return 1
-        return 0
+        tasks = []
+        for exch, syms in venues:
+            venue_out = (out_root / exch) if multi else out_root
+            tasks.append(asyncio.create_task(_record_one_venue(
+                exchange=exch, ccxt_syms=syms, out=venue_out,
+                max_segment_mb=args.max_segment_mb,
+                book_depth=args.book_depth, testnet=args.testnet,
+                duration=duration, stop_event=stop_event,
+            )))
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        exit_code = 0
+        for r in results:
+            if isinstance(r, Exception):
+                print(f"  ERROR: {r!r}", file=sys.stderr)
+                exit_code = 1
+                continue
+            s = r["stats"]
+            tag = f"{r['exchange']}" + (f" ({r['out']})" if multi else "")
+            print(f"  {tag}: trades={s.get('trades_written', 0)} "
+                  f"books={s.get('book_updates_written', 0)}")
+            if s.get("errors"):
+                print(f"    WRITE-ERRORS: {s['errors']}", file=sys.stderr)
+                exit_code = 1
+        return exit_code
 
     return asyncio.run(_run())
 
@@ -462,6 +554,92 @@ def cmd_tape_replay(args: argparse.Namespace) -> int:
     return 0
 
 
+def _materialize_merged_tape(paths: list[Path], out_dir: Path) -> None:
+    """Write a synthetic `.floxlog` directory at `out_dir` containing
+    the merged event stream from `paths`. Symbols are rekeyed to global
+    IDs; metadata.json carries the merged symbol table so the viewer can
+    label them.
+
+    MVP for `flox tape view path1 path2 ...`. The streaming HTTP `/merge`
+    endpoint that the spec preferred lives behind SPA-side multi-tape
+    support — until that lands this materialization gives the viewer a
+    file it already knows how to render.
+    """
+    import json
+    import flox_py
+    import numpy as np
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    reader = flox_py.MergedTapeReader([str(p) for p in paths])
+
+    writer = flox_py.DataWriter(str(out_dir), max_segment_mb=256,
+                                exchange_id=0, compression="none")
+
+    # Trades: convert raw int64 → double for the existing
+    # DataWriter.write_trade signature. Acceptable precision loss for
+    # the viewer use case (prices have plenty of headroom under 1e15).
+    for row in reader.read_trades():
+        writer.write_trade(
+            exchange_ts_ns=int(row["exchange_ts_ns"]),
+            recv_ts_ns=int(row["recv_ts_ns"]),
+            price=float(row["price_raw"]) / 1e8,
+            qty=float(row["qty_raw"]) / 1e8,
+            trade_id=int(row["trade_id"]),
+            symbol_id=int(row["symbol_id"]),
+            side=int(row["side"]),
+        )
+
+    # Books: write_book takes raw int64 directly, lossless round-trip.
+    headers, levels = reader.read_books()
+    if headers.size:
+        for h in headers:
+            offset = int(h["level_offset"])
+            n_bid = int(h["bid_count"])
+            n_ask = int(h["ask_count"])
+            bids = levels[offset:offset + n_bid]
+            asks = levels[offset + n_bid:offset + n_bid + n_ask]
+            writer.write_book(
+                exchange_ts_ns=int(h["exchange_ts_ns"]),
+                recv_ts_ns=int(h["recv_ts_ns"]),
+                seq=int(h["seq"]),
+                symbol_id=int(h["symbol_id"]),
+                is_snapshot=int(h["event_type"]) == 2,
+                bids=bids,
+                asks=asks,
+            )
+    writer.close()
+
+    # Synthesize a metadata.json that maps the global symbol IDs back to
+    # readable (exchange, name) tuples. The viewer reads this for chart
+    # legends / tooltips.
+    sym_table = reader.symbol_table()
+    metadata = {
+        "exchange": "merged",
+        "exchange_type": "synthetic",
+        "instrument_type": "merged",
+        "symbols": [
+            {
+                "symbol_id": int(s["global_id"]),
+                "name": f"{s['exchange']}/{s['name']}",
+                "base_asset": "",
+                "quote_asset": "",
+                "price_precision": int(s["price_precision"]),
+                "qty_precision": int(s["qty_precision"]),
+            }
+            for s in sym_table
+        ],
+        "has_trades": True,
+        "has_book_snapshots": bool(headers.size),
+        "has_book_deltas": False,
+        "price_scale": 100000000,
+        "qty_scale": 100000000,
+        "description": (
+            "Merged view of: " + ", ".join(str(p) for p in paths)
+        ),
+    }
+    (out_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))
+
+
 def cmd_tape_view(args: argparse.Namespace) -> int:
     """Serve the static replay viewer locally with the requested tape /
     run directory pre-staged, then open a browser."""
@@ -486,7 +664,7 @@ def cmd_tape_view(args: argparse.Namespace) -> int:
               "first, or install a published wheel.", file=sys.stderr)
         return 1
 
-    tape_path: Optional[Path] = None
+    tape_paths: list[Path] = []
     run_path: Optional[Path] = None
     for raw in args.paths:
         p = Path(raw).expanduser().resolve()
@@ -495,7 +673,7 @@ def cmd_tape_view(args: argparse.Namespace) -> int:
             return 1
         suffix = p.suffix.lower()
         if suffix == ".floxlog" or any(p.glob("*.floxlog")):
-            tape_path = p
+            tape_paths.append(p)
         elif suffix == ".floxrun":
             run_path = p
         else:
@@ -511,8 +689,18 @@ def cmd_tape_view(args: argparse.Namespace) -> int:
     _shutil.copytree(viewer_root, serve_root)
     fixtures = serve_root / "fixture-cli"
     fixtures.mkdir()
-    if tape_path is not None:
-        _shutil.copytree(tape_path, fixtures / "tape")
+
+    if len(tape_paths) == 1:
+        _shutil.copytree(tape_paths[0], fixtures / "tape")
+    elif len(tape_paths) >= 2:
+        # Multi-tape view — materialize a merged synthetic tape into
+        # fixtures/tape so the existing single-tape SPA renders the
+        # union. The merged tape carries rekeyed (global) symbol IDs.
+        # SPA-side multi-venue legend / per-venue book chart is a
+        # separate follow-up; for now the viewer sees one synthetic
+        # stream with N distinct symbol IDs and colours them
+        # accordingly.
+        _materialize_merged_tape(tape_paths, fixtures / "tape")
     if run_path is not None:
         _shutil.copytree(run_path, fixtures / "run")
 
@@ -529,7 +717,7 @@ def cmd_tape_view(args: argparse.Namespace) -> int:
                                                               directory=str(serve_root),
                                                               **kw))
     url = f"http://127.0.0.1:{port}/"
-    if tape_path is not None or run_path is not None:
+    if tape_paths or run_path is not None:
         url += "?autoload=fixture-cli"
 
     def _serve() -> None:
@@ -596,6 +784,10 @@ def _build_parser() -> argparse.ArgumentParser:
     p_r.add_argument("--subtitle", default=None, help="subtitle")
     p_r.set_defaults(handler=cmd_report)
 
+    # ── engine ─────────────────────────────────────────────────────
+    from . import engine_cli
+    engine_cli.add_engine_subparser(sub)
+
     # ── tape ───────────────────────────────────────────────────────
     p_tape = sub.add_parser(
         "tape",
@@ -607,10 +799,21 @@ def _build_parser() -> argparse.ArgumentParser:
         "record",
         help="Stream a CCXT exchange feed into a .floxlog directory.",
     )
-    p_rec.add_argument("exchange",
-                       help="CCXT exchange id (e.g. 'bybit', 'bitget').")
-    p_rec.add_argument("symbol",
-                       help="Symbol in CCXT spelling (e.g. 'BTC/USDT' or 'BTCUSDT').")
+    p_rec.add_argument("exchange", nargs="?", default=None,
+                       help="CCXT exchange id (single-venue form). "
+                            "Optional when --venue is used.")
+    p_rec.add_argument("symbol", nargs="?", default=None,
+                       help="Symbol in CCXT spelling (single-venue form). "
+                            "Optional when --venue is used.")
+    p_rec.add_argument(
+        "--venue", action="append", default=[],
+        metavar="EXCHANGE:SYM1[,SYM2,...]",
+        help=("Multi-venue form. Repeatable. Each --venue records one "
+              "exchange × N symbols into <output>/<exchange>/. Example: "
+              "`--venue bybit:BTC/USDT:USDT --venue binance:BTC/USDT:USDT`. "
+              "Mutually exclusive with the positional exchange/symbol "
+              "form (which stays as a one-venue alias)."),
+    )
     p_rec.add_argument(
         "--duration", default=None,
         help="Stop after this much wall time (e.g. '60s', '5m', '1h'). "
@@ -627,6 +830,13 @@ def _build_parser() -> argparse.ArgumentParser:
     p_rec.add_argument(
         "--testnet", action="store_true",
         help="Use the exchange's testnet/sandbox endpoint.",
+    )
+    p_rec.add_argument(
+        "--book-depth", type=int, default=None,
+        help=("Order-book depth subscribed via watchOrderBook. Exchanges have "
+              "different valid ranges (e.g. bitget perp only accepts books5 / "
+              "books15, bybit accepts 1/50/200/1000). Leave unset to let the "
+              "broker pick a venue-appropriate default."),
     )
     p_rec.set_defaults(handler=cmd_tape_record)
 
@@ -654,8 +864,12 @@ def _build_parser() -> argparse.ArgumentParser:
              "given .floxlog and / or .floxrun directory.",
     )
     p_view.add_argument("paths", nargs="+",
-                        help="One or two paths: a .floxlog directory, a "
-                             ".floxrun directory, or both.")
+                        help="One or more .floxlog directories and/or one "
+                             ".floxrun. With multiple .floxlog dirs the "
+                             "viewer renders a merged synthetic tape "
+                             "(symbols rekeyed into a global id space "
+                             "keyed by (exchange, name) — see "
+                             "docs/how-to/multi-tape.md).")
     p_view.add_argument("--port", type=int, default=8765,
                         help="Local port to serve the viewer on (default 8765).")
     p_view.add_argument("--no-open", action="store_true",

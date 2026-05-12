@@ -4,6 +4,7 @@
 
 #include <napi.h>
 
+#include "data_ops.h"
 #include "error_translator.h"
 #include "flox/capi/bridge_strategy.h"
 #include "flox/capi/flox_capi.h"
@@ -136,6 +137,8 @@ struct NodeStrategyHost
   Napi::FunctionReference on_bar_fn;
   Napi::FunctionReference on_start_fn;
   Napi::FunctionReference on_stop_fn;
+  Napi::FunctionReference on_fill_fn;
+  Napi::FunctionReference on_order_update_fn;
   Napi::ObjectReference emitter;
   std::vector<uint32_t> syms;
   std::unique_ptr<BridgeStrategy> bridge;
@@ -162,6 +165,16 @@ struct NodeStrategyHost
     FloxSymbolContext ctx;
     FloxBarData bar;
     NodeStrategyHost* host;
+  };
+  struct OrderEventCallData
+  {
+    FloxSymbolContext ctx;
+    FloxOrderEventData ev;
+    // reject_reason is a borrowed pointer in the C ABI struct; copy
+    // it onto the heap so the TSFN consumer can outlive the caller.
+    std::string reject_reason_owned;
+    NodeStrategyHost* host;
+    bool is_fill;
   };
 
   void enableThreaded()
@@ -205,6 +218,8 @@ struct NodeStrategyHost
     on_bar_fn = get("onBar");
     on_start_fn = get("onStart");
     on_stop_fn = get("onStop");
+    on_fill_fn = get("onFill");
+    on_order_update_fn = get("onOrderUpdate");
     if (on_start_fn)
     {
       on_start_fn.Call({});
@@ -230,6 +245,8 @@ struct NodeStrategyHost
     on_bar_fn = get("onBar");
     on_start_fn = get("onStart");
     on_stop_fn = get("onStop");
+    on_fill_fn = get("onFill");
+    on_order_update_fn = get("onOrderUpdate");
 
     FloxStrategyCallbacks cbs{};
     cbs.user_data = this;
@@ -238,6 +255,8 @@ struct NodeStrategyHost
     cbs.on_bar = &NodeStrategyHost::onBar;
     cbs.on_start = &NodeStrategyHost::onStart;
     cbs.on_stop = &NodeStrategyHost::onStop;
+    cbs.on_fill = &NodeStrategyHost::onFill;
+    cbs.on_order_update = &NodeStrategyHost::onOrderUpdate;
 
     bridge = std::make_unique<BridgeStrategy>(
         static_cast<SubscriberId>(id), syms, *reg, cbs);
@@ -498,6 +517,156 @@ struct NodeStrategyHost
       buildBarObj(env, barObj, bar);
       self->on_bar_fn.Call({ctxObj, barObj, self->emitter.Value()});
     }
+  }
+
+  // ── Order-event hooks ─────────────────────────────────────────────
+  //
+  // Mirror the pybind11 surface: status names match
+  // `FloxOrderEventStatus` (NEW, PARTIALLY_FILLED, FILLED, CANCELED,
+  // REJECTED, ...). `onFill` is called only on terminal fill events
+  // (status == PARTIALLY_FILLED or FILLED); `onOrderUpdate` fires on
+  // every status change including fills, so a strategy that only
+  // wants the lifecycle and is happy to inspect status itself can
+  // implement the latter.
+
+  static const char* orderEventStatusName(uint8_t s)
+  {
+    switch (s)
+    {
+      case 0:
+        return "NEW";
+      case 1:
+        return "ACCEPTED";
+      case 2:
+        return "PENDING_NEW";
+      case 3:
+        return "PARTIALLY_FILLED";
+      case 4:
+        return "FILLED";
+      case 5:
+        return "PENDING_CANCEL";
+      case 6:
+        return "CANCELED";
+      case 7:
+        return "EXPIRED";
+      case 8:
+        return "REJECTED";
+      case 9:
+        return "REPLACED";
+      case 10:
+        return "PENDING_TRIGGER";
+      case 11:
+        return "TRIGGERED";
+      case 12:
+        return "TRAILING_UPDATED";
+      default:
+        return "UNKNOWN";
+    }
+  }
+
+  static const char* orderTypeName(uint8_t t)
+  {
+    switch (t)
+    {
+      case 0:
+        return "LIMIT";
+      case 1:
+        return "MARKET";
+      case 2:
+        return "STOP_MARKET";
+      case 3:
+        return "STOP_LIMIT";
+      case 4:
+        return "TP_MARKET";
+      case 5:
+        return "TP_LIMIT";
+      case 6:
+        return "ICEBERG";
+      default:
+        return "UNKNOWN";
+    }
+  }
+
+  static void buildOrderEventObj(Napi::Env env, Napi::Object& o,
+                                 const FloxOrderEventData* ev,
+                                 const std::string* reject_owned)
+  {
+    o.Set("orderId", Napi::Number::New(env, static_cast<double>(ev->order_id)));
+    o.Set("symbolId", Napi::Number::New(env, ev->symbol_id));
+    o.Set("side", Napi::String::New(env, ev->side == 0 ? "buy" : "sell"));
+    o.Set("orderType", Napi::String::New(env, orderTypeName(ev->order_type)));
+    o.Set("status", Napi::String::New(env, orderEventStatusName(ev->status)));
+    o.Set("fillQty", Napi::Number::New(env, flox_quantity_to_double(ev->fill_qty_raw)));
+    o.Set("fillPrice", Napi::Number::New(env, flox_price_to_double(ev->fill_price_raw)));
+    o.Set("exchangeTsNs", Napi::Number::New(env, static_cast<double>(ev->exchange_ts_ns)));
+    if (reject_owned && !reject_owned->empty())
+    {
+      o.Set("rejectReason", Napi::String::New(env, *reject_owned));
+    }
+    else if (ev->reject_reason)
+    {
+      o.Set("rejectReason", Napi::String::New(env, ev->reject_reason));
+    }
+    else
+    {
+      o.Set("rejectReason", env.Null());
+    }
+  }
+
+  static void callOnOrderEvent(Napi::Env env, Napi::Function, OrderEventCallData* d)
+  {
+    auto* self = d->host;
+    auto& fn = d->is_fill ? self->on_fill_fn : self->on_order_update_fn;
+    if (!fn.IsEmpty())
+    {
+      auto ctxObj = Napi::Object::New(env);
+      buildCtxObj(env, ctxObj, &d->ctx);
+      auto evObj = Napi::Object::New(env);
+      buildOrderEventObj(env, evObj, &d->ev, &d->reject_reason_owned);
+      fn.Call({ctxObj, evObj, self->emitter.Value()});
+    }
+    delete d;
+  }
+
+  static void dispatchOrderEvent(NodeStrategyHost* self,
+                                 const FloxSymbolContext* ctx,
+                                 const FloxOrderEventData* ev,
+                                 bool is_fill)
+  {
+    auto& fn = is_fill ? self->on_fill_fn : self->on_order_update_fn;
+    if (fn.IsEmpty())
+    {
+      return;
+    }
+    if (self->_threaded)
+    {
+      auto* d = new OrderEventCallData{
+          *ctx, *ev,
+          ev->reject_reason ? std::string(ev->reject_reason) : std::string{},
+          self, is_fill};
+      self->_tsfn.NonBlockingCall(d, &NodeStrategyHost::callOnOrderEvent);
+    }
+    else
+    {
+      auto env = self->env;
+      auto ctxObj = Napi::Object::New(env);
+      buildCtxObj(env, ctxObj, ctx);
+      auto evObj = Napi::Object::New(env);
+      buildOrderEventObj(env, evObj, ev, nullptr);
+      fn.Call({ctxObj, evObj, self->emitter.Value()});
+    }
+  }
+
+  static void onFill(void* ud, const FloxSymbolContext* ctx,
+                     const FloxOrderEventData* ev)
+  {
+    dispatchOrderEvent(static_cast<NodeStrategyHost*>(ud), ctx, ev, true);
+  }
+
+  static void onOrderUpdate(void* ud, const FloxSymbolContext* ctx,
+                            const FloxOrderEventData* ev)
+  {
+    dispatchOrderEvent(static_cast<NodeStrategyHost*>(ud), ctx, ev, false);
   }
 
   struct LifecycleCallData
@@ -948,6 +1117,8 @@ class BacktestRunnerNode : public Napi::ObjectWrap<BacktestRunnerNode>
             InstanceMethod("runCsv", &BacktestRunnerNode::runCsv),
             InstanceMethod("runOhlcv", &BacktestRunnerNode::runOhlcv),
             InstanceMethod("runBars", &BacktestRunnerNode::runBars),
+            InstanceMethod("runTape", &BacktestRunnerNode::runTape),
+            InstanceMethod("runTapes", &BacktestRunnerNode::runTapes),
             InstanceMethod("setExecutor", &BacktestRunnerNode::setExecutor),
             InstanceMethod("addExecutionListener", &BacktestRunnerNode::addExecutionListener),
             InstanceMethod("equityCurve", &BacktestRunnerNode::equityCurve),
@@ -997,6 +1168,71 @@ class BacktestRunnerNode : public Napi::ObjectWrap<BacktestRunnerNode>
     flox_backtest_runner_set_strategy(_handle,
                                       static_cast<FloxStrategyHandle>(_host->bridge.get()));
     return env.Undefined();
+  }
+
+  // runner.runTape(path) → stats object. `path` is a `.floxlog`
+  // directory written by `flox tape record` or `scripts/backfill_to_tape.py`.
+  Napi::Value runTape(const Napi::CallbackInfo& info)
+  {
+    return tryFlox(info.Env(),
+                   [&]() -> Napi::Value
+                   {
+                     std::string path = info[0].As<Napi::String>().Utf8Value();
+                     FloxBacktestStats s{};
+                     int ok = flox_backtest_runner_run_tape(_handle, path.c_str(), &s);
+                     if (!ok)
+                     {
+                       return info.Env().Null();
+                     }
+                     return statsToJs(info.Env(), s);
+                   });
+  }
+
+  // runner.runTapes(paths) → stats object. Merges N `.floxlog` directories
+  // on read via MergedTapeReader and feeds the merged event stream through
+  // the same engine pipeline as runTape. Symbols are rekeyed by
+  // (metadata.exchange, name) so two venues remain distinct.
+  Napi::Value runTapes(const Napi::CallbackInfo& info)
+  {
+    return tryFlox(info.Env(),
+                   [&]() -> Napi::Value
+                   {
+                     auto env = info.Env();
+                     if (info.Length() == 0 || !info[0].IsArray())
+                     {
+                       Napi::TypeError::New(
+                           env, "BacktestRunner.runTapes(paths): expected string[]")
+                           .ThrowAsJavaScriptException();
+                       return env.Undefined();
+                     }
+                     auto arr = info[0].As<Napi::Array>();
+                     uint32_t n = arr.Length();
+                     std::vector<std::string> owned;
+                     owned.reserve(n);
+                     for (uint32_t i = 0; i < n; ++i)
+                     {
+                       owned.emplace_back(arr.Get(i).As<Napi::String>().Utf8Value());
+                     }
+                     std::vector<const char*> cstrs;
+                     cstrs.reserve(n);
+                     for (const auto& s : owned)
+                     {
+                       cstrs.push_back(s.c_str());
+                     }
+                     FloxBacktestStats s{};
+                     int ok = flox_backtest_runner_run_tapes(
+                         _handle, cstrs.data(), n, &s);
+                     if (!ok)
+                     {
+                       Napi::Error::New(
+                           env,
+                           "BacktestRunner.runTapes failed (invalid paths or "
+                           "overlapping book streams)")
+                           .ThrowAsJavaScriptException();
+                       return env.Undefined();
+                     }
+                     return statsToJs(env, s);
+                   });
   }
 
   // runner.runCsv(path, symbol) → stats object
@@ -1513,6 +1749,9 @@ class RunnerNode : public Napi::ObjectWrap<RunnerNode>
   std::unique_ptr<flox_node::KillSwitchHost> _kill_host;
   std::unique_ptr<flox_node::OrderValidatorHost> _validator_host;
   std::unique_ptr<flox_node::MarketDataRecorderHookHost> _recorder_host;
+  // Keep the JS BinaryLogRecorderHook alive while attached so its C++
+  // handle (borrowed via flox_binary_log_recorder_hook_as_recorder) stays valid.
+  Napi::ObjectReference _recorder_binlog_ref;
   std::unique_ptr<flox_node::ExecutorHost> _executor_host;
 
   Napi::Value setPnlTracker(const Napi::CallbackInfo& info)
@@ -1662,6 +1901,7 @@ class RunnerNode : public Napi::ObjectWrap<RunnerNode>
     if (info.Length() == 0 || info[0].IsNull() || info[0].IsUndefined())
     {
       _recorder_host.reset();
+      _recorder_binlog_ref.Reset();
       if (_mode == Mode::Sync)
       {
         flox_runner_set_market_data_recorder(_runner, nullptr);
@@ -1672,8 +1912,37 @@ class RunnerNode : public Napi::ObjectWrap<RunnerNode>
       }
       return env.Undefined();
     }
+
+    auto obj = info[0].As<Napi::Object>();
+
+    // Detect the built-in BinaryLogRecorderHook wrapper via the cached
+    // constructor stored at module init.
+    FloxMarketDataRecorderHandle binlog_handle = nullptr;
+    auto& ctor = node_flox::BinaryLogRecorderHookWrap::Ctor();
+    if (!ctor.IsEmpty() && obj.InstanceOf(ctor.Value()))
+    {
+      auto* hook = Napi::ObjectWrap<node_flox::BinaryLogRecorderHookWrap>::Unwrap(obj);
+      binlog_handle = hook->asRecorder();
+    }
+
+    if (binlog_handle)
+    {
+      _recorder_host.reset();
+      _recorder_binlog_ref = Napi::Persistent(obj);
+      if (_mode == Mode::Sync)
+      {
+        flox_runner_set_market_data_recorder(_runner, binlog_handle);
+      }
+      else
+      {
+        flox_live_engine_set_market_data_recorder(_engine, binlog_handle);
+      }
+      return env.Undefined();
+    }
+
+    _recorder_binlog_ref.Reset();
     _recorder_host = std::make_unique<flox_node::MarketDataRecorderHookHost>(
-        env, info[0].As<Napi::Object>());
+        env, obj);
     if (_mode == Mode::Sync)
     {
       flox_runner_set_market_data_recorder(_runner, _recorder_host->handle);

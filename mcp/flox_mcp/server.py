@@ -18,9 +18,11 @@ from .tools import (
     events,
     examples,
     indicators,
+    init_project as init_project_tool,
     lookahead as lookahead_tool,
     lookup,
     positions,
+    record_data as record_data_tool,
     runtime,
     scaffold,
     strategy,
@@ -164,7 +166,11 @@ def build_server() -> Server:
                     "spelling. Accepts any spelling the user knows "
                     "('FloxBarData', 'BarData', 'flox_indicator_ema', 'ema', "
                     "'Ema'). Filter to one language with the `language` arg "
-                    "if the user is writing in a specific binding."
+                    "if the user is writing in a specific binding. "
+                    "When the symbol has hand-curated semantic gotchas "
+                    "(silent quantization, ordering preconditions, "
+                    "subscribed-vs-registry distinctions), they appear "
+                    "under a `## Gotchas` section in the response."
                 ),
                 inputSchema={
                     "type": "object",
@@ -254,25 +260,33 @@ def build_server() -> Server:
             Tool(
                 name="scaffold_strategy",
                 description=(
-                    "Return a starter FLOX strategy class (Python or Node) "
-                    "that compiles and passes `validate_strategy`. Use this "
-                    "as the *first* thing you write when the user asks to "
+                    "Return a starter FLOX strategy class that compiles "
+                    "and passes `validate_strategy`. Use this as the "
+                    "*first* thing you write when the user asks to "
                     "'build a new strategy' — start from this canonical "
-                    "shell, then edit the indicator + signal logic, instead "
-                    "of writing the FLOX bookkeeping (constructor, hook "
-                    "names, signal builder) from memory. Three kinds: "
-                    "bar-driven (TA on bar close), trade-driven (tick-by-"
-                    "tick), hybrid (both). Codon / QuickJS templates are "
-                    "tracked as a follow-up."
+                    "shell, then edit the indicator + signal logic, "
+                    "instead of writing the FLOX bookkeeping "
+                    "(constructor, hook names, signal builder) from "
+                    "memory. `language` is required — FLOX is polyglot "
+                    "and picking the binding for the user is wrong; "
+                    "ask which language they want first. Supported: "
+                    "python, node, codon, quickjs. Three kinds: "
+                    "bar-driven (TA on bar close), trade-driven "
+                    "(tick-by-tick), hybrid (both). The result includes "
+                    "a `Next steps` section with `docs_search` queries "
+                    "for the recording / backtest / layout follow-ups; "
+                    "follow them in order."
                 ),
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "language": {
                             "type": "string",
+                            "enum": ["python", "node", "codon", "quickjs"],
                             "description":
-                                "Target language. python or node. "
-                                "Default: python.",
+                                "Target language. Required. FLOX is "
+                                "polyglot — ask the user which binding "
+                                "they want before calling this tool.",
                         },
                         "kind": {
                             "type": "string",
@@ -286,6 +300,132 @@ def build_server() -> Server:
                                 "Class name for the generated strategy. "
                                 "Must be a valid identifier. Default: "
                                 "MyStrategy.",
+                        },
+                    },
+                    "required": ["language"],
+                },
+            ),
+            Tool(
+                name="init_project",
+                description=(
+                    "Create a new FLOX project from a bundled template. "
+                    "Thin wrapper around the canonical `flox new` CLI — "
+                    "the CLI stays the source of truth, this tool only "
+                    "makes it discoverable from MCP. Use when the user "
+                    "asks 'set up a new flox project' / 'I want to "
+                    "scaffold a research notebook' / 'start a live "
+                    "trading bot'. Three templates ship with flox-py: "
+                    "`research` (notebook + sample data + main.py), "
+                    "`live` (CCXT broker + dry-run safety harness), "
+                    "`indicator-library` (standalone indicator package "
+                    "with tests). Result includes the CLI output and a "
+                    "Next steps section with `docs_search` queries."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "required": ["project_name", "template"],
+                    "properties": {
+                        "project_name": {
+                            "type": "string",
+                            "description":
+                                "Directory name for the new project. "
+                                "Created under `target_dir`. Special "
+                                "characters in the name become snake_case "
+                                "in the bundled `__PROJECT_SLUG__`.",
+                        },
+                        "template": {
+                            "type": "string",
+                            "enum": ["research", "live", "indicator-library"],
+                            "description":
+                                "Template to scaffold from. Required.",
+                        },
+                        "target_dir": {
+                            "type": "string",
+                            "description":
+                                "Parent directory the project is created "
+                                "under. Default: current working dir.",
+                        },
+                    },
+                },
+            ),
+            Tool(
+                name="record_data",
+                description=(
+                    "Capture market data into a `.floxlog` tape. Wraps "
+                    "the canonical recording paths — for `mode=live` "
+                    "shells out to the `flox tape record` CLI; for "
+                    "`mode=historical` shells out to "
+                    "`scripts/backfill_to_tape.py` which uses ccxt's "
+                    "`fetch_ohlcv` / `fetch_trades`. Use this when the "
+                    "user asks to 'record some BTC data' / 'pull a "
+                    "month of klines for backtest' / 'tape the last "
+                    "hour of trades'. The result is a `.floxlog` "
+                    "directory drivable by `BacktestRunner.run_tape`."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "required": ["mode", "exchange", "symbol", "out_path"],
+                    "properties": {
+                        "mode": {
+                            "type": "string",
+                            "enum": ["historical", "live"],
+                            "description":
+                                "`historical` = ccxt backfill of past "
+                                "data. `live` = capture from now onwards "
+                                "via `flox tape record`.",
+                        },
+                        "exchange": {
+                            "type": "string",
+                            "description":
+                                "ccxt exchange id (bitget, binance, "
+                                "bybit, ...).",
+                        },
+                        "symbol": {
+                            "type": "string",
+                            "description":
+                                "Symbol in the exchange's spelling "
+                                "(BTC/USDT, BTCUSDT — both accepted).",
+                        },
+                        "out_path": {
+                            "type": "string",
+                            "description":
+                                "Output `.floxlog` directory (will be "
+                                "created if missing).",
+                        },
+                        "data_type": {
+                            "type": "string",
+                            "enum": ["klines", "trades"],
+                            "description":
+                                "Historical mode only. `klines` (1m bars "
+                                "by default) or `trades` (per-print). "
+                                "Trades have higher fidelity but are "
+                                "limited by what each exchange exposes.",
+                        },
+                        "from_dt": {
+                            "type": "string",
+                            "description":
+                                "Historical mode. Start datetime — ISO "
+                                "(2026-04-01) or unix-ms.",
+                        },
+                        "to_dt": {
+                            "type": "string",
+                            "description":
+                                "Historical mode. End datetime — ISO or "
+                                "unix-ms.",
+                        },
+                        "duration": {
+                            "type": "string",
+                            "description":
+                                "Live mode. Recording duration "
+                                "(`1h`, `30m`, `2d`). Omit for an open-"
+                                "ended recording (Ctrl+C to stop).",
+                        },
+                        "max_records": {
+                            "type": "integer",
+                            "description":
+                                "Historical mode. Refuse to start if "
+                                "estimated row count exceeds this. "
+                                "Default 1_000_000.",
                         },
                     },
                 },
@@ -303,6 +443,14 @@ def build_server() -> Server:
                     "untrusted code outside a developer's own machine. "
                     "Returns the backtest stats dict as JSON plus any "
                     "stdout the strategy printed."
+                    "\n\nDispatch routing: the worker introspects the "
+                    "strategy class. If `on_bar` is overridden the "
+                    "dataset is dispatched as real `BarEvent`s through "
+                    "`run_bars` (CSV columns: "
+                    "ts,open,high,low,close,volume); otherwise the rows "
+                    "are synthesised into trades for `on_trade` via "
+                    "`run_csv`. A strategy that overrides neither hook "
+                    "fails loudly."
                 ),
                 inputSchema={
                     "type": "object",
@@ -414,6 +562,23 @@ def build_server() -> Server:
                     "do I X' / 'what does Y do' / 'where is Z documented'. "
                     "The index is built from a strict allowlist; private "
                     "tracker / strategy / author files are NEVER indexed."
+                    "\n\nQuery syntax: plain word lists are AND-matched "
+                    "(every token must appear). Wrap a phrase in double "
+                    "quotes for exact match: `\"walk forward\"`. FTS5 "
+                    "operators (OR, NEAR, *, parens) pass through."
+                    "\n\nCanonical workflow queries (run these instead of "
+                    "guessing the canonical path from training data):\n"
+                    "  • User wants to record market data → "
+                    "`docs_search('record tape')`. Covers live capture and "
+                    "the ccxt.fetch_ohlcv historical-backfill pattern.\n"
+                    "  • User asks 'how should I structure a flox project' "
+                    "→ `docs_search('project layout')`.\n"
+                    "  • User mentions an exchange / live data → "
+                    "`docs_search('ccxt')`.\n"
+                    "  • User wants to backtest a strategy on a recorded "
+                    "tape → `docs_search('backtest')`.\n"
+                    "  • User mentions strategy traces, signals, or "
+                    "`.floxrun` → `docs_search('floxrun')`."
                 ),
                 inputSchema={
                     "type": "object",
@@ -422,10 +587,9 @@ def build_server() -> Server:
                         "query": {
                             "type": "string",
                             "description":
-                                "Free-text query. Phrases like \"walk "
-                                "forward\" are treated as one phrase. "
-                                "Plain word lists work too; the tool "
-                                "quotes them automatically.",
+                                "Free-text query. Plain word lists are "
+                                "AND-matched. Wrap a phrase in double "
+                                "quotes for exact match.",
                         },
                         "k": {
                             "type": "integer",
@@ -447,7 +611,12 @@ def build_server() -> Server:
                     "symbol_name, qty, avg_price, unrealized_pnl}, ...]}. "
                     "Snapshot path is FLOX_RUNTIME_STATE env var or the "
                     "passed `state_path`; the user app is responsible for "
-                    "writing the snapshot. Read-only — never modifies state."
+                    "writing the snapshot. When no engine has written a "
+                    "snapshot yet, returns "
+                    "{engine: 'not_running', data: [], hint: ...} instead "
+                    "of an error — that's a normal pre-engine state, not "
+                    "a problem to surface to the user. Read-only — never "
+                    "modifies state."
                 ),
                 inputSchema={
                     "type": "object",
@@ -476,7 +645,9 @@ def build_server() -> Server:
                     "Read in-flight orders from the runtime state snapshot. "
                     "Use this for 'what orders are pending' / 'do I have "
                     "anything sitting on Bybit'. Optional substring filter "
-                    "matches against symbol_name or strategy. Read-only."
+                    "matches against symbol_name or strategy. Returns the "
+                    "engine_not_running idle response when no snapshot is "
+                    "present yet (no error). Read-only."
                 ),
                 inputSchema={
                     "type": "object",
@@ -501,7 +672,9 @@ def build_server() -> Server:
                     "Read PnL totals plus per-strategy breakdown from the "
                     "runtime state snapshot. Use this for 'what's my PnL' / "
                     "'how is strategy X doing today'. Returns realized + "
-                    "unrealized + fees per strategy. Read-only."
+                    "unrealized + fees per strategy. Returns the "
+                    "engine_not_running idle response when no snapshot is "
+                    "present yet (no error). Read-only."
                 ),
                 inputSchema={
                     "type": "object",
@@ -527,7 +700,10 @@ def build_server() -> Server:
                     "Read kill-switch state from the runtime state snapshot. "
                     "Returns {active, reason, since_ns}. Use this for 'is "
                     "trading halted' / 'why was the kill switch tripped'. "
-                    "Read-only — to flip the switch use set_kill_switch."
+                    "When no engine has written a snapshot, returns the "
+                    "idle response with active=false (there is no live "
+                    "trading to halt). Read-only — to flip the switch "
+                    "use set_kill_switch."
                 ),
                 inputSchema={
                     "type": "object",
@@ -877,9 +1053,27 @@ def build_server() -> Server:
                 )
             elif name == "scaffold_strategy":
                 text = scaffold.scaffold_strategy(
-                    language=arguments.get("language", "python"),
+                    language=arguments.get("language"),
                     kind=arguments.get("kind", "bar-driven"),
                     name=arguments.get("name", "MyStrategy"),
+                )
+            elif name == "init_project":
+                text = init_project_tool.init_project(
+                    project_name=arguments["project_name"],
+                    template=arguments["template"],
+                    target_dir=arguments.get("target_dir", "."),
+                )
+            elif name == "record_data":
+                text = record_data_tool.record_data(
+                    mode=arguments["mode"],
+                    exchange=arguments["exchange"],
+                    symbol=arguments["symbol"],
+                    out_path=arguments["out_path"],
+                    data_type=arguments.get("data_type", "klines"),
+                    from_dt=arguments.get("from_dt"),
+                    to_dt=arguments.get("to_dt"),
+                    duration=arguments.get("duration"),
+                    max_records=arguments.get("max_records", 1_000_000),
                 )
             elif name == "docs_search":
                 text = docs_search_tool.docs_search(

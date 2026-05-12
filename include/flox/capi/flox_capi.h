@@ -104,12 +104,37 @@ extern "C"
   // Callback function pointer types
   // ============================================================
 
+  // Status codes match flox::OrderEventStatus. Kept as a plain int so
+  // callers don't have to reach into the C++ enum.
+  //   0 NEW                 1 SUBMITTED       2 ACCEPTED
+  //   3 PARTIALLY_FILLED    4 FILLED          5 PENDING_CANCEL
+  //   6 CANCELED            7 EXPIRED         8 REJECTED
+  //   9 REPLACED           10 PENDING_TRIGGER 11 TRIGGERED
+  //  12 TRAILING_UPDATED
+  typedef struct
+  {
+    uint64_t order_id;
+    uint32_t symbol_id;
+    uint8_t side;        // 0 BUY, 1 SELL
+    uint8_t order_type;  // 0 LIMIT, 1 MARKET, 2 STOP_MARKET, ...
+    uint8_t status;      // FloxOrderEventStatus, see comment above
+    uint8_t _pad;
+    int64_t fill_qty_raw;
+    int64_t fill_price_raw;
+    int64_t exchange_ts_ns;
+    const char* reject_reason;  // null when status != REJECTED
+  } FloxOrderEventData;
+
   typedef void (*FloxOnTradeCallback)(void* user_data, const FloxSymbolContext* ctx,
                                       const FloxTradeData* trade);
   typedef void (*FloxOnBookCallback)(void* user_data, const FloxSymbolContext* ctx,
                                      const FloxBookData* book);
   typedef void (*FloxOnBarCallback)(void* user_data, const FloxSymbolContext* ctx,
                                     const FloxBarData* bar);
+  typedef void (*FloxOnFillCallback)(void* user_data, const FloxSymbolContext* ctx,
+                                     const FloxOrderEventData* ev);
+  typedef void (*FloxOnOrderUpdateCallback)(void* user_data, const FloxSymbolContext* ctx,
+                                            const FloxOrderEventData* ev);
   typedef void (*FloxOnStartCallback)(void* user_data);
   typedef void (*FloxOnStopCallback)(void* user_data);
 
@@ -120,6 +145,12 @@ extern "C"
     FloxOnBarCallback on_bar;
     FloxOnStartCallback on_start;
     FloxOnStopCallback on_stop;
+    // Order-event hooks. Default-initialised to nullptr by C `{}`-init,
+    // so existing callers that don't set them get no-op behaviour. The
+    // runner only invokes a callback when its function pointer is
+    // non-null.
+    FloxOnFillCallback on_fill;
+    FloxOnOrderUpdateCallback on_order_update;
     void* user_data;
   } FloxStrategyCallbacks;
 
@@ -734,6 +765,17 @@ extern "C"
   uint8_t flox_data_writer_write_trade(FloxDataWriterHandle writer, int64_t exchange_ts_ns,
                                        int64_t recv_ts_ns, double price, double qty,
                                        uint64_t trade_id, uint32_t symbol_id, uint8_t side);
+  // Single book-update writer. Raw int64 levels (Price/Quantity scale = 1e8).
+  // Returns 1 on success, 0 on failure. bids/asks may be NULL when the
+  // matching count is 0.
+  uint8_t flox_data_writer_write_book(FloxDataWriterHandle writer,
+                                      int64_t exchange_ts_ns,
+                                      int64_t recv_ts_ns,
+                                      int64_t seq,
+                                      uint32_t symbol_id,
+                                      uint8_t is_snapshot,
+                                      const FloxBookLevel* bids, uint32_t n_bids,
+                                      const FloxBookLevel* asks, uint32_t n_asks);
   void flox_data_writer_flush(FloxDataWriterHandle writer);
   void flox_data_writer_close(FloxDataWriterHandle writer);
 
@@ -1155,6 +1197,61 @@ extern "C"
                                                    uint64_t max_levels);
 
   // ============================================================
+  // MergedTapeReader — N-tape merged consumption.
+  // ============================================================
+
+  typedef void* FloxMergedTapeReaderHandle;
+
+  typedef struct
+  {
+    uint32_t global_id;
+    int8_t price_precision;
+    int8_t qty_precision;
+    uint8_t _pad[2];
+    const char* exchange;
+    const char* name;
+  } FloxMergedSymbol;
+
+  typedef struct
+  {
+    int64_t first_event_ns;
+    int64_t last_event_ns;
+    uint64_t trades;
+    uint64_t books;
+    const char* path;
+  } FloxMergedTapeStats;
+
+  FloxMergedTapeReaderHandle
+  flox_merged_tape_reader_create(const char* const* paths, uint32_t n_paths,
+                                 int64_t from_ns, int64_t to_ns,
+                                 const uint32_t* symbol_filter,
+                                 uint32_t n_filter);
+  void flox_merged_tape_reader_destroy(FloxMergedTapeReaderHandle reader);
+
+  uint32_t flox_merged_tape_reader_symbol_count(FloxMergedTapeReaderHandle reader);
+  uint32_t flox_merged_tape_reader_get_symbols(FloxMergedTapeReaderHandle reader,
+                                               FloxMergedSymbol* out, uint32_t max);
+  uint32_t flox_merged_tape_reader_tape_count(FloxMergedTapeReaderHandle reader);
+  uint32_t flox_merged_tape_reader_get_tape_stats(FloxMergedTapeReaderHandle reader,
+                                                  FloxMergedTapeStats* out,
+                                                  uint32_t max);
+  void flox_merged_tape_reader_time_range(FloxMergedTapeReaderHandle reader,
+                                          int64_t* min_first_ns_out,
+                                          int64_t* max_last_ns_out);
+
+  uint64_t flox_merged_tape_reader_count_trades(FloxMergedTapeReaderHandle reader);
+  uint64_t flox_merged_tape_reader_read_trades(FloxMergedTapeReaderHandle reader,
+                                               FloxTradeRecord* trades_out,
+                                               uint64_t max_trades);
+  uint64_t flox_merged_tape_reader_count_books(FloxMergedTapeReaderHandle reader,
+                                               uint64_t* total_levels_out);
+  uint64_t flox_merged_tape_reader_read_books(FloxMergedTapeReaderHandle reader,
+                                              FloxBookUpdateHeader* headers_out,
+                                              uint64_t max_events,
+                                              FloxLevel* levels_out,
+                                              uint64_t max_levels);
+
+  // ============================================================
   // DataWriter (extras)
   // ============================================================
 
@@ -1168,23 +1265,13 @@ extern "C"
 
   FloxWriterStats flox_data_writer_stats(FloxDataWriterHandle writer);
 
-  // ============================================================
-  // DataRecorder
-  // ============================================================
-
-  typedef void* FloxDataRecorderHandle;
-
-  FloxDataRecorderHandle flox_data_recorder_create(const char* output_dir,
-                                                   const char* exchange_name,
-                                                   uint64_t max_segment_mb);
-  void flox_data_recorder_destroy(FloxDataRecorderHandle recorder);
-  void flox_data_recorder_add_symbol(FloxDataRecorderHandle recorder, uint32_t symbol_id,
-                                     const char* name, const char* base, const char* quote,
-                                     int8_t price_precision, int8_t qty_precision);
-  void flox_data_recorder_start(FloxDataRecorderHandle recorder);
-  void flox_data_recorder_stop(FloxDataRecorderHandle recorder);
-  void flox_data_recorder_flush(FloxDataRecorderHandle recorder);
-  uint8_t flox_data_recorder_is_recording(FloxDataRecorderHandle recorder);
+  // Batched book writer — same struct layout as flox_data_reader_read_book_updates.
+  // event_type 2=snapshot, 3=delta. FloxLevel.side is ignored on write.
+  uint64_t flox_data_writer_write_books(FloxDataWriterHandle writer,
+                                        const FloxBookUpdateHeader* headers,
+                                        uint64_t n_events,
+                                        const FloxLevel* levels,
+                                        uint64_t total_levels);
 
   // ============================================================
   // Partitioner
@@ -1407,10 +1494,14 @@ extern "C"
   // MarketDataRecorder — receive every market data event fed into the
   // engine, for custom recording in the host language.
   //
-  // Companion to flox_data_recorder_* (in-tree binary log writer); this
-  // hook lets a binding implement IMarketDataRecorder. Any callback may
-  // be NULL (no-op). Pointers and arrays are valid only for the duration
-  // of the callback; copy if retained.
+  // Two flavours share the same FloxMarketDataRecorderHandle plug socket:
+  //   1. User-callback hook (flox_market_data_recorder_create). Bindings
+  //      implement on_trade / on_book_update etc. in the host language.
+  //   2. Binary-log sink (flox_binary_log_recorder_hook_create). Built-in
+  //      .floxlog writer; events stay in C++ on the hot path.
+  //
+  // Any callback may be NULL (no-op). Pointers and arrays are valid only
+  // for the duration of the callback; copy if retained.
   // ============================================================
 
   typedef void (*FloxRecorderOnTradeFn)(void* user_data, const FloxTradeData* trade);
@@ -1440,6 +1531,51 @@ extern "C"
   FloxMarketDataRecorderHandle flox_market_data_recorder_create_p(
       const FloxMarketDataRecorderCallbacks* callbacks);
   void flox_market_data_recorder_destroy(FloxMarketDataRecorderHandle recorder);
+
+  // Binary-log recorder hook. Owns a BinaryLogWriter internally and writes
+  // trades + books on the engine thread without crossing the binding
+  // boundary. `compression` matches flox::replay::CompressionType:
+  // 0 = None, 1 = LZ4.
+  typedef void* FloxBinaryLogRecorderHookHandle;
+
+  FloxBinaryLogRecorderHookHandle
+  flox_binary_log_recorder_hook_create(const char* output_dir,
+                                       uint64_t max_segment_mb,
+                                       uint8_t exchange_id,
+                                       uint8_t compression);
+  // Variant that stamps RecordingMetadata.exchange / instrument_type into
+  // the tape manifest. MergedTapeReader keys tapes by (exchange, name) so
+  // bindings that need to write merge-ready tapes must use this form.
+  // Pass NULL or "" for either string to leave it empty.
+  FloxBinaryLogRecorderHookHandle
+  flox_binary_log_recorder_hook_create_ex(const char* output_dir,
+                                          uint64_t max_segment_mb,
+                                          uint8_t exchange_id,
+                                          uint8_t compression,
+                                          const char* exchange_name,
+                                          const char* instrument_type);
+  void flox_binary_log_recorder_hook_destroy(FloxBinaryLogRecorderHookHandle hook);
+
+  // Borrowed handle for runner / live-engine attachment. Lifetime is tied
+  // to the owning hook. DO NOT pass to flox_market_data_recorder_destroy.
+  FloxMarketDataRecorderHandle
+  flox_binary_log_recorder_hook_as_recorder(FloxBinaryLogRecorderHookHandle hook);
+
+  void flox_binary_log_recorder_hook_add_symbol(FloxBinaryLogRecorderHookHandle hook,
+                                                uint32_t symbol_id,
+                                                const char* name,
+                                                const char* base,
+                                                const char* quote,
+                                                int8_t price_precision,
+                                                int8_t qty_precision);
+
+  void flox_binary_log_recorder_hook_flush(FloxBinaryLogRecorderHookHandle hook);
+
+  FloxWriterStats flox_binary_log_recorder_hook_stats(FloxBinaryLogRecorderHookHandle hook);
+
+  // Pointer-out variant for bindings that cannot consume struct returns
+  // (Codon, QuickJS). Writes sizeof(FloxWriterStats) bytes to *out.
+  void flox_binary_log_recorder_hook_stats_p(void* hook, void* out);
 
   // ============================================================
   // ReplaySource — binding-side market data event source for backtests.
@@ -1853,6 +1989,20 @@ extern "C"
                                    const char* symbol,
                                    FloxBacktestStats* stats_out);
 
+  // Drive the backtest off a `.floxlog` tape directory.
+  // Returns 1 on success, 0 on error.
+  int flox_backtest_runner_run_tape(FloxBacktestRunnerHandle runner,
+                                    const char* tape_dir,
+                                    FloxBacktestStats* stats_out);
+
+  // Drive the backtest off N `.floxlog` tapes merged on read. Symbols
+  // are rekeyed by `(metadata.exchange, name)` keying. Returns 1 on
+  // success, 0 on error (bad path, overlapping book streams, etc).
+  int flox_backtest_runner_run_tapes(FloxBacktestRunnerHandle runner,
+                                     const char* const* tape_dirs,
+                                     uint32_t n_dirs,
+                                     FloxBacktestStats* stats_out);
+
   // Replay raw OHLCV arrays (timestamps in nanoseconds, close prices as double).
   // Each row produces one synthetic trade (price=close, qty=1). Strategy.on_trade fires.
   // Returns 1 on success, 0 on error.
@@ -1907,6 +2057,18 @@ extern "C"
   // SimulatedExecutor.
   void flox_backtest_runner_set_executor(FloxBacktestRunnerHandle runner,
                                          FloxExecutorHandle executor);
+
+  // Pre-trade gate parity with the live runner. All four hooks are
+  // optional (NULL = no-op). Reduce-only orders bypass the gate so a
+  // tightening cap cannot strand a strategy in a position.
+  void flox_backtest_runner_set_risk_manager(FloxBacktestRunnerHandle runner,
+                                             FloxRiskManagerHandle rm);
+  void flox_backtest_runner_set_kill_switch(FloxBacktestRunnerHandle runner,
+                                            FloxKillSwitchHandle ks);
+  void flox_backtest_runner_set_order_validator(FloxBacktestRunnerHandle runner,
+                                                FloxOrderValidatorHandle ov);
+  void flox_backtest_runner_set_pnl_tracker(FloxBacktestRunnerHandle runner,
+                                            FloxPnLTrackerHandle tracker);
 
   // ============================================================
   // Walk-forward
@@ -2314,6 +2476,18 @@ extern "C"
                             uint64_t* out_order_id, uint64_t* out_fill_id,
                             int64_t* out_price_raw, int64_t* out_qty_raw, int64_t* out_fee_raw,
                             uint32_t* out_symbol_id, uint8_t* out_side, uint8_t* out_liquidity);
+
+  typedef void* FloxBarDispatchRecorderHandle;
+  FloxBarDispatchRecorderHandle flox_bar_dispatch_recorder_create(void);
+  void flox_bar_dispatch_recorder_destroy(FloxBarDispatchRecorderHandle h);
+  uint32_t flox_bar_dispatch_recorder_add_time_seconds(FloxBarDispatchRecorderHandle h,
+                                                       uint32_t seconds);
+  void flox_bar_dispatch_recorder_on_trade(FloxBarDispatchRecorderHandle h, uint32_t symbol,
+                                           double price, double qty, int64_t ts_ns);
+  void flox_bar_dispatch_recorder_finalize(FloxBarDispatchRecorderHandle h);
+  uint32_t flox_bar_dispatch_recorder_count(FloxBarDispatchRecorderHandle h);
+  uint8_t flox_bar_dispatch_recorder_type_at(FloxBarDispatchRecorderHandle h, uint32_t index);
+  uint64_t flox_bar_dispatch_recorder_param_at(FloxBarDispatchRecorderHandle h, uint32_t index);
 
 #ifdef __cplusplus
 }

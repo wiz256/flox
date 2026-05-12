@@ -16,13 +16,19 @@
 #include "flox/backtest/simulated_executor.h"
 #include "flox/execution/abstract_execution_listener.h"
 #include "flox/execution/abstract_executor.h"
+#include "flox/killswitch/abstract_killswitch.h"
+#include "flox/metrics/abstract_pnl_tracker.h"
+#include "flox/position/multi_mode_position_tracker.h"
 #include "flox/replay/abstract_event_reader.h"
+#include "flox/risk/abstract_risk_manager.h"
 #include "flox/strategy/abstract_signal_handler.h"
 #include "flox/strategy/strategy.h"
+#include "flox/validation/abstract_order_validator.h"
 
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -107,6 +113,24 @@ class BacktestRunner : public ISignalHandler
   void setExecutor(IOrderExecutor* executor) noexcept { _customExecutor = executor; }
   IOrderExecutor* customExecutor() const noexcept { return _customExecutor; }
 
+  /// Pre-trade gate parity with the live `Runner`. All four hooks are
+  /// optional; an unset hook is a no-op (let the order through).
+  ///
+  /// Gates fire on entry-type signals (Market / Limit / Stop* / TP* /
+  /// TrailingStop) and on the order they produce. Cancel / CancelAll
+  /// / Modify pass through without gating — they reduce, not add,
+  /// exposure. Reduce-only orders also bypass: when caps tighten you
+  /// do not want to be stuck in a position. This matches how the live
+  /// runner is conventionally wired and is documented as a gotcha
+  /// surfaced through `lookup_symbol`.
+  ///
+  /// Caller retains ownership of every hook; the runner holds raw
+  /// pointers and does not delete them.
+  void setRiskManager(IRiskManager* rm) noexcept { _riskManager = rm; }
+  void setOrderValidator(IOrderValidator* ov) noexcept { _orderValidator = ov; }
+  void setKillSwitch(IKillSwitch* ks) noexcept { _killSwitch = ks; }
+  void setPnLTracker(IPnLTracker* tracker) noexcept { _pnlTracker = tracker; }
+
   // ========== Non-interactive mode ==========
 
   /// Run backtest synchronously from start to end
@@ -118,6 +142,24 @@ class BacktestRunner : public ISignalHandler
   /// Strategy::onBar and any registered IMarketDataSubscriber.
   /// Bars must be in non-decreasing endTime order.
   BacktestResult runBars(const std::vector<BarEvent>& bars);
+
+  /// Run the backtest off a `.floxlog` tape directory. Opens the tape
+  /// via `replay::createMultiSegmentReader` and dispatches every event
+  /// through `processEvent`. Use this to drive the strategy off a
+  /// recorded session (the canonical path: `flox tape record` → write
+  /// `.floxlog` → `bt.run_tape(path)`). Throws if `data_dir` is not a
+  /// `.floxlog` directory or contains no segments.
+  BacktestResult runTape(const std::filesystem::path& data_dir);
+
+  /// Run the backtest off N `.floxlog` tapes merged on read. Symbols
+  /// are rekeyed into the engine's symbol registry via
+  /// `(metadata.exchange, name)` — strategies that pre-resolved
+  /// venue-tagged symbols see the same ids the merger uses. Throws
+  /// if any input is not a `.floxlog` directory, or if two inputs
+  /// declare overlapping book streams for the same symbol
+  /// (`OverlappingBookStreamError`). `runTapes({t})` is equivalent
+  /// to `runTape(t)` modulo the rekey.
+  BacktestResult runTapes(const std::vector<std::filesystem::path>& data_dirs);
 
   // ========== Interactive mode ==========
 
@@ -171,6 +213,7 @@ class BacktestRunner : public ISignalHandler
   void waitForResume();
   void notifyPaused();
   Order signalToOrder(const Signal& sig);
+  bool passesPreTradeGate(const Order& order);
 
   BacktestConfig _config;
   SimulatedClock _clock;
@@ -179,6 +222,18 @@ class BacktestRunner : public ISignalHandler
   // here instead of to the built-in SimulatedExecutor.
   IOrderExecutor* _customExecutor{nullptr};
   IStrategy* _strategy{nullptr};
+  // Pre-trade gate stack — parity with live Runner. Caller-owned;
+  // runner does not delete.
+  IRiskManager* _riskManager{nullptr};
+  IOrderValidator* _orderValidator{nullptr};
+  IKillSwitch* _killSwitch{nullptr};
+  IPnLTracker* _pnlTracker{nullptr};
+  // Built-in position tracker. Wired as an execution listener at
+  // construction and attached to the strategy in setStrategy() so
+  // `ctx.position` / `ctx.is_long()` / `ctx.is_flat()` reflect fills
+  // the simulator dispatches. Subscriber id is internal — does not
+  // collide with user-registered listeners.
+  MultiModePositionTracker _positionTracker{0xFEFEFEFEu};
   std::vector<IMarketDataSubscriber*> _marketDataSubscribers;
   std::vector<IOrderExecutionListener*> _executionListeners;
   OrderId _nextOrderId{1};

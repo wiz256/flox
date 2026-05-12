@@ -302,8 +302,11 @@ if (fs.existsSync(btCsv)) {
       const f = fast.update(t.price);
       const s = slow.update(t.price);
       if (f === null || s === null) return;
+      // Long-only crossover with a real exit side. `totalTrades`
+      // counts round-trip trades, so the strategy needs both
+      // entry (flat → long) and exit (long → flat) to surface.
       if (f > s && ctx.position === 0) emit.marketBuy(0.01);
-      else if (f < s && ctx.position === 0) emit.marketSell(0.01);
+      else if (f < s && ctx.position > 0) emit.marketSell(0.01);
     },
   };
 
@@ -341,6 +344,74 @@ if (fs.existsSync(btCsv)) {
   console.log(`  skip BacktestRunner accessors (CSV not found: ${btCsv})`);
 }
 
+// ── BacktestRunner.runTape (parity proof) ────────────────────────────
+
+console.log('=== BacktestRunner.runTape ===');
+
+{
+  const reg = new flox.SymbolRegistry();
+  reg.addSymbol('exchange', 'BTCUSDT', 0.01);
+  const bt = new flox.BacktestRunner(reg, 0.0004, 10000);
+  bt.setStrategy({
+    symbols: [],
+    onTrade(_ctx, _t, _emit) {},
+  });
+  check(typeof bt.runTape === 'function',
+        'BacktestRunner.runTape is a function');
+
+  // Missing-path case: per the existing runCsv pattern, the C ABI
+  // returns null when the underlying call fails. (Some fail modes
+  // raise FloxError instead — accept either.)
+  let result = 'pending';
+  try { result = bt.runTape('/__nonexistent_tape_path__'); }
+  catch (_) { result = 'threw'; }
+  check(result === null || result === 'threw',
+        `runTape signals failure on missing tape (got ${JSON.stringify(result)})`);
+}
+
+// ── Strategy on_fill / on_order_update hooks ─────────────────────────
+
+console.log('=== Strategy onFill / onOrderUpdate ===');
+
+if (fs.existsSync(btCsv)) {
+  const reg4 = new flox.SymbolRegistry();
+  const btc4 = reg4.addSymbol('exchange', 'BTCUSDT', 0.01);
+  const fast = new flox.SMA(10);
+  const slow = new flox.SMA(30);
+
+  const fills = [];
+  const updates = [];
+  const strat = {
+    symbols: [Number(btc4)],
+    onTrade(ctx, t, emit) {
+      const f = fast.update(t.price);
+      const s = slow.update(t.price);
+      if (f === null || s === null) return;
+      if (f > s && ctx.position === 0) emit.marketBuy(0.01);
+      else if (f < s && ctx.position > 0) emit.marketSell(0.01);
+    },
+    onFill(ctx, ev, _emit) { fills.push(ev); },
+    onOrderUpdate(ctx, ev, _emit) { updates.push(ev); },
+  };
+
+  const bt = new flox.BacktestRunner(reg4, 0.0004, 10000);
+  bt.setStrategy(strat);
+  const stats = bt.runCsv(btCsv, 'BTCUSDT');
+  check(stats !== null && stats.totalTrades > 0,
+        `onFill backtest produced trades (got ${stats && stats.totalTrades})`);
+  check(fills.length > 0, `onFill called at least once (got ${fills.length})`);
+  check(fills.every(f =>
+          typeof f.orderId === 'number' &&
+          (f.side === 'buy' || f.side === 'sell') &&
+          (f.status === 'FILLED' || f.status === 'PARTIALLY_FILLED') &&
+          f.fillQty > 0 && f.fillPrice > 0),
+        'onFill payloads have correct shape');
+  check(updates.length >= fills.length,
+        `onOrderUpdate fires on every status change (got ${updates.length}; >= fills ${fills.length})`);
+} else {
+  console.log(`  skip onFill backtest (CSV not found: ${btCsv})`);
+}
+
 // ── WalkForwardRunner ─────────────────────────────────────────────────
 
 console.log('=== WalkForwardRunner ===');
@@ -364,7 +435,7 @@ if (fs.existsSync(wfCsv)) {
         const s = slow.update(t.price);
         if (f === null || s === null || !slow.ready) return;
         if (f > s && ctx.position === 0) emit.marketBuy(0.01);
-        else if (f < s && ctx.position === 0) emit.marketSell(0.01);
+        else if (f < s && ctx.position > 0) emit.marketSell(0.01);
       },
     };
   });
@@ -390,7 +461,7 @@ if (fs.existsSync(wfCsv)) {
         const f = fast.update(t.price), s = slow.update(t.price);
         if (f === null || s === null || !slow.ready) return;
         if (f > s && ctx.position === 0) emit.marketBuy(0.01);
-        else if (f < s && ctx.position === 0) emit.marketSell(0.01);
+        else if (f < s && ctx.position > 0) emit.marketSell(0.01);
       },
     };
   });

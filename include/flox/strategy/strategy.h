@@ -13,6 +13,7 @@
 #include "flox/book/events/book_update_event.h"
 #include "flox/book/events/trade_event.h"
 #include "flox/engine/symbol_registry.h"
+#include "flox/execution/events/order_event.h"
 #include "flox/execution/order_tracker.h"
 #include "flox/position/abstract_position_manager.h"
 #include "flox/strategy/abstract_signal_handler.h"
@@ -82,7 +83,7 @@ class Strategy : public IStrategy
 
   void setSignalHandler(ISignalHandler* handler) override { _signalHandler = handler; }
   void setOrderTracker(OrderTracker* tracker) noexcept { _orderTracker = tracker; }
-  void setPositionManager(IPositionManager* pm) noexcept { _positionManager = pm; }
+  void setPositionManager(IPositionManager* pm) noexcept override { _positionManager = pm; }
 
   void onTrade(const TradeEvent& ev) final
   {
@@ -95,6 +96,7 @@ class Strategy : public IStrategy
     auto& c = _contexts[sym];
     c.lastTradePrice = ev.trade.price;
     c.lastUpdateNs = ev.trade.exchangeTsNs;
+    refreshPosition(c, sym);
 
     onSymbolTrade(c, ev);
   }
@@ -110,6 +112,7 @@ class Strategy : public IStrategy
     auto& c = _contexts[sym];
     c.book.applyBookUpdate(ev);
     c.lastUpdateNs = ev.update.exchangeTsNs;
+    refreshPosition(c, sym);
 
     onSymbolBook(c, ev);
   }
@@ -125,6 +128,7 @@ class Strategy : public IStrategy
     auto& c = _contexts[sym];
     c.lastTradePrice = ev.bar.close;
     c.lastUpdateNs = ev.bar.endTime.time_since_epoch().count();
+    refreshPosition(c, sym);
 
     // Push into the per-(symbol, timeframe) ring so multi-TF strategies
     // can recall the last N closed bars without bookkeeping by hand.
@@ -138,10 +142,40 @@ class Strategy : public IStrategy
     onSymbolBar(c, ev);
   }
 
+  void onOrderEvent(const OrderEvent& ev) override
+  {
+    SymbolId sym = ev.order.symbol;
+    if (!isSubscribed(sym))
+    {
+      return;
+    }
+    auto& c = _contexts[sym];
+    if (ev.status == OrderEventStatus::FILLED ||
+        ev.status == OrderEventStatus::PARTIALLY_FILLED)
+    {
+      onSymbolFill(c, ev);
+    }
+    else
+    {
+      onSymbolOrderUpdate(c, ev);
+    }
+  }
+
  protected:
   virtual void onSymbolTrade(SymbolContext& ctx, const TradeEvent& ev) {}
   virtual void onSymbolBook(SymbolContext& ctx, const BookUpdateEvent& ev) {}
   virtual void onSymbolBar(SymbolContext& ctx, const BarEvent& ev) {}
+
+  // Order-event hooks. The runner forwards every executor event for an
+  // order this strategy emitted (FILLED, PARTIALLY_FILLED, CANCELED,
+  // REJECTED, etc) through `onOrderEvent`, which dispatches here.
+  // Override `onSymbolFill` for fill notifications (the common case)
+  // and `onSymbolOrderUpdate` for everything else (cancels, rejects,
+  // pending-trigger transitions, etc). Without these hooks native
+  // `stop_market` is unusable — there is no other path for the
+  // strategy to learn its stop fired.
+  virtual void onSymbolFill(SymbolContext& ctx, const OrderEvent& ev) {}
+  virtual void onSymbolOrderUpdate(SymbolContext& ctx, const OrderEvent& ev) {}
 
   SymbolContext& ctx(SymbolId sym) noexcept { return _contexts[sym]; }
   const SymbolContext& ctx(SymbolId sym) const noexcept { return _contexts[sym]; }
@@ -359,6 +393,21 @@ class Strategy : public IStrategy
   {
     static std::atomic<OrderId> s_globalOrderId{1};
     return s_globalOrderId++;
+  }
+
+  // Pull the latest position from the attached IPositionManager into
+  // the per-symbol context so `ctx.position` / `ctx.is_long()` /
+  // `ctx.is_flat()` reflect fills the executor has dispatched. Without
+  // this hook the SymbolContext.position field is dead — initialised
+  // to zero and never updated — which silently produces 0-trade
+  // backtests when a strategy guards entries on `ctx.is_flat()` and
+  // exits on `ctx.is_long()`.
+  void refreshPosition(SymbolContext& c, SymbolId sym) noexcept
+  {
+    if (_positionManager)
+    {
+      c.position = _positionManager->getPosition(sym);
+    }
   }
 
   SubscriberId _id;

@@ -51,7 +51,6 @@ add_flox_test(test_event_bus)
 
 # Replay tests
 add_flox_test(test_binary_log)
-add_flox_test(test_market_data_recorder)
 add_flox_test(test_replay_connector)
 
 # Run-trace tests (.floxrun)
@@ -83,6 +82,9 @@ if(FLOX_ENABLE_BACKTEST)
   add_flox_test(test_backtest_slippage)
   add_flox_test(test_backtest_queue)
   add_flox_test(test_backtest_metrics)
+  add_flox_test(test_backtest_ctx_position)
+  add_flox_test(test_backtest_run_tape)
+  add_flox_test(test_backtest_runner_hooks)
 endif()
 
 add_flox_test(test_indicators)

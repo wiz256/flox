@@ -2367,48 +2367,76 @@ FLOX writes a custom binary format optimised for sequential writes and fast sequ
 
 ## Basic recording
 
-=== "Python"
+Two ways to write a `.floxlog`:
+
+1. **Attach a `BinaryLogRecorderHook` to a `Runner`** (recommended). The runner feeds trades and book updates straight into the writer on the C++ side — no per-event managed-language callback.
+2. **Use the low-level `DataWriter`** directly when you're synthesising data outside a runner (e.g. converting an arbitrary archive into `.floxlog`).
+
+=== "Python — runner attach"
 
     ```python
     import flox_py as flox
 
-    rec = flox.MarketDataRecorder(
-        output_dir="/data/btcusdt",
-        exchange_name="binance",
-        instrument_type="perpetual",
-        book_depth=20,
-        max_segment_bytes=256 << 20,
+    hook = flox.BinaryLogRecorderHook(
+        "/data/btcusdt",
+        max_segment_mb=256,
+        exchange_id=0,
+        compression="none",   # or "lz4"
     )
-    rec.add_symbol(1, "BTCUSDT", base="BTC", quote="USDT",
-                   price_precision=2, qty_precision=3)
-    rec.start()
+    hook.add_symbol(1, "BTCUSDT", base="BTC", quote="USDT",
+                    price_precision=2, qty_precision=3)
 
-    # Feed events as they arrive — for example from a Runner subscription
-    rec.write_trade(symbol_id=1, price=10050.0, qty=0.5, is_buy=True,
-                     exchange_ts_ns=ts_ns)
-    rec.write_book_snapshot(symbol_id=1, bids=bids_arr, asks=asks_arr,
-                             exchange_ts_ns=ts_ns)
-
-    rec.stop()    # writes metadata.json
+    runner = flox.Runner(registry, on_signal=lambda _s: None)
+    runner.set_market_data_recorder(hook)
+    runner.start()
+    # ... events flow through the runner ...
+    runner.stop()
+    print(hook.stats())
     ```
 
-=== "Node.js"
+=== "Python — direct DataWriter"
+
+    ```python
+    import flox_py as flox
+    import numpy as np
+
+    w = flox.DataWriter("/data/btcusdt", max_segment_mb=256, exchange_id=0,
+                        compression="none")
+    w.write_trade(exchange_ts_ns=ts_ns, recv_ts_ns=ts_ns,
+                  price=10050.0, qty=0.5, trade_id=0, symbol_id=1, side=0)
+
+    bids = np.array([(1005000000000, 50000000, 0)],
+                    dtype=[("price_raw","i8"),("qty_raw","i8"),("side","u1")])
+    asks = np.array([(1005100000000, 30000000, 1)], dtype=bids.dtype)
+    w.write_book(exchange_ts_ns=ts_ns, recv_ts_ns=ts_ns, seq=0,
+                 symbol_id=1, is_snapshot=True, bids=bids, asks=asks)
+    w.close()
+    ```
+
+=== "Node.js — runner attach"
 
     ```javascript
-    const rec = new flox.MarketDataRecorder({
-      outputDir: "/data/btcusdt",
-      exchangeName: "binance",
-      instrumentType: "perpetual",
-      bookDepth: 20,
-      maxSegmentBytes: 256 << 20,
-    });
-    rec.addSymbol(1, "BTCUSDT", "BTC", "USDT", 2, 3);
-    rec.start();
+    const hook = new flox.BinaryLogRecorderHook(
+      "/data/btcusdt", 256, 0, "none");
+    hook.addSymbol(1n, "BTCUSDT", "BTC", "USDT", 2, 3);
 
-    rec.writeTrade(1, 10050.0, 0.5, /*isBuy=*/ true, tsNs);
-    rec.writeBookSnapshot(1, bidPrices, bidQtys, askPrices, askQtys, tsNs);
+    runner.setMarketDataRecorder(hook);
+    runner.start();
+    // ... events flow ...
+    runner.stop();
+    console.log(hook.stats());
+    ```
 
-    rec.stop();
+=== "Node.js — direct DataWriter"
+
+    ```javascript
+    const w = new flox.DataWriter("/data/btcusdt", 256, 0);
+    w.writeTrade(tsNs, tsNs, 10050.0, 0.5, 0n, 1, 0);
+    // Book levels are flat BigInt64Array: [price_raw, qty_raw, ...]
+    const bids = new BigInt64Array([1005000000000n, 50000000n]);
+    const asks = new BigInt64Array([1005100000000n, 30000000n]);
+    w.writeBook(tsNs, tsNs, 0n, 1, true, bids, asks);
+    w.close();
     ```
 
 === "C++"
@@ -2442,10 +2470,13 @@ FLOX writes a custom binary format optimised for sequential writes and fast sequ
 Subscribe the writer to your market data buses:
 
 ```cpp
-class MarketDataRecorder : public IMarketDataSubscriber
+// Bespoke subscriber that writes both buses into one .floxlog.
+// Functionally equivalent to flox::replay::BinaryLogRecorderHook, but
+// shown here as a worked example of the underlying writer surface.
+class CustomBusRecorder : public IMarketDataSubscriber
 {
 public:
-  MarketDataRecorder(const std::filesystem::path& output_dir)
+  CustomBusRecorder(const std::filesystem::path& output_dir)
     : _writer(createConfig(output_dir)) {}
 
   SubscriberId id() const override {
@@ -2499,7 +2530,7 @@ private:
 };
 
 // Wire it up
-auto recorder = std::make_unique<MarketDataRecorder>("/data/live");
+auto recorder = std::make_unique<CustomBusRecorder>("/data/live");
 tradeBus->subscribe(recorder.get());
 bookBus->subscribe(recorder.get());
 ```
@@ -2577,28 +2608,35 @@ Each recording includes a `metadata.json` file with source information:
 }
 ```
 
-### Using MarketDataRecorder
+### Using BinaryLogRecorderHook
 
-The high-level `MarketDataRecorder` automatically creates metadata:
+`flox::replay::BinaryLogRecorderHook` plugs into a Runner / LiveEngine
+via `flox_runner_set_market_data_recorder` and writes both trades and
+books on the engine thread:
 
 ```cpp
-#include "flox/replay/market_data_recorder.h"
+#include "flox/replay/binary_log_recorder_hook.h"
 
-MarketDataRecorderConfig config;
-config.output_dir = "/data/btcusdt";
-config.exchange_name = "binance";
-config.exchange_type = "cex";
-config.instrument_type = "perpetual";
-config.book_depth = 20;
+flox::replay::BinaryLogRecorderHookConfig cfg;
+cfg.output_dir = "/data/btcusdt";
+cfg.max_segment_bytes = 256ull << 20;
+cfg.exchange_id = 0;
+cfg.compression = flox::replay::CompressionType::None;
 
-MarketDataRecorder recorder(config);
+flox::replay::BinaryLogRecorderHook hook(std::move(cfg));
 
-// Add symbol mappings
-recorder.addSymbol(1, "BTCUSDT", "BTC", "USDT", 2, 3);
+flox::replay::SymbolInfo sym;
+sym.symbol_id = 1;
+sym.name = "BTCUSDT";
+sym.base_asset = "BTC";
+sym.quote_asset = "USDT";
+sym.price_precision = 2;
+sym.qty_precision = 3;
+hook.addSymbol(sym);
 
-recorder.start();
-// ... subscribe to market data buses ...
-recorder.stop();  // Writes metadata.json automatically
+// Attach via flox_runner_set_market_data_recorder (see the C-API
+// recorder-hook section); start/stop fire automatically with the
+// runner. metadata.json is written on stop().
 ```
 
 ### Manual Metadata with BinaryLogWriter
@@ -4968,6 +5006,12 @@ See also: [Multi-symbol indicators](multi-symbol-indicators.md).
 
 # Multi-symbol indicators
 
+> **Looking for `Correlation(BTC, ETH)`?** This page is about
+> running the same single-input indicator (SMA, EMA, RSI)
+> independently per symbol. For two-input indicators that consume
+> a synchronised pair of streams, see
+> [cross-symbol-indicators.md](cross-symbol-indicators.md).
+
 Run the same indicator pipeline across multiple symbols. The C++ engine ships a built-in helper for parallel execution; from Python and Node.js, group your data per symbol and either iterate or use a process pool.
 
 ## Partition by symbol
@@ -5114,25 +5158,29 @@ Most users record from a live connector. The Python recorder writes the same `.f
 
     ```python
     import flox_py as flox
+    import numpy as np
 
-    rec = flox.MarketDataRecorder(output_dir="/data/bybit/BTCUSDT",
-                                   max_segment_bytes=256 << 20)
-    # Feed trades / book updates from your connector
-    rec.write_trade(trade_record)
-    rec.write_book(book_header, bids, asks)
-    rec.close()
+    w = flox.DataWriter("/data/bybit/BTCUSDT", max_segment_mb=256,
+                        exchange_id=0, compression="none")
+    w.write_trade(exchange_ts_ns=ts, recv_ts_ns=ts, price=p, qty=q,
+                  trade_id=0, symbol_id=1, side=0)
+    bids = np.array([(1005000000000, 50000000, 0)],
+                    dtype=[("price_raw","i8"),("qty_raw","i8"),("side","u1")])
+    asks = np.array([(1005100000000, 30000000, 1)], dtype=bids.dtype)
+    w.write_book(exchange_ts_ns=ts, recv_ts_ns=ts, seq=0, symbol_id=1,
+                 is_snapshot=True, bids=bids, asks=asks)
+    w.close()
     ```
 
 === "Node.js"
 
     ```javascript
-    const rec = new flox.MarketDataRecorder({
-      outputDir: "/data/bybit/BTCUSDT",
-      maxSegmentBytes: 256 << 20,
-    });
-    rec.writeTrade(tradeRecord);
-    rec.writeBook(bookHeader, bids, asks);
-    rec.close();
+    const w = new flox.DataWriter("/data/bybit/BTCUSDT", 256, 0);
+    w.writeTrade(tsNs, tsNs, price, qty, 0n, 1, 0);
+    const bids = new BigInt64Array([1005000000000n, 50000000n]);
+    const asks = new BigInt64Array([1005100000000n, 30000000n]);
+    w.writeBook(tsNs, tsNs, 0n, 1, true, bids, asks);
+    w.close();
     ```
 
 === "C++"
@@ -7560,43 +7608,67 @@ hosting; nothing leaves the machine.
 | `compute_indicator` | Run one FLOX indicator over a list of floats. Accepts class-form (`EMA`) or function-form (`ema`) names and forwards extra kwargs to the constructor. Input capped at 1 MiB. Needs `flox-py` installed (`pip install "flox-mcp[flox]"`). |
 | `suggest_indicator` | Map an English description ('trend filter', 'momentum oscillator', 'volatility band', 'mean revert', 'regime test') to a ranked shortlist of FLOX indicators. Pure keyword heuristic — no LLM call. Always confirm the chosen indicator with `list_indicators` before using it. |
 
-## Install
+## Quickstart
 
 ```bash
-pip install flox-mcp
-# or with the optional binding for indicator introspection:
-pip install "flox-mcp[flox]"
+pip install flox-mcp           # MCP server + flox-py (indicators, backtest, engine CLI)
+flox-mcp init                  # writes ./.mcp.json for the current project
+# restart your MCP client (Claude Code / Cursor / Cline) → done
 ```
 
-## Configure your AI client
+You get the whole surface in one install: docs / lookup tools,
+indicator introspection, backtest, and the engine CLI
+(`flox engine sim`, `flox tape record`). For tier-5/6 (live state,
+`place_order`, `flatten_positions`), also start a paper engine and
+rerun `init` with the printed token:
 
-### Claude Code
+```bash
+flox engine sim --strategy s.py --tape ./tape       # prints engine URL + token
+flox-mcp init --engine-url URL --token T            # appends env to ./.mcp.json
+```
 
-Edit `~/.claude.json` (or per-project `.claude/settings.json`):
+`flox engine sim` boots a `Runner` + `SimulatedExecutor` +
+`ControlServer` and writes a runtime snapshot the read tools poll.
+See [`python/flox_py/engine_cli.py`](../python/flox_py/engine_cli.py)
+for the full set of flags.
+
+`flox engine sim` boots a `Runner` + `SimulatedExecutor` + `ControlServer`
+and writes a runtime snapshot the read tools poll. See
+[`python/flox_py/engine_cli.py`](../python/flox_py/engine_cli.py)
+for the full set of flags.
+
+### `flox-mcp init` flags
+
+| Flag | What it does |
+|---|---|
+| *(default)* | Writes `./.mcp.json` in the current directory. Merges with an existing file. |
+| `--global` | Writes `~/.config/claude/.mcp.json` instead. |
+| `--overwrite` | Replace an existing `mcpServers.flox` entry instead of refusing. |
+| `--print` | Print the merged config to stdout, don't write. |
+| `--engine-url URL` | Sets `FLOX_CONTROL_URL` (tier-5/6 wiring). |
+| `--token T` | Sets `FLOX_CONTROL_TOKEN` (printed by `flox engine sim`). |
+
+### Manual override
+
+If you'd rather hand-edit, the resulting `.mcp.json` is shaped like:
 
 ```json
 {
   "mcpServers": {
     "flox": {
-      "command": "flox-mcp"
+      "command": "flox-mcp",
+      "args": ["serve"],
+      "env": {
+        "FLOX_RUNTIME_STATE": "$HOME/.flox/runtime.json"
+      }
     }
   }
 }
 ```
 
-### Cursor
-
-Settings → Features → MCP Servers → Add:
-
-```json
-{
-  "flox": { "command": "flox-mcp" }
-}
-```
-
-### Cline (VS Code)
-
-Cline's MCP settings panel; same shape.
+Same shape works for Claude Code, Cursor, and Cline — they all read
+`mcpServers.<name>` from a project-local `.mcp.json` (or the
+client-specific global path).
 
 ## Develop
 
@@ -7739,7 +7811,7 @@ Generated by `scripts/gen_api_index.py` from
 
 Module: `flox_py`
 
-Surface: 83 classes, 56 functions, 30 constants.
+Surface: 86 classes, 56 functions, 30 constants.
 
 ### Constants
 
@@ -7893,7 +7965,13 @@ Surface: 83 classes, 56 functions, 30 constants.
 - `run_bars(self, start_time_ns: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], end_time_ns: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], open: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], high: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], low: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], volume: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], symbol: str = '', bar_type: typing.SupportsInt | typing.SupportsIndex = 0, bar_type_param: typing.SupportsInt | typing.SupportsIndex = 0) -> typing.Any`
 - `run_csv(self, path: str, symbol: str = '') -> typing.Any`
 - `run_ohlcv(self, ts: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], symbol: str = '') -> typing.Any`
+- `run_tape(self, path: str) -> typing.Any`
+- `run_tapes(self, paths: collections.abc.Sequence[str]) -> typing.Any`
 - `set_executor(self, executor: Executor) -> None`
+- `set_kill_switch(self, ks: KillSwitch) -> None`
+- `set_order_validator(self, ov: OrderValidator) -> None`
+- `set_pnl_tracker(self, tracker: PnLTracker) -> None`
+- `set_risk_manager(self, rm: RiskManager) -> None`
 - `set_strategy(self, strategy: Strategy) -> None`
 - `trades(self) -> typing.Any`
 
@@ -7930,6 +8008,35 @@ Surface: 83 classes, 56 functions, 30 constants.
 - *property* `symbol: None`
 - *property* `volume: float`
 - *property* `volume: None`
+
+### `class BarDispatchRecorder`
+
+**Constructor**
+
+- `BarDispatchRecorder() -> None`
+
+**Members**
+
+- `add_time_interval_seconds(self, seconds: typing.SupportsInt | typing.SupportsIndex) -> int`
+- `count(self) -> int`
+- `finalize(self) -> None`
+- `on_trade(self, symbol: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, ts_ns: typing.SupportsInt | typing.SupportsIndex) -> None`
+- `param_at(self, index: typing.SupportsInt | typing.SupportsIndex) -> int`
+- `type_at(self, index: typing.SupportsInt | typing.SupportsIndex) -> int`
+
+### `class BinaryLogRecorderHook`
+
+**Constructor**
+
+- `BinaryLogRecorderHook(output_dir: str, max_segment_mb: typing.SupportsInt | typing.SupportsIndex = 256, exchange_id: typing.SupportsInt | typing.SupportsIndex = 0, compression: str = 'none', exchange_name: str = '', instrument_type: str = '') -> None`
+
+**Members**
+
+- `add_symbol(self, symbol_id: typing.SupportsInt | typing.SupportsIndex, name: str, base: str = '', quote: str = '', price_precision: typing.SupportsInt | typing.SupportsIndex = 8, qty_precision: typing.SupportsInt | typing.SupportsIndex = 8) -> None`
+- `close(self) -> None`
+- `current_segment_path(self) -> str`
+- `flush(self) -> None`
+- `stats(self) -> dict`
 
 ### `class Bollinger`
 
@@ -8045,21 +8152,6 @@ Returns the same nanoseconds every call. Useful as a baseline.
 - `symbols(self) -> set`
 - `time_range(self) -> typing.Any`
 
-### `class DataRecorder`
-
-**Constructor**
-
-- `DataRecorder(output_dir: str, exchange_name: str, max_segment_mb: typing.SupportsInt | typing.SupportsIndex = 256) -> None`
-
-**Members**
-
-- `add_symbol(self, symbol_id: typing.SupportsInt | typing.SupportsIndex, name: str, base: str = '', quote: str = '', price_precision: typing.SupportsInt | typing.SupportsIndex = 8, qty_precision: typing.SupportsInt | typing.SupportsIndex = 8) -> None`
-- `flush(self) -> None`
-- `is_recording(self) -> bool`
-- `start(self) -> None`
-- `stats(self) -> dict`
-- `stop(self) -> None`
-
 ### `class DataWriter`
 
 **Constructor**
@@ -8072,6 +8164,8 @@ Returns the same nanoseconds every call. Useful as a baseline.
 - `current_segment_path(self) -> str`
 - `flush(self) -> None`
 - `stats(self) -> dict`
+- `write_book(self, exchange_ts_ns: typing.SupportsInt | typing.SupportsIndex, recv_ts_ns: typing.SupportsInt | typing.SupportsIndex, seq: typing.SupportsInt | typing.SupportsIndex, symbol_id: typing.SupportsInt | typing.SupportsIndex, is_snapshot: bool, bids: typing.Annotated[numpy.typing.ArrayLike, ...], asks: typing.Annotated[numpy.typing.ArrayLike, ...]) -> bool`
+- `write_books(self, headers: typing.Annotated[numpy.typing.ArrayLike, ...], levels: typing.Annotated[numpy.typing.ArrayLike, ...]) -> int`
 - `write_trade(self, exchange_ts_ns: typing.SupportsInt | typing.SupportsIndex, recv_ts_ns: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, trade_id: typing.SupportsInt | typing.SupportsIndex, symbol_id: typing.SupportsInt | typing.SupportsIndex, side: typing.SupportsInt | typing.SupportsIndex) -> bool`
 - `write_trades(self, exchange_ts_ns: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], recv_ts_ns: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], prices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], quantities: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], trade_ids: typing.Annotated[numpy.typing.ArrayLike, numpy.uint64], symbol_ids: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32], sides: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8]) -> int`
 
@@ -8489,6 +8583,22 @@ Market Profile (TPO) aggregator. Tracks price activity across time periods.
 - `value_area_high(self) -> float`
 - `value_area_low(self) -> float`
 
+### `class MergedTapeReader`
+
+**Constructor**
+
+- `MergedTapeReader(paths: collections.abc.Sequence[str], from_ns: typing.Any = None, to_ns: typing.Any = None, symbols: typing.Any = None) -> None`
+
+**Members**
+
+- `per_tape_stats(self) -> list`
+- `read_books(self) -> tuple`
+- `read_trades(self) -> numpy.ndarray`
+- `stream_events(self, on_trade: typing.Any = None, on_book: typing.Any = None) -> None`
+- `summary(self) -> dict`
+- `symbol_table(self) -> list`
+- `time_range(self) -> tuple`
+
 ### `class MultiFeedClock`
 
 **Constructor**
@@ -8563,6 +8673,25 @@ Market Profile (TPO) aggregator. Tracks price activity across time periods.
 - `is_crossed(self) -> bool`
 - `mid(self) -> typing.Any`
 - `spread(self) -> typing.Any`
+
+### `class OrderEventData`
+
+**Members**
+
+- *attr* `order_type: str`
+- *attr* `reject_reason: str`
+- *attr* `side: str`
+- *attr* `status: str`
+- *property* `exchange_ts_ns: int`
+- *property* `exchange_ts_ns: None`
+- *property* `fill_price: float`
+- *property* `fill_price: None`
+- *property* `fill_qty: float`
+- *property* `fill_qty: None`
+- *property* `order_id: int`
+- *property* `order_id: None`
+- *property* `symbol_id: int`
+- *property* `symbol_id: None`
 
 ### `class OrderEventKind`
 
@@ -8882,6 +9011,7 @@ Members:
 - `set_executor(self, executor: Executor) -> None`
 - `set_kill_switch(self, ks: KillSwitch) -> None`
 - `set_market_data_recorder(self, recorder: MarketDataRecorderHook) -> None`
+- `set_market_data_recorder(self, recorder: BinaryLogRecorderHook) -> None`
 - `set_order_validator(self, ov: OrderValidator) -> None`
 - `set_pnl_tracker(self, tracker: PnLTracker) -> None`
 - `set_risk_manager(self, rm: RiskManager) -> None`
@@ -9115,6 +9245,8 @@ Members:
 - `modify_order(self, order_id: typing.SupportsInt | typing.SupportsIndex, new_price: typing.SupportsFloat | typing.SupportsIndex, new_qty: typing.SupportsFloat | typing.SupportsIndex) -> None`
 - `on_bar(self, ctx: SymbolContext, bar: BarData) -> None`
 - `on_book_update(self, ctx: SymbolContext) -> None`
+- `on_fill(self, ctx: SymbolContext, event: OrderEventData) -> None`
+- `on_order_update(self, ctx: SymbolContext, event: OrderEventData) -> None`
 - `on_start(self) -> None`
 - `on_stop(self) -> None`
 - `on_trade(self, ctx: SymbolContext, trade: TradeData) -> None`
@@ -11249,56 +11381,52 @@ Path of the current segment being written.
 
 ---
 
-## DataRecorder
+## BinaryLogRecorderHook
 
-High-level market data recorder with symbol metadata support.
+Built-in `.floxlog` recorder. Plug into a `Runner` via
+`runner.set_market_data_recorder(hook)`. Lifecycle is driven by the
+engine; both trades and book updates are captured.
 
 ```python
-recorder = flox.DataRecorder(
-    output_dir="./recordings",
-    exchange_name="binance",
+hook = flox.BinaryLogRecorderHook(
+    "./recordings",
     max_segment_mb=256,
+    exchange_id=0,
+    compression="none",   # or "lz4"
 )
+hook.add_symbol(1, "BTCUSDT", base="BTC", quote="USDT",
+                price_precision=2, qty_precision=6)
+runner.set_market_data_recorder(hook)
 ```
 
 ### Methods
 
 #### `add_symbol(symbol_id, name, base="", quote="", price_precision=8, qty_precision=8)`
 
-Register a symbol with metadata.
-
-```python
-recorder.add_symbol(1, "BTCUSDT", base="BTC", quote="USDT",
-                     price_precision=2, qty_precision=6)
-```
-
-#### `start()`
-
-Start recording.
-
-#### `stop()`
-
-Stop recording and finalize output.
+Register a symbol in the recording metadata.
 
 #### `flush()`
 
-Flush buffered data.
+Flush buffered bytes to disk.
 
-#### `is_recording() -> bool`
+#### `close()`
 
-Check if currently recording.
+Stop the underlying writer (idempotent — also called by the engine's
+on-stop lifecycle).
+
+#### `current_segment_path() -> str`
+
+Path of the segment currently being written. Empty before `start()`.
 
 #### `stats() -> dict`
-
-Recorder statistics.
 
 | Key | Type | Description |
 |-----|------|-------------|
 | `trades_written` | `int` | Trades recorded |
 | `book_updates_written` | `int` | Book updates recorded |
 | `bytes_written` | `int` | Bytes written |
-| `files_created` | `int` | Files created |
-| `errors` | `int` | Error count |
+| `segments_created` | `int` | Segments written |
+| `errors` | `int` | Writer rejections |
 
 ------------------------------------------------------------------------------
 # Source: docs/reference/python/segment_ops.md
@@ -11953,7 +12081,7 @@ Full API for `@flox-foundation/flox`. See [Getting started](../../bindings/node.
 | [Order books](books.md) | OrderBook, L3Book, CompositeBookMatrix |
 | [Position tracking](positions.md) | PositionTracker, PositionGroupTracker, OrderTracker |
 | [Profiles & statistics](profiles.md) | VolumeProfile, MarketProfile, FootprintBar, statistics functions |
-| [Data I/O](data.md) | DataWriter, DataReader, DataRecorder, Partitioner |
+| [Data I/O](data.md) | DataWriter, DataReader, BinaryLogRecorderHook, Partitioner |
 
 ------------------------------------------------------------------------------
 # Source: docs/reference/node/strategy.md
@@ -12695,25 +12823,30 @@ rounds values past 2^53 (e.g. `1765615835519000000` becomes
 
 ---
 
-## DataRecorder
+## BinaryLogRecorderHook
 
-Records live market data to disk.
+Built-in `.floxlog` recorder. Plug into a `Runner` via
+`runner.setMarketDataRecorder(hook)` and the engine drives `start` /
+`stop` for you.
 
 ```javascript
-const recorder = new flox.DataRecorder(outputDir, exchangeName?, maxSegmentMb?);
-recorder.addSymbol(symbolId, name, base?, quote?, pricePrecision?, qtyPrecision?);
-recorder.start();
-// feed data...
-recorder.stop();
+const hook = new flox.BinaryLogRecorderHook(
+  outputDir, maxSegmentMb /*=256*/, exchangeId /*=0*/, compression /*"none"|"lz4"*/);
+hook.addSymbol(symbolId, name, base, quote, pricePrecision, qtyPrecision);
+
+runner.setMarketDataRecorder(hook);
+runner.start();
+// ... events flow ...
+runner.stop();
+console.log(hook.stats());
 ```
 
-| Method / Property | Description |
-|-------------------|-------------|
-| `addSymbol(symbolId, name, base?, quote?, pricePrecision?, qtyPrecision?)` | Register a symbol for recording |
-| `start()` | Start recording |
-| `stop()` | Stop recording |
-| `flush()` | Flush buffers to disk |
-| `isRecording` | `boolean` property |
+| Method | Description |
+|--------|-------------|
+| `addSymbol(symbolId, name, base, quote, pricePrecision, qtyPrecision)` | Register a symbol in the recording metadata. |
+| `flush()` | Flush buffered bytes to disk. |
+| `stats()` | Returns `{ tradesWritten, bookUpdatesWritten, bytesWritten, segmentsCreated, errors }` as BigInts. |
+| `destroy()` | Release the underlying C-API handle. |
 
 ---
 
@@ -13749,7 +13882,7 @@ from flox.tools import (
     OrderBook, L3Book, CompositeBook,
     PositionTracker, PositionGroupTracker, OrderTracker,
     VolumeProfile, MarketProfile, FootprintBar,
-    DataWriter, DataReader, DataRecorder, Partitioner,
+    DataWriter, DataReader, BinaryLogRecorderHook, Partitioner,
     correlation, profit_factor, win_rate,
     permutation_test, bootstrap_ci,
     validate_segment, merge_segments, merge_dir,
@@ -14018,23 +14151,23 @@ events = reader.read_book_updates()
 
 `BookUpdate` fields: `exchange_ts_ns`, `recv_ts_ns`, `seq`, `symbol_id`, `event_type`, `bids: List[BookLevel]`, `asks: List[BookLevel]`.
 
-### DataRecorder
+### BinaryLogRecorderHook
 
 ```codon
-recorder = DataRecorder("./data", exchange_name="binance", max_segment_mb=256)
-recorder.add_symbol(symbol_id, "BTCUSDT", base="BTC", quote="USDT")
-recorder.start()
-# feed live data...
-recorder.stop()
+hook = BinaryLogRecorderHook("./data", max_segment_mb=256,
+                              exchange_id=0, compression="none")
+hook.add_symbol(symbol_id, "BTCUSDT", base="BTC", quote="USDT")
+# attach via the runner's market-data-recorder slot;
+# lifecycle is driven by the engine.
 ```
 
-| Method / Property | Description |
-|-------------------|-------------|
-| `add_symbol(symbol_id, name, base="", quote="", price_precision=8, qty_precision=8)` | Register a symbol |
-| `start()` | Start recording |
-| `stop()` | Stop recording |
-| `flush()` | Flush buffers to disk |
-| `is_recording` | `bool` property |
+| Method | Description |
+|--------|-------------|
+| `add_symbol(symbol_id, name, base="", quote="", price_precision=8, qty_precision=8)` | Register a symbol in the recording metadata. |
+| `flush()` | Flush buffered bytes to disk. |
+| `stats()` | Returns trade / book / byte counters. |
+| `close()` | Stop the underlying writer (idempotent). |
+| `_as_recorder_handle()` | Borrowed `FloxMarketDataRecorderHandle` for runner attach. |
 
 ---
 
@@ -14489,15 +14622,16 @@ Record shapes:
 ```javascript
 const writer = new DataWriter('./out', maxSegmentMb, exchangeId);
 writer.writeTrade(exchangeTsNs, recvTsNs, price, qty, tradeId, symbolId, side);
+// Raw int64 book levels — flat BigInt64Array as [price_raw, qty_raw, ...]
+writer.writeBook(exchangeTsNs, recvTsNs, seqNs, symbolId, isSnapshot, bidsBuf, asksBuf);
 writer.flush();
 writer.close();
 writer.stats();          // { bytesWritten, eventsWritten, segmentsCreated, tradesWritten }
 
-const recorder = new DataRecorder('./out', exchangeName, maxSegmentMb);
-recorder.addSymbol(symbolId, name, base, quote, pricePrecision, qtyPrecision);
-recorder.start();
-// feed live data...
-recorder.stop();
+const hook = new BinaryLogRecorderHook('./out', maxSegmentMb, exchangeId, 'none');
+hook.addSymbol(symbolId, name, base, quote, pricePrecision, qtyPrecision);
+// attach via the runner's market-data-recorder slot; lifecycle is engine-driven.
+hook.destroy();
 ```
 
 ------------------------------------------------------------------------------
@@ -14576,7 +14710,7 @@ typedef void* FloxMarketProfileHandle;
 typedef void* FloxFootprintHandle;
 typedef void* FloxDataWriterHandle;
 typedef void* FloxDataReaderHandle;
-typedef void* FloxDataRecorderHandle;
+typedef void* FloxBinaryLogRecorderHookHandle;
 typedef void* FloxPartitionerHandle;
 ```
 
@@ -15262,7 +15396,7 @@ void     flox_footprint_clear(FloxFootprintHandle footprint);
 
 ## Data writer
 
-Writes trades to binary log segments.
+Writes trades and book updates to binary log segments.
 
 ```c
 FloxDataWriterHandle flox_data_writer_create(const char* output_dir,
@@ -15274,6 +15408,25 @@ uint8_t flox_data_writer_write_trade(FloxDataWriterHandle writer,
                                      int64_t exchange_ts_ns, int64_t recv_ts_ns,
                                      double price, double qty,
                                      uint64_t trade_id, uint32_t symbol_id, uint8_t side);
+
+// Raw int64 book levels (scale 1e8). bids/asks may be NULL when the
+// matching count is 0. Returns 1 on success, 0 on failure.
+uint8_t flox_data_writer_write_book(FloxDataWriterHandle writer,
+                                    int64_t exchange_ts_ns, int64_t recv_ts_ns,
+                                    int64_t seq, uint32_t symbol_id,
+                                    uint8_t is_snapshot,
+                                    const FloxBookLevel* bids, uint32_t n_bids,
+                                    const FloxBookLevel* asks, uint32_t n_asks);
+
+// Batched book writer. headers + flat levels array, sliced per event
+// via header.level_offset / bid_count / ask_count. Same struct layout
+// as flox_data_reader_read_book_updates — round-trip works.
+uint64_t flox_data_writer_write_books(FloxDataWriterHandle writer,
+                                      const FloxBookUpdateHeader* headers,
+                                      uint64_t n_events,
+                                      const FloxLevel* levels,
+                                      uint64_t total_levels);
+
 void flox_data_writer_flush(FloxDataWriterHandle writer);
 void flox_data_writer_close(FloxDataWriterHandle writer);
 void flox_data_writer_stats_p(FloxDataWriterHandle writer, void* out); // → FloxWriterStats
@@ -15334,24 +15487,34 @@ Live segments are safe to read while a writer is still appending. Compressed seg
 
 ---
 
-## Data recorder
+## Binary-log recorder hook
 
-Records live market data to disk.
+Built-in `.floxlog` sink. Owns a `BinaryLogWriter` and routes runner /
+live-engine events into it on the C++ side, without crossing into the
+host language per event. `as_recorder` yields a borrowed handle for
+`flox_runner_set_market_data_recorder` /
+`flox_live_engine_set_market_data_recorder`.
 
 ```c
-FloxDataRecorderHandle flox_data_recorder_create(const char* output_dir,
-                                                  const char* exchange_name,
-                                                  uint64_t max_segment_mb);
-void flox_data_recorder_destroy(FloxDataRecorderHandle recorder);
+FloxBinaryLogRecorderHookHandle
+flox_binary_log_recorder_hook_create(const char* output_dir,
+                                     uint64_t max_segment_mb,
+                                     uint8_t exchange_id,
+                                     uint8_t compression /* 0=None, 1=LZ4 */);
+void flox_binary_log_recorder_hook_destroy(FloxBinaryLogRecorderHookHandle hook);
 
-void    flox_data_recorder_add_symbol(FloxDataRecorderHandle recorder,
-                                      uint32_t symbol_id, const char* name,
-                                      const char* base, const char* quote,
-                                      int8_t price_precision, int8_t qty_precision);
-void    flox_data_recorder_start(FloxDataRecorderHandle recorder);
-void    flox_data_recorder_stop(FloxDataRecorderHandle recorder);
-void    flox_data_recorder_flush(FloxDataRecorderHandle recorder);
-uint8_t flox_data_recorder_is_recording(FloxDataRecorderHandle recorder);
+FloxMarketDataRecorderHandle
+flox_binary_log_recorder_hook_as_recorder(FloxBinaryLogRecorderHookHandle hook);
+
+void flox_binary_log_recorder_hook_add_symbol(FloxBinaryLogRecorderHookHandle hook,
+                                              uint32_t symbol_id, const char* name,
+                                              const char* base, const char* quote,
+                                              int8_t price_precision,
+                                              int8_t qty_precision);
+
+void flox_binary_log_recorder_hook_flush(FloxBinaryLogRecorderHookHandle hook);
+FloxWriterStats flox_binary_log_recorder_hook_stats(FloxBinaryLogRecorderHookHandle hook);
+void flox_binary_log_recorder_hook_stats_p(void* hook, void* out);
 ```
 
 ---
@@ -16678,6 +16841,8 @@ r = Σ(x − x̄)(y − ȳ) / sqrt(Σ(x − x̄)² × Σ(y − ȳ)²)
 ```
 
 Range [−1, 1]. Used for pairs construction, cross-asset filters, or detecting when a relationship is breaking down. Returns NaN when either series is constant within the window.
+
+For the cross-symbol case (`Correlation(BTC, ETH)` from a live strategy or paired bar arrays), the engine does **not** auto-align timestamps — the caller must synchronise the streams first. See [the cross-symbol how-to](../how-to/cross-symbol-indicators.md) for the alignment recipe.
 
 ------------------------------------------------------------------------------
 # Source: docs/explanation/disruptor.md

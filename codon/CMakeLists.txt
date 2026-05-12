@@ -81,6 +81,9 @@ add_codon_executable(codon_composite_dsl_smoke
 add_codon_executable(codon_order_group_smoke
   ${CMAKE_CURRENT_SOURCE_DIR}/examples/order_group_smoke.codon)
 
+add_codon_executable(codon_bar_close_ordering_parity_smoke
+  ${CMAKE_CURRENT_SOURCE_DIR}/examples/bar_close_ordering_parity_smoke.codon)
+
 add_codon_executable(codon_feed_clock_smoke
   ${CMAKE_CURRENT_SOURCE_DIR}/examples/feed_clock_smoke.codon)
 
@@ -92,3 +95,9 @@ add_codon_executable(codon_byte_identical_fixture
 
 add_codon_executable(codon_strategy_e2e_smoke
   ${CMAKE_CURRENT_SOURCE_DIR}/examples/strategy_e2e_smoke.codon)
+
+add_codon_executable(codon_merged_tape_smoke
+  ${CMAKE_CURRENT_SOURCE_DIR}/examples/merged_tape_smoke.codon)
+
+add_codon_executable(codon_backtest_run_tapes_smoke
+  ${CMAKE_CURRENT_SOURCE_DIR}/examples/backtest_run_tapes_smoke.codon)

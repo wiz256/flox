@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flox-mcp"
-version = "0.1.0"
+version = "0.6.0"
 authors = [{name = "FLOX Foundation"}]
 description = "Model Context Protocol server for FLOX — gives AI agents grounded access to indicators, error codes, and the C API."
 readme = "README.md"
@@ -22,17 +22,14 @@ classifiers = [
 ]
 dependencies = [
     "mcp>=1.0",
+    "flox-py>=0.5",
 ]
 
 [project.optional-dependencies]
-# Pulling in flox_py is optional: the C-API and error-code tools work
-# from bundled data alone. `list_indicators` and `compute_indicator`
-# need the actual bindings.
-flox = ["flox-py>=0.5"]
 dev = ["pytest>=7"]
 
 [project.scripts]
-flox-mcp = "flox_mcp.server:main"
+flox-mcp = "flox_mcp.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/FLOX-Foundation/flox"

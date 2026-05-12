@@ -11,6 +11,7 @@
 
 #include "flox/book/events/book_update_event.h"
 #include "flox/book/events/trade_event.h"
+#include "flox/replay/merged_tape_reader.h"
 #include "flox/strategy/strategy.h"
 
 #include <memory_resource>
@@ -25,9 +26,35 @@ BacktestRunner::BacktestRunner(const BacktestConfig& config)
   _executor.setOrderEventCallback(
       [this](const OrderEvent& ev)
       {
+        // The built-in position tracker has to receive fills before
+        // any user listener — strategies that read `ctx.position`
+        // inside an order-event handler need the tracker already
+        // updated when their listener fires. User listeners are
+        // appended after via addExecutionListener().
+        ev.dispatchTo(_positionTracker);
+        // PnL tracker parity with live Runner: an attached tracker
+        // sees every fill (PARTIALLY_FILLED + FILLED) regardless of
+        // whether user listeners are wired. Mirrors the live path,
+        // so a strategy validated in backtest produces the same
+        // tracker timeline in production.
+        if (_pnlTracker != nullptr &&
+            (ev.status == OrderEventStatus::FILLED ||
+             ev.status == OrderEventStatus::PARTIALLY_FILLED))
+        {
+          _pnlTracker->onOrderFilled(ev.order);
+        }
         for (auto* listener : _executionListeners)
         {
           ev.dispatchTo(*listener);
+        }
+        // Forward to the attached strategy so user-side `on_fill` /
+        // `on_order_update` hooks fire. Without this the strategy
+        // never learns its emitted orders filled — native stops are
+        // unusable, and exit logic that wants to confirm a close
+        // has no callback to hang on.
+        if (_strategy)
+        {
+          _strategy->onOrderEvent(ev);
         }
       });
 }
@@ -36,6 +63,11 @@ void BacktestRunner::setStrategy(IStrategy* strategy)
 {
   _strategy = strategy;
   strategy->setSignalHandler(this);
+  // Without this wire `ctx.position` / `ctx.is_long()` / `ctx.is_flat()`
+  // never reflect fills the executor dispatches. Strategy::onTrade /
+  // onBar / onBookUpdate refresh the per-symbol context from this
+  // tracker before each handler call.
+  strategy->setPositionManager(&_positionTracker);
 }
 
 void BacktestRunner::addMarketDataSubscriber(IMarketDataSubscriber* subscriber)
@@ -80,6 +112,52 @@ BacktestResult BacktestRunner::run(replay::IMultiSegmentReader& reader)
   _running.store(false, std::memory_order_release);
 
   return result();
+}
+
+BacktestResult BacktestRunner::runTape(const std::filesystem::path& data_dir)
+{
+  if (!std::filesystem::exists(data_dir))
+  {
+    throw std::runtime_error(
+        "BacktestRunner.runTape: directory does not exist: " +
+        data_dir.string());
+  }
+  if (!std::filesystem::is_directory(data_dir))
+  {
+    throw std::runtime_error(
+        "BacktestRunner.runTape: path is not a directory: " +
+        data_dir.string());
+  }
+  auto reader = replay::createMultiSegmentReader(data_dir);
+  if (!reader)
+  {
+    throw std::runtime_error(
+        "BacktestRunner.runTape: cannot open `.floxlog` directory: " +
+        data_dir.string());
+  }
+  return run(*reader);
+}
+
+BacktestResult BacktestRunner::runTapes(
+    const std::vector<std::filesystem::path>& data_dirs)
+{
+  if (data_dirs.empty())
+  {
+    throw std::runtime_error("BacktestRunner.runTapes: empty paths list");
+  }
+  for (const auto& d : data_dirs)
+  {
+    if (!std::filesystem::exists(d) || !std::filesystem::is_directory(d))
+    {
+      throw std::runtime_error(
+          "BacktestRunner.runTapes: not a directory: " + d.string());
+    }
+  }
+  replay::MergedTapeReaderConfig cfg{};
+  cfg.tape_dirs = data_dirs;
+  replay::MergedTapeReader merger(std::move(cfg));
+  auto adapter = merger.asMultiSegmentReader();
+  return run(*adapter);
 }
 
 BacktestResult BacktestRunner::runBars(const std::vector<BarEvent>& bars)
@@ -461,6 +539,44 @@ BacktestResult BacktestRunner::extractResult()
   return res;
 }
 
+// Pre-trade gate. Returns true if the order should pass through;
+// false if any gate rejected it. Reduce-only orders bypass — when
+// caps tighten you do not want to be stuck in a position; the live
+// runner is conventionally wired this way and `lookup_symbol`
+// surfaces a gotcha entry pointing at this contract.
+bool BacktestRunner::passesPreTradeGate(const Order& order)
+{
+  if (order.flags.reduceOnly)
+  {
+    return true;
+  }
+  if (_killSwitch != nullptr)
+  {
+    // Engine contract: check(order) may flip state; isTriggered()
+    // reads the current state. Call check first so a per-order rule
+    // (e.g. "trip if cumulative loss > X") gets evaluated for this
+    // order before we read the trigger.
+    _killSwitch->check(order);
+    if (_killSwitch->isTriggered())
+    {
+      return false;
+    }
+  }
+  if (_orderValidator != nullptr)
+  {
+    std::string reason;
+    if (!_orderValidator->validate(order, reason))
+    {
+      return false;
+    }
+  }
+  if (_riskManager != nullptr && !_riskManager->allow(order))
+  {
+    return false;
+  }
+  return true;
+}
+
 void BacktestRunner::onSignal(const Signal& signal)
 {
   ++_signalCount;
@@ -480,9 +596,18 @@ void BacktestRunner::onSignal(const Signal& signal)
     case SignalType::TakeProfitMarket:
     case SignalType::TakeProfitLimit:
     case SignalType::TrailingStop:
-      exec.submitOrder(signalToOrder(signal));
+    {
+      Order order = signalToOrder(signal);
+      if (!passesPreTradeGate(order))
+      {
+        return;
+      }
+      exec.submitOrder(order);
       break;
+    }
     case SignalType::Cancel:
+      // Cancel / CancelAll / Modify do not add exposure — same
+      // pass-through semantics as the live runner.
       exec.cancelOrder(signal.orderId);
       break;
     case SignalType::CancelAll:
@@ -510,6 +635,11 @@ void BacktestRunner::onSignal(const Signal& signal)
                    .timeInForce = signal.timeInForce,
                    .flags = {.reduceOnly = signal.reduceOnly, .postOnly = signal.postOnly}};
 
+      // Both legs of an OCO need to pass; rejecting either drops the pair.
+      if (!passesPreTradeGate(order1) || !passesPreTradeGate(order2))
+      {
+        return;
+      }
       OCOParams params{.order1 = order1, .order2 = order2};
       exec.submitOCO(params);
       break;

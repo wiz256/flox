@@ -129,9 +129,14 @@ groups:
     napi: { status: required, classes: [FootprintBar] }
     codon: { status: required }
 
-  datarecorder:
-    pybind11: { status: required, classes: [DataRecorder] }
-    napi: { status: required, classes: [DataRecorder] }
+  binary_log_recorder_hook:
+    pybind11: { status: required, classes: [BinaryLogRecorderHook] }
+    napi: { status: required, classes: [BinaryLogRecorderHook] }
+    codon: { status: required }
+
+  merged_tape_reader:
+    pybind11: { status: required, classes: [MergedTapeReader] }
+    napi: { status: required, classes: [MergedTapeReader] }
     codon: { status: required }
 
   data_reader:
@@ -301,6 +306,11 @@ groups:
   order_group:
     pybind11: { status: required, classes: [OrderGroup] }
     napi: { status: required, classes: [OrderGroup] }
+    codon: { status: required }
+
+  bar_dispatch:
+    pybind11: { status: required, classes: [BarDispatchRecorder] }
+    napi: { status: required, classes: [BarDispatchRecorder] }
     codon: { status: required }
 
   feed_clock:

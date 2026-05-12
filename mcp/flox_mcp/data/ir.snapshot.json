@@ -345,6 +345,42 @@
       "return_type": "void"
     },
     {
+      "name": "FloxOnFillCallback",
+      "params": [
+        {
+          "name": "",
+          "type": "void *"
+        },
+        {
+          "name": "",
+          "type": "const FloxSymbolContext *"
+        },
+        {
+          "name": "",
+          "type": "const FloxOrderEventData *"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "name": "FloxOnOrderUpdateCallback",
+      "params": [
+        {
+          "name": "",
+          "type": "void *"
+        },
+        {
+          "name": "",
+          "type": "const FloxSymbolContext *"
+        },
+        {
+          "name": "",
+          "type": "const FloxOrderEventData *"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
       "name": "FloxOnSignalCallback",
       "params": [
         {
@@ -1140,6 +1176,48 @@
       "return_type": "int"
     },
     {
+      "group": "backtestrunner_replay",
+      "name": "flox_backtest_runner_run_tape",
+      "params": [
+        {
+          "name": "runner",
+          "type": "FloxBacktestRunnerHandle"
+        },
+        {
+          "name": "tape_dir",
+          "type": "const char *"
+        },
+        {
+          "name": "stats_out",
+          "type": "FloxBacktestStats *"
+        }
+      ],
+      "return_type": "int"
+    },
+    {
+      "group": "backtestrunner_replay",
+      "name": "flox_backtest_runner_run_tapes",
+      "params": [
+        {
+          "name": "runner",
+          "type": "FloxBacktestRunnerHandle"
+        },
+        {
+          "name": "tape_dirs",
+          "type": "const char *const *"
+        },
+        {
+          "name": "n_dirs",
+          "type": "uint32_t"
+        },
+        {
+          "name": "stats_out",
+          "type": "FloxBacktestStats *"
+        }
+      ],
+      "return_type": "int"
+    },
+    {
       "group": "execution",
       "name": "flox_backtest_runner_set_executor",
       "params": [
@@ -1150,6 +1228,66 @@
         {
           "name": "executor",
           "type": "FloxExecutorHandle"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "backtestrunner_replay",
+      "name": "flox_backtest_runner_set_kill_switch",
+      "params": [
+        {
+          "name": "runner",
+          "type": "FloxBacktestRunnerHandle"
+        },
+        {
+          "name": "ks",
+          "type": "FloxKillSwitchHandle"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "backtestrunner_replay",
+      "name": "flox_backtest_runner_set_order_validator",
+      "params": [
+        {
+          "name": "runner",
+          "type": "FloxBacktestRunnerHandle"
+        },
+        {
+          "name": "ov",
+          "type": "FloxOrderValidatorHandle"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "backtestrunner_replay",
+      "name": "flox_backtest_runner_set_pnl_tracker",
+      "params": [
+        {
+          "name": "runner",
+          "type": "FloxBacktestRunnerHandle"
+        },
+        {
+          "name": "tracker",
+          "type": "FloxPnLTrackerHandle"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "backtestrunner_replay",
+      "name": "flox_backtest_runner_set_risk_manager",
+      "params": [
+        {
+          "name": "runner",
+          "type": "FloxBacktestRunnerHandle"
+        },
+        {
+          "name": "rm",
+          "type": "FloxRiskManagerHandle"
         }
       ],
       "return_type": "void"
@@ -1181,6 +1319,117 @@
       "return_type": "FloxBacktestResultHandle"
     },
     {
+      "group": "bar_dispatch",
+      "name": "flox_bar_dispatch_recorder_add_time_seconds",
+      "params": [
+        {
+          "name": "h",
+          "type": "FloxBarDispatchRecorderHandle"
+        },
+        {
+          "name": "seconds",
+          "type": "uint32_t"
+        }
+      ],
+      "return_type": "uint32_t"
+    },
+    {
+      "group": "bar_dispatch",
+      "name": "flox_bar_dispatch_recorder_count",
+      "params": [
+        {
+          "name": "h",
+          "type": "FloxBarDispatchRecorderHandle"
+        }
+      ],
+      "return_type": "uint32_t"
+    },
+    {
+      "group": "bar_dispatch",
+      "name": "flox_bar_dispatch_recorder_create",
+      "params": [],
+      "return_type": "FloxBarDispatchRecorderHandle"
+    },
+    {
+      "group": "bar_dispatch",
+      "name": "flox_bar_dispatch_recorder_destroy",
+      "params": [
+        {
+          "name": "h",
+          "type": "FloxBarDispatchRecorderHandle"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "bar_dispatch",
+      "name": "flox_bar_dispatch_recorder_finalize",
+      "params": [
+        {
+          "name": "h",
+          "type": "FloxBarDispatchRecorderHandle"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "bar_dispatch",
+      "name": "flox_bar_dispatch_recorder_on_trade",
+      "params": [
+        {
+          "name": "h",
+          "type": "FloxBarDispatchRecorderHandle"
+        },
+        {
+          "name": "symbol",
+          "type": "uint32_t"
+        },
+        {
+          "name": "price",
+          "type": "double"
+        },
+        {
+          "name": "qty",
+          "type": "double"
+        },
+        {
+          "name": "ts_ns",
+          "type": "int64_t"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "bar_dispatch",
+      "name": "flox_bar_dispatch_recorder_param_at",
+      "params": [
+        {
+          "name": "h",
+          "type": "FloxBarDispatchRecorderHandle"
+        },
+        {
+          "name": "index",
+          "type": "uint32_t"
+        }
+      ],
+      "return_type": "uint64_t"
+    },
+    {
+      "group": "bar_dispatch",
+      "name": "flox_bar_dispatch_recorder_type_at",
+      "params": [
+        {
+          "name": "h",
+          "type": "FloxBarDispatchRecorderHandle"
+        },
+        {
+          "name": "index",
+          "type": "uint32_t"
+        }
+      ],
+      "return_type": "uint8_t"
+    },
+    {
       "group": "context_queries",
       "name": "flox_best_ask_raw",
       "params": [
@@ -1209,6 +1458,154 @@
         }
       ],
       "return_type": "int64_t"
+    },
+    {
+      "group": "binary_log_recorder_hook",
+      "name": "flox_binary_log_recorder_hook_add_symbol",
+      "params": [
+        {
+          "name": "hook",
+          "type": "FloxBinaryLogRecorderHookHandle"
+        },
+        {
+          "name": "symbol_id",
+          "type": "uint32_t"
+        },
+        {
+          "name": "name",
+          "type": "const char *"
+        },
+        {
+          "name": "base",
+          "type": "const char *"
+        },
+        {
+          "name": "quote",
+          "type": "const char *"
+        },
+        {
+          "name": "price_precision",
+          "type": "int8_t"
+        },
+        {
+          "name": "qty_precision",
+          "type": "int8_t"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "binary_log_recorder_hook",
+      "name": "flox_binary_log_recorder_hook_as_recorder",
+      "params": [
+        {
+          "name": "hook",
+          "type": "FloxBinaryLogRecorderHookHandle"
+        }
+      ],
+      "return_type": "FloxMarketDataRecorderHandle"
+    },
+    {
+      "group": "binary_log_recorder_hook",
+      "name": "flox_binary_log_recorder_hook_create",
+      "params": [
+        {
+          "name": "output_dir",
+          "type": "const char *"
+        },
+        {
+          "name": "max_segment_mb",
+          "type": "uint64_t"
+        },
+        {
+          "name": "exchange_id",
+          "type": "uint8_t"
+        },
+        {
+          "name": "compression",
+          "type": "uint8_t"
+        }
+      ],
+      "return_type": "FloxBinaryLogRecorderHookHandle"
+    },
+    {
+      "group": "binary_log_recorder_hook",
+      "name": "flox_binary_log_recorder_hook_create_ex",
+      "params": [
+        {
+          "name": "output_dir",
+          "type": "const char *"
+        },
+        {
+          "name": "max_segment_mb",
+          "type": "uint64_t"
+        },
+        {
+          "name": "exchange_id",
+          "type": "uint8_t"
+        },
+        {
+          "name": "compression",
+          "type": "uint8_t"
+        },
+        {
+          "name": "exchange_name",
+          "type": "const char *"
+        },
+        {
+          "name": "instrument_type",
+          "type": "const char *"
+        }
+      ],
+      "return_type": "FloxBinaryLogRecorderHookHandle"
+    },
+    {
+      "group": "binary_log_recorder_hook",
+      "name": "flox_binary_log_recorder_hook_destroy",
+      "params": [
+        {
+          "name": "hook",
+          "type": "FloxBinaryLogRecorderHookHandle"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "binary_log_recorder_hook",
+      "name": "flox_binary_log_recorder_hook_flush",
+      "params": [
+        {
+          "name": "hook",
+          "type": "FloxBinaryLogRecorderHookHandle"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "binary_log_recorder_hook",
+      "name": "flox_binary_log_recorder_hook_stats",
+      "params": [
+        {
+          "name": "hook",
+          "type": "FloxBinaryLogRecorderHookHandle"
+        }
+      ],
+      "return_type": "FloxWriterStats"
+    },
+    {
+      "group": "pointer_out",
+      "name": "flox_binary_log_recorder_hook_stats_p",
+      "params": [
+        {
+          "name": "hook",
+          "type": "void *"
+        },
+        {
+          "name": "out",
+          "type": "void *"
+        }
+      ],
+      "return_type": "void"
     },
     {
       "group": "order_book",
@@ -1865,115 +2262,6 @@
       "return_type": "void"
     },
     {
-      "group": "datarecorder",
-      "name": "flox_data_recorder_add_symbol",
-      "params": [
-        {
-          "name": "recorder",
-          "type": "FloxDataRecorderHandle"
-        },
-        {
-          "name": "symbol_id",
-          "type": "uint32_t"
-        },
-        {
-          "name": "name",
-          "type": "const char *"
-        },
-        {
-          "name": "base",
-          "type": "const char *"
-        },
-        {
-          "name": "quote",
-          "type": "const char *"
-        },
-        {
-          "name": "price_precision",
-          "type": "int8_t"
-        },
-        {
-          "name": "qty_precision",
-          "type": "int8_t"
-        }
-      ],
-      "return_type": "void"
-    },
-    {
-      "group": "datarecorder",
-      "name": "flox_data_recorder_create",
-      "params": [
-        {
-          "name": "output_dir",
-          "type": "const char *"
-        },
-        {
-          "name": "exchange_name",
-          "type": "const char *"
-        },
-        {
-          "name": "max_segment_mb",
-          "type": "uint64_t"
-        }
-      ],
-      "return_type": "FloxDataRecorderHandle"
-    },
-    {
-      "group": "datarecorder",
-      "name": "flox_data_recorder_destroy",
-      "params": [
-        {
-          "name": "recorder",
-          "type": "FloxDataRecorderHandle"
-        }
-      ],
-      "return_type": "void"
-    },
-    {
-      "group": "datarecorder",
-      "name": "flox_data_recorder_flush",
-      "params": [
-        {
-          "name": "recorder",
-          "type": "FloxDataRecorderHandle"
-        }
-      ],
-      "return_type": "void"
-    },
-    {
-      "group": "datarecorder",
-      "name": "flox_data_recorder_is_recording",
-      "params": [
-        {
-          "name": "recorder",
-          "type": "FloxDataRecorderHandle"
-        }
-      ],
-      "return_type": "uint8_t"
-    },
-    {
-      "group": "datarecorder",
-      "name": "flox_data_recorder_start",
-      "params": [
-        {
-          "name": "recorder",
-          "type": "FloxDataRecorderHandle"
-        }
-      ],
-      "return_type": "void"
-    },
-    {
-      "group": "datarecorder",
-      "name": "flox_data_recorder_stop",
-      "params": [
-        {
-          "name": "recorder",
-          "type": "FloxDataRecorderHandle"
-        }
-      ],
-      "return_type": "void"
-    },
-    {
       "group": "data_writer",
       "name": "flox_data_writer_close",
       "params": [
@@ -2050,6 +2338,80 @@
         }
       ],
       "return_type": "void"
+    },
+    {
+      "group": "data_writer",
+      "name": "flox_data_writer_write_book",
+      "params": [
+        {
+          "name": "writer",
+          "type": "FloxDataWriterHandle"
+        },
+        {
+          "name": "exchange_ts_ns",
+          "type": "int64_t"
+        },
+        {
+          "name": "recv_ts_ns",
+          "type": "int64_t"
+        },
+        {
+          "name": "seq",
+          "type": "int64_t"
+        },
+        {
+          "name": "symbol_id",
+          "type": "uint32_t"
+        },
+        {
+          "name": "is_snapshot",
+          "type": "uint8_t"
+        },
+        {
+          "name": "bids",
+          "type": "const FloxBookLevel *"
+        },
+        {
+          "name": "n_bids",
+          "type": "uint32_t"
+        },
+        {
+          "name": "asks",
+          "type": "const FloxBookLevel *"
+        },
+        {
+          "name": "n_asks",
+          "type": "uint32_t"
+        }
+      ],
+      "return_type": "uint8_t"
+    },
+    {
+      "group": "datawriter",
+      "name": "flox_data_writer_write_books",
+      "params": [
+        {
+          "name": "writer",
+          "type": "FloxDataWriterHandle"
+        },
+        {
+          "name": "headers",
+          "type": "const FloxBookUpdateHeader *"
+        },
+        {
+          "name": "n_events",
+          "type": "uint64_t"
+        },
+        {
+          "name": "levels",
+          "type": "const FloxLevel *"
+        },
+        {
+          "name": "total_levels",
+          "type": "uint64_t"
+        }
+      ],
+      "return_type": "uint64_t"
     },
     {
       "group": "data_writer",
@@ -5441,6 +5803,199 @@
         }
       ],
       "return_type": "double"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_count_books",
+      "params": [
+        {
+          "name": "reader",
+          "type": "FloxMergedTapeReaderHandle"
+        },
+        {
+          "name": "total_levels_out",
+          "type": "uint64_t *"
+        }
+      ],
+      "return_type": "uint64_t"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_count_trades",
+      "params": [
+        {
+          "name": "reader",
+          "type": "FloxMergedTapeReaderHandle"
+        }
+      ],
+      "return_type": "uint64_t"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_create",
+      "params": [
+        {
+          "name": "paths",
+          "type": "const char *const *"
+        },
+        {
+          "name": "n_paths",
+          "type": "uint32_t"
+        },
+        {
+          "name": "from_ns",
+          "type": "int64_t"
+        },
+        {
+          "name": "to_ns",
+          "type": "int64_t"
+        },
+        {
+          "name": "symbol_filter",
+          "type": "const uint32_t *"
+        },
+        {
+          "name": "n_filter",
+          "type": "uint32_t"
+        }
+      ],
+      "return_type": "FloxMergedTapeReaderHandle"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_destroy",
+      "params": [
+        {
+          "name": "reader",
+          "type": "FloxMergedTapeReaderHandle"
+        }
+      ],
+      "return_type": "void"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_get_symbols",
+      "params": [
+        {
+          "name": "reader",
+          "type": "FloxMergedTapeReaderHandle"
+        },
+        {
+          "name": "out",
+          "type": "FloxMergedSymbol *"
+        },
+        {
+          "name": "max",
+          "type": "uint32_t"
+        }
+      ],
+      "return_type": "uint32_t"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_get_tape_stats",
+      "params": [
+        {
+          "name": "reader",
+          "type": "FloxMergedTapeReaderHandle"
+        },
+        {
+          "name": "out",
+          "type": "FloxMergedTapeStats *"
+        },
+        {
+          "name": "max",
+          "type": "uint32_t"
+        }
+      ],
+      "return_type": "uint32_t"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_read_books",
+      "params": [
+        {
+          "name": "reader",
+          "type": "FloxMergedTapeReaderHandle"
+        },
+        {
+          "name": "headers_out",
+          "type": "FloxBookUpdateHeader *"
+        },
+        {
+          "name": "max_events",
+          "type": "uint64_t"
+        },
+        {
+          "name": "levels_out",
+          "type": "FloxLevel *"
+        },
+        {
+          "name": "max_levels",
+          "type": "uint64_t"
+        }
+      ],
+      "return_type": "uint64_t"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_read_trades",
+      "params": [
+        {
+          "name": "reader",
+          "type": "FloxMergedTapeReaderHandle"
+        },
+        {
+          "name": "trades_out",
+          "type": "FloxTradeRecord *"
+        },
+        {
+          "name": "max_trades",
+          "type": "uint64_t"
+        }
+      ],
+      "return_type": "uint64_t"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_symbol_count",
+      "params": [
+        {
+          "name": "reader",
+          "type": "FloxMergedTapeReaderHandle"
+        }
+      ],
+      "return_type": "uint32_t"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_tape_count",
+      "params": [
+        {
+          "name": "reader",
+          "type": "FloxMergedTapeReaderHandle"
+        }
+      ],
+      "return_type": "uint32_t"
+    },
+    {
+      "group": "merged_tape_reader",
+      "name": "flox_merged_tape_reader_time_range",
+      "params": [
+        {
+          "name": "reader",
+          "type": "FloxMergedTapeReaderHandle"
+        },
+        {
+          "name": "min_first_ns_out",
+          "type": "int64_t *"
+        },
+        {
+          "name": "max_last_ns_out",
+          "type": "int64_t *"
+        }
+      ],
+      "return_type": "void"
     },
     {
       "group": "context_queries",
@@ -10521,6 +11076,60 @@
     {
       "fields": [
         {
+          "name": "global_id",
+          "type": "uint32_t"
+        },
+        {
+          "name": "price_precision",
+          "type": "int8_t"
+        },
+        {
+          "name": "qty_precision",
+          "type": "int8_t"
+        },
+        {
+          "name": "_pad",
+          "type": "uint8_t[2]"
+        },
+        {
+          "name": "exchange",
+          "type": "const char *"
+        },
+        {
+          "name": "name",
+          "type": "const char *"
+        }
+      ],
+      "name": "FloxMergedSymbol"
+    },
+    {
+      "fields": [
+        {
+          "name": "first_event_ns",
+          "type": "int64_t"
+        },
+        {
+          "name": "last_event_ns",
+          "type": "int64_t"
+        },
+        {
+          "name": "trades",
+          "type": "uint64_t"
+        },
+        {
+          "name": "books",
+          "type": "uint64_t"
+        },
+        {
+          "name": "path",
+          "type": "const char *"
+        }
+      ],
+      "name": "FloxMergedTapeStats"
+    },
+    {
+      "fields": [
+        {
           "name": "id",
           "type": "uint64_t"
         },
@@ -10586,6 +11195,51 @@
         }
       ],
       "name": "FloxOrder"
+    },
+    {
+      "fields": [
+        {
+          "name": "order_id",
+          "type": "uint64_t"
+        },
+        {
+          "name": "symbol_id",
+          "type": "uint32_t"
+        },
+        {
+          "name": "side",
+          "type": "uint8_t"
+        },
+        {
+          "name": "order_type",
+          "type": "uint8_t"
+        },
+        {
+          "name": "status",
+          "type": "uint8_t"
+        },
+        {
+          "name": "_pad",
+          "type": "uint8_t"
+        },
+        {
+          "name": "fill_qty_raw",
+          "type": "int64_t"
+        },
+        {
+          "name": "fill_price_raw",
+          "type": "int64_t"
+        },
+        {
+          "name": "exchange_ts_ns",
+          "type": "int64_t"
+        },
+        {
+          "name": "reject_reason",
+          "type": "const char *"
+        }
+      ],
+      "name": "FloxOrderEventData"
     },
     {
       "fields": [
@@ -10983,6 +11637,14 @@
           "type": "FloxOnStopCallback"
         },
         {
+          "name": "on_fill",
+          "type": "FloxOnFillCallback"
+        },
+        {
+          "name": "on_order_update",
+          "type": "FloxOnOrderUpdateCallback"
+        },
+        {
           "name": "user_data",
           "type": "void *"
         }
@@ -11224,6 +11886,14 @@
       "target": "void*"
     },
     {
+      "name": "FloxBarDispatchRecorderHandle",
+      "target": "void*"
+    },
+    {
+      "name": "FloxBinaryLogRecorderHookHandle",
+      "target": "void*"
+    },
+    {
       "name": "FloxBookHandle",
       "target": "void*"
     },
@@ -11233,10 +11903,6 @@
     },
     {
       "name": "FloxDataReaderHandle",
-      "target": "void*"
-    },
-    {
-      "name": "FloxDataRecorderHandle",
       "target": "void*"
     },
     {
@@ -11301,6 +11967,10 @@
     },
     {
       "name": "FloxMarketProfileHandle",
+      "target": "void*"
+    },
+    {
+      "name": "FloxMergedTapeReaderHandle",
       "target": "void*"
     },
     {

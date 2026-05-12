@@ -291,6 +291,15 @@ void FloxJsStrategy::loadStdlib()
                               price, qty, tradeId || 0,
                               symbolId, isBuy ? 0 : 1);
       }
+      // bidsBuf / asksBuf are BigInt64Array buffers laid out [price_raw, qty_raw, ...].
+      writeBook(timestampNs, exchangeNs, seqNs, symbolId, isSnapshot, bidsBuf, asksBuf) {
+        var nBids = bidsBuf ? (bidsBuf.length >> 1) : 0;
+        var nAsks = asksBuf ? (asksBuf.length >> 1) : 0;
+        return __flox_dw_write_book(this._h, timestampNs, exchangeNs, seqNs || 0,
+                                    symbolId, isSnapshot ? 1 : 0,
+                                    bidsBuf || null, nBids,
+                                    asksBuf || null, nAsks);
+      }
       flush() { __flox_dw_flush(this._h); }
       close() { __flox_dw_close(this._h); }
       stats() { return __flox_dw_stats(this._h); }
@@ -322,20 +331,74 @@ void FloxJsStrategy::loadStdlib()
       readBookUpdatesFrom(startTsNs) { return __flox_dr_read_book_updates_from(this._h, startTsNs); }
     }
 
-    class DataRecorder {
-      constructor(dir, maxSegmentSize, compression) {
-        this._h = __flox_recorder_create(dir, maxSegmentSize || 0, compression || 0);
+    class MergedTapeReader {
+      // pathsOrOpts: string[] OR { paths: string[], fromNs?: bigint|number, toNs?: bigint|number, symbols?: number[] }
+      constructor(pathsOrOpts, opts) {
+        var paths, o;
+        if (Array.isArray(pathsOrOpts)) {
+          paths = pathsOrOpts;
+          o = opts || {};
+        } else {
+          o = pathsOrOpts || {};
+          paths = o.paths || [];
+        }
+        var from = (o.fromNs === undefined || o.fromNs === null) ? -1 : o.fromNs;
+        var to   = (o.toNs   === undefined || o.toNs   === null) ? -1 : o.toNs;
+        this._h = __flox_mtr_create(paths, from, to, o.symbols || []);
+        if (!this._h) {
+          throw new Error("MergedTapeReader: failed to open tapes - bad input or overlapping book streams");
+        }
       }
-      destroy() { __flox_recorder_destroy(this._h); }
-      addSymbol(symbolId, exchange, symbol, tickSize, lotSize, contractSize, takerFee) {
-        __flox_recorder_add_symbol(this._h, symbolId, exchange || "", symbol || "",
-                                   tickSize || 0.01, lotSize || 1.0,
-                                   contractSize || 1.0, takerFee || 0.0);
+      destroy() {
+        if (this._h) { __flox_mtr_destroy(this._h); this._h = null; }
       }
-      start() { __flox_recorder_start(this._h); }
-      stop() { __flox_recorder_stop(this._h); }
-      flush() { __flox_recorder_flush(this._h); }
-      get isRecording() { return __flox_recorder_is_recording(this._h) !== 0; }
+      // Unified view of symbols across all tapes, keyed by (exchange, name).
+      symbolTable() { return __flox_mtr_get_symbols(this._h); }
+      get symbolCount() { return __flox_mtr_symbol_count(this._h); }
+      // Per-tape stats: { firstEventNs, lastEventNs, trades, books, path }
+      perTapeStats() { return __flox_mtr_get_tape_stats(this._h); }
+      get tapeCount() { return __flox_mtr_tape_count(this._h); }
+      // { minFirstNs, maxLastNs } — outer time range across all tapes.
+      timeRange() { return __flox_mtr_time_range(this._h); }
+      countTrades() { return __flox_mtr_count_trades(this._h); }
+      readTrades(maxTrades) { return __flox_mtr_read_trades(this._h, maxTrades || 0); }
+      // { events, levels } two-phase count for book updates.
+      countBooks() { return __flox_mtr_count_books(this._h); }
+      readBooks() { return __flox_mtr_read_books(this._h); }
+    }
+
+    class BinaryLogRecorderHook {
+      // (outputDir, maxSegmentMb, exchangeId, compression, exchangeName?, instrumentType?)
+      // exchangeName / instrumentType are stamped into metadata.json so
+      // MergedTapeReader can key tapes by (exchange, name).
+      constructor(outputDir, maxSegmentMb, exchangeId, compression,
+                  exchangeName, instrumentType) {
+        var compMap = { none: 0, lz4: 1 };
+        var comp = 0;
+        if (typeof compression === "number") {
+          comp = compression | 0;
+        } else if (typeof compression === "string") {
+          if (compMap[compression] === undefined) {
+            throw new Error("BinaryLogRecorderHook: unknown compression '" + compression + "'. Use 'none' or 'lz4'.");
+          }
+          comp = compMap[compression];
+        }
+        this._h = __flox_blrh_create(outputDir, maxSegmentMb === undefined ? 256 : maxSegmentMb,
+                                     exchangeId || 0, comp,
+                                     exchangeName || "", instrumentType || "");
+        this.__floxIsBinaryLogRecorderHook = true;
+      }
+      destroy() {
+        if (this._h) { __flox_blrh_destroy(this._h); this._h = null; }
+      }
+      addSymbol(symbolId, name, base, quote, pricePrecision, qtyPrecision) {
+        __flox_blrh_add_symbol(this._h, symbolId, name || "", base || "", quote || "",
+                               pricePrecision === undefined ? 8 : pricePrecision,
+                               qtyPrecision === undefined ? 8 : qtyPrecision);
+      }
+      flush() { __flox_blrh_flush(this._h); }
+      stats() { return __flox_blrh_stats(this._h); }
+      _asRecorderHandle() { return __flox_blrh_as_recorder(this._h); }
     }
 
     class Partitioner {
@@ -576,6 +639,26 @@ void FloxJsStrategy::loadStdlib()
         readAllSignals() { return __flox_run_reader_signals(this._h); }
         readAllOrderEvents() { return __flox_run_reader_orders(this._h); }
         readAllFills() { return __flox_run_reader_fills(this._h); }
+      },
+
+      // Cross-binding parity test fixture for bar-close dispatch
+      // ordering. Drives a MultiTimeframeAggregator + BarBus through
+      // the C ABI; matches the pybind11 / NAPI / Codon surfaces.
+      BarDispatchRecorder: class {
+        constructor() { this._h = __flox_bar_dispatch_recorder_create(); }
+        destroy() {
+          if (this._h) { __flox_bar_dispatch_recorder_destroy(this._h); this._h = null; }
+        }
+        addTimeIntervalSeconds(seconds) {
+          return __flox_bar_dispatch_recorder_add_time_seconds(this._h, seconds);
+        }
+        onTrade(symbol, price, qty, tsNs) {
+          __flox_bar_dispatch_recorder_on_trade(this._h, symbol, price, qty, tsNs);
+        }
+        finalize() { __flox_bar_dispatch_recorder_finalize(this._h); }
+        count() { return __flox_bar_dispatch_recorder_count(this._h); }
+        typeAt(i) { return __flox_bar_dispatch_recorder_type_at(this._h, i); }
+        paramAt(i) { return __flox_bar_dispatch_recorder_param_at(this._h, i); }
       },
 
       // Execution algos: TWAP / VWAP / Iceberg / POV. The user
@@ -835,6 +918,8 @@ FloxStrategyCallbacks FloxJsStrategy::getCallbacks()
   cb.on_bar = FloxJsStrategy::onBar;
   cb.on_start = FloxJsStrategy::onStart;
   cb.on_stop = FloxJsStrategy::onStop;
+  cb.on_fill = FloxJsStrategy::onFill;
+  cb.on_order_update = FloxJsStrategy::onOrderUpdate;
   cb.user_data = this;
   return cb;
 }
@@ -1042,6 +1127,144 @@ JSValue FloxJsStrategy::makeBarObject(const FloxBarData* bar)
                     JS_NewFloat64(c, static_cast<double>(bar->end_time_ns)));
   JS_SetPropertyStr(c, obj, "closeReason", JS_NewUint32(c, bar->close_reason));
   return obj;
+}
+
+namespace
+{
+const char* jsOrderEventStatusName(uint8_t s)
+{
+  switch (s)
+  {
+    case 0:
+      return "NEW";
+    case 1:
+      return "ACCEPTED";
+    case 2:
+      return "PENDING_NEW";
+    case 3:
+      return "PARTIALLY_FILLED";
+    case 4:
+      return "FILLED";
+    case 5:
+      return "PENDING_CANCEL";
+    case 6:
+      return "CANCELED";
+    case 7:
+      return "EXPIRED";
+    case 8:
+      return "REJECTED";
+    case 9:
+      return "REPLACED";
+    case 10:
+      return "PENDING_TRIGGER";
+    case 11:
+      return "TRIGGERED";
+    case 12:
+      return "TRAILING_UPDATED";
+    default:
+      return "UNKNOWN";
+  }
+}
+const char* jsOrderTypeName(uint8_t t)
+{
+  switch (t)
+  {
+    case 0:
+      return "LIMIT";
+    case 1:
+      return "MARKET";
+    case 2:
+      return "STOP_MARKET";
+    case 3:
+      return "STOP_LIMIT";
+    case 4:
+      return "TP_MARKET";
+    case 5:
+      return "TP_LIMIT";
+    case 6:
+      return "ICEBERG";
+    default:
+      return "UNKNOWN";
+  }
+}
+}  // namespace
+
+JSValue FloxJsStrategy::makeOrderEventObject(const FloxOrderEventData* ev)
+{
+  auto* c = _engine.context();
+  JSValue obj = JS_NewObject(c);
+  JS_SetPropertyStr(c, obj, "orderId",
+                    JS_NewFloat64(c, static_cast<double>(ev->order_id)));
+  JS_SetPropertyStr(c, obj, "symbolId", JS_NewUint32(c, ev->symbol_id));
+  JS_SetPropertyStr(c, obj, "side",
+                    JS_NewString(c, ev->side == 0 ? "buy" : "sell"));
+  JS_SetPropertyStr(c, obj, "orderType",
+                    JS_NewString(c, jsOrderTypeName(ev->order_type)));
+  JS_SetPropertyStr(c, obj, "status",
+                    JS_NewString(c, jsOrderEventStatusName(ev->status)));
+  JS_SetPropertyStr(c, obj, "fillQty",
+                    JS_NewFloat64(c, flox_quantity_to_double(ev->fill_qty_raw)));
+  JS_SetPropertyStr(c, obj, "fillPrice",
+                    JS_NewFloat64(c, flox_price_to_double(ev->fill_price_raw)));
+  JS_SetPropertyStr(c, obj, "exchangeTsNs",
+                    JS_NewFloat64(c, static_cast<double>(ev->exchange_ts_ns)));
+  if (ev->reject_reason)
+  {
+    JS_SetPropertyStr(c, obj, "rejectReason", JS_NewString(c, ev->reject_reason));
+  }
+  else
+  {
+    JS_SetPropertyStr(c, obj, "rejectReason", JS_NULL);
+  }
+  return obj;
+}
+
+void FloxJsStrategy::onFill(void* userData, const FloxSymbolContext* ctx,
+                            const FloxOrderEventData* ev)
+{
+  auto* self = static_cast<FloxJsStrategy*>(userData);
+  auto* jsCtx = self->_engine.context();
+  JSValue ctxObj = self->makeCtxObject(ctx);
+  JSValue evObj = self->makeOrderEventObject(ev);
+  JSValue method = JS_GetPropertyStr(jsCtx, self->_strategyObj, "_dispatchFill");
+  if (JS_IsFunction(jsCtx, method))
+  {
+    JSValue args[2] = {ctxObj, evObj};
+    JSValue ret = JS_Call(jsCtx, method, self->_strategyObj, 2, args);
+    if (JS_IsException(ret))
+    {
+      std::cerr << "[flox-js] Error in onFill: "
+                << self->_engine.getErrorMessage() << std::endl;
+    }
+    JS_FreeValue(jsCtx, ret);
+  }
+  JS_FreeValue(jsCtx, method);
+  JS_FreeValue(jsCtx, ctxObj);
+  JS_FreeValue(jsCtx, evObj);
+}
+
+void FloxJsStrategy::onOrderUpdate(void* userData, const FloxSymbolContext* ctx,
+                                   const FloxOrderEventData* ev)
+{
+  auto* self = static_cast<FloxJsStrategy*>(userData);
+  auto* jsCtx = self->_engine.context();
+  JSValue ctxObj = self->makeCtxObject(ctx);
+  JSValue evObj = self->makeOrderEventObject(ev);
+  JSValue method = JS_GetPropertyStr(jsCtx, self->_strategyObj, "_dispatchOrderUpdate");
+  if (JS_IsFunction(jsCtx, method))
+  {
+    JSValue args[2] = {ctxObj, evObj};
+    JSValue ret = JS_Call(jsCtx, method, self->_strategyObj, 2, args);
+    if (JS_IsException(ret))
+    {
+      std::cerr << "[flox-js] Error in onOrderUpdate: "
+                << self->_engine.getErrorMessage() << std::endl;
+    }
+    JS_FreeValue(jsCtx, ret);
+  }
+  JS_FreeValue(jsCtx, method);
+  JS_FreeValue(jsCtx, ctxObj);
+  JS_FreeValue(jsCtx, evObj);
 }
 
 }  // namespace flox

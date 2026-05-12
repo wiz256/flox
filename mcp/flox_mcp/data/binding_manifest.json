@@ -108,9 +108,39 @@
           "name": "flox_backtest_runner_run_replay_source"
         },
         {
+          "group": "backtestrunner_replay",
+          "kind": "function",
+          "name": "flox_backtest_runner_run_tape"
+        },
+        {
+          "group": "backtestrunner_replay",
+          "kind": "function",
+          "name": "flox_backtest_runner_run_tapes"
+        },
+        {
           "group": "execution",
           "kind": "function",
           "name": "flox_backtest_runner_set_executor"
+        },
+        {
+          "group": "backtestrunner_replay",
+          "kind": "function",
+          "name": "flox_backtest_runner_set_kill_switch"
+        },
+        {
+          "group": "backtestrunner_replay",
+          "kind": "function",
+          "name": "flox_backtest_runner_set_order_validator"
+        },
+        {
+          "group": "backtestrunner_replay",
+          "kind": "function",
+          "name": "flox_backtest_runner_set_pnl_tracker"
+        },
+        {
+          "group": "backtestrunner_replay",
+          "kind": "function",
+          "name": "flox_backtest_runner_set_risk_manager"
         },
         {
           "group": "backtestrunner_replay",
@@ -123,6 +153,46 @@
           "name": "flox_backtest_runner_take_result"
         },
         {
+          "group": "bar_dispatch",
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_add_time_seconds"
+        },
+        {
+          "group": "bar_dispatch",
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_count"
+        },
+        {
+          "group": "bar_dispatch",
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_create"
+        },
+        {
+          "group": "bar_dispatch",
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_destroy"
+        },
+        {
+          "group": "bar_dispatch",
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_finalize"
+        },
+        {
+          "group": "bar_dispatch",
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_on_trade"
+        },
+        {
+          "group": "bar_dispatch",
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_param_at"
+        },
+        {
+          "group": "bar_dispatch",
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_type_at"
+        },
+        {
           "group": "context_queries",
           "kind": "function",
           "name": "flox_best_ask_raw"
@@ -131,6 +201,46 @@
           "group": "context_queries",
           "kind": "function",
           "name": "flox_best_bid_raw"
+        },
+        {
+          "group": "binary_log_recorder_hook",
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_add_symbol"
+        },
+        {
+          "group": "binary_log_recorder_hook",
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_as_recorder"
+        },
+        {
+          "group": "binary_log_recorder_hook",
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_create"
+        },
+        {
+          "group": "binary_log_recorder_hook",
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_create_ex"
+        },
+        {
+          "group": "binary_log_recorder_hook",
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_destroy"
+        },
+        {
+          "group": "binary_log_recorder_hook",
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_flush"
+        },
+        {
+          "group": "binary_log_recorder_hook",
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_stats"
+        },
+        {
+          "group": "pointer_out",
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_stats_p"
         },
         {
           "group": "order_book",
@@ -318,41 +428,6 @@
           "name": "flox_data_reader_summary_p"
         },
         {
-          "group": "datarecorder",
-          "kind": "function",
-          "name": "flox_data_recorder_add_symbol"
-        },
-        {
-          "group": "datarecorder",
-          "kind": "function",
-          "name": "flox_data_recorder_create"
-        },
-        {
-          "group": "datarecorder",
-          "kind": "function",
-          "name": "flox_data_recorder_destroy"
-        },
-        {
-          "group": "datarecorder",
-          "kind": "function",
-          "name": "flox_data_recorder_flush"
-        },
-        {
-          "group": "datarecorder",
-          "kind": "function",
-          "name": "flox_data_recorder_is_recording"
-        },
-        {
-          "group": "datarecorder",
-          "kind": "function",
-          "name": "flox_data_recorder_start"
-        },
-        {
-          "group": "datarecorder",
-          "kind": "function",
-          "name": "flox_data_recorder_stop"
-        },
-        {
           "group": "data_writer",
           "kind": "function",
           "name": "flox_data_writer_close"
@@ -381,6 +456,16 @@
           "group": "pointer_out",
           "kind": "function",
           "name": "flox_data_writer_stats_p"
+        },
+        {
+          "group": "data_writer",
+          "kind": "function",
+          "name": "flox_data_writer_write_book"
+        },
+        {
+          "group": "datawriter",
+          "kind": "function",
+          "name": "flox_data_writer_write_books"
         },
         {
           "group": "data_writer",
@@ -1266,6 +1351,61 @@
           "group": "market_profile",
           "kind": "function",
           "name": "flox_market_profile_val"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_count_books"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_count_trades"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_create"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_destroy"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_get_symbols"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_get_tape_stats"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_read_books"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_read_trades"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_symbol_count"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_tape_count"
+        },
+        {
+          "group": "merged_tape_reader",
+          "kind": "function",
+          "name": "flox_merged_tape_reader_time_range"
         },
         {
           "group": "context_queries",
@@ -2479,7 +2619,19 @@
         },
         {
           "kind": "struct",
+          "name": "FloxMergedSymbol"
+        },
+        {
+          "kind": "struct",
+          "name": "FloxMergedTapeStats"
+        },
+        {
+          "kind": "struct",
           "name": "FloxOrder"
+        },
+        {
+          "kind": "struct",
+          "name": "FloxOrderEventData"
         },
         {
           "kind": "struct",
@@ -2587,6 +2739,14 @@
         },
         {
           "kind": "handle",
+          "name": "FloxBarDispatchRecorderHandle"
+        },
+        {
+          "kind": "handle",
+          "name": "FloxBinaryLogRecorderHookHandle"
+        },
+        {
+          "kind": "handle",
           "name": "FloxBookHandle"
         },
         {
@@ -2596,10 +2756,6 @@
         {
           "kind": "handle",
           "name": "FloxDataReaderHandle"
-        },
-        {
-          "kind": "handle",
-          "name": "FloxDataRecorderHandle"
         },
         {
           "kind": "handle",
@@ -2664,6 +2820,10 @@
         {
           "kind": "handle",
           "name": "FloxMarketProfileHandle"
+        },
+        {
+          "kind": "handle",
+          "name": "FloxMergedTapeReaderHandle"
         },
         {
           "kind": "handle",
@@ -2754,12 +2914,13 @@
         "backtest_slippage",
         "backtestrunner_replay",
         "bar_aggregation",
+        "bar_dispatch",
+        "binary_log_recorder_hook",
         "composite_book",
         "context_queries",
         "data_reader",
         "data_writer",
         "datareader",
-        "datarecorder",
         "datawriter",
         "delta_book",
         "execution",
@@ -2779,6 +2940,7 @@
         "latency_models",
         "logger",
         "market_profile",
+        "merged_tape_reader",
         "metrics",
         "multi_tf_helpers",
         "order_book",
@@ -2894,7 +3056,31 @@
         },
         {
           "kind": "function",
+          "name": "flox_backtest_runner_run_tape"
+        },
+        {
+          "kind": "function",
+          "name": "flox_backtest_runner_run_tapes"
+        },
+        {
+          "kind": "function",
           "name": "flox_backtest_runner_set_executor"
+        },
+        {
+          "kind": "function",
+          "name": "flox_backtest_runner_set_kill_switch"
+        },
+        {
+          "kind": "function",
+          "name": "flox_backtest_runner_set_order_validator"
+        },
+        {
+          "kind": "function",
+          "name": "flox_backtest_runner_set_pnl_tracker"
+        },
+        {
+          "kind": "function",
+          "name": "flox_backtest_runner_set_risk_manager"
         },
         {
           "kind": "function",
@@ -2906,11 +3092,75 @@
         },
         {
           "kind": "function",
+          "name": "flox_bar_dispatch_recorder_add_time_seconds"
+        },
+        {
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_count"
+        },
+        {
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_create"
+        },
+        {
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_destroy"
+        },
+        {
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_finalize"
+        },
+        {
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_on_trade"
+        },
+        {
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_param_at"
+        },
+        {
+          "kind": "function",
+          "name": "flox_bar_dispatch_recorder_type_at"
+        },
+        {
+          "kind": "function",
           "name": "flox_best_ask_raw"
         },
         {
           "kind": "function",
           "name": "flox_best_bid_raw"
+        },
+        {
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_add_symbol"
+        },
+        {
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_as_recorder"
+        },
+        {
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_create"
+        },
+        {
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_create_ex"
+        },
+        {
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_destroy"
+        },
+        {
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_flush"
+        },
+        {
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_stats"
+        },
+        {
+          "kind": "function",
+          "name": "flox_binary_log_recorder_hook_stats_p"
         },
         {
           "kind": "function",
@@ -3062,34 +3312,6 @@
         },
         {
           "kind": "function",
-          "name": "flox_data_recorder_add_symbol"
-        },
-        {
-          "kind": "function",
-          "name": "flox_data_recorder_create"
-        },
-        {
-          "kind": "function",
-          "name": "flox_data_recorder_destroy"
-        },
-        {
-          "kind": "function",
-          "name": "flox_data_recorder_flush"
-        },
-        {
-          "kind": "function",
-          "name": "flox_data_recorder_is_recording"
-        },
-        {
-          "kind": "function",
-          "name": "flox_data_recorder_start"
-        },
-        {
-          "kind": "function",
-          "name": "flox_data_recorder_stop"
-        },
-        {
-          "kind": "function",
           "name": "flox_data_writer_close"
         },
         {
@@ -3111,6 +3333,14 @@
         {
           "kind": "function",
           "name": "flox_data_writer_stats_p"
+        },
+        {
+          "kind": "function",
+          "name": "flox_data_writer_write_book"
+        },
+        {
+          "kind": "function",
+          "name": "flox_data_writer_write_books"
         },
         {
           "kind": "function",
@@ -3819,6 +4049,50 @@
         {
           "kind": "function",
           "name": "flox_market_profile_val"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_count_books"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_count_trades"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_create"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_destroy"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_get_symbols"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_get_tape_stats"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_read_books"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_read_trades"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_symbol_count"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_tape_count"
+        },
+        {
+          "kind": "function",
+          "name": "flox_merged_tape_reader_time_range"
         },
         {
           "kind": "function",
@@ -4746,7 +5020,19 @@
         },
         {
           "kind": "class",
+          "name": "BarDispatchRecorder"
+        },
+        {
+          "kind": "class",
           "name": "BboRecord"
+        },
+        {
+          "kind": "class",
+          "name": "BinaryLogRecorderHook"
+        },
+        {
+          "kind": "class",
+          "name": "BinaryLogRecorderHookStats"
         },
         {
           "kind": "class",
@@ -4795,10 +5081,6 @@
         {
           "kind": "class",
           "name": "DataReaderSummary"
-        },
-        {
-          "kind": "class",
-          "name": "DataRecorder"
         },
         {
           "kind": "class",
@@ -4974,6 +5256,22 @@
         },
         {
           "kind": "class",
+          "name": "MergedTapeReader"
+        },
+        {
+          "kind": "class",
+          "name": "MergedTapeReaderOptions"
+        },
+        {
+          "kind": "class",
+          "name": "MergedTapeStats"
+        },
+        {
+          "kind": "class",
+          "name": "MergedTapeSymbol"
+        },
+        {
+          "kind": "class",
           "name": "MultiFeedClock"
         },
         {
@@ -4987,6 +5285,10 @@
         {
           "kind": "class",
           "name": "OrderBook"
+        },
+        {
+          "kind": "class",
+          "name": "OrderEventData"
         },
         {
           "kind": "class",
@@ -5510,6 +5812,14 @@
         },
         {
           "kind": "class",
+          "name": "BarDispatchRecorder"
+        },
+        {
+          "kind": "class",
+          "name": "BinaryLogRecorderHook"
+        },
+        {
+          "kind": "class",
           "name": "Bollinger"
         },
         {
@@ -5535,10 +5845,6 @@
         {
           "kind": "class",
           "name": "DataReader"
-        },
-        {
-          "kind": "class",
-          "name": "DataRecorder"
         },
         {
           "kind": "class",
@@ -5650,6 +5956,10 @@
         },
         {
           "kind": "class",
+          "name": "MergedTapeReader"
+        },
+        {
+          "kind": "class",
           "name": "MultiFeedClock"
         },
         {
@@ -5659,6 +5969,10 @@
         {
           "kind": "class",
           "name": "OrderBook"
+        },
+        {
+          "kind": "class",
+          "name": "OrderEventData"
         },
         {
           "kind": "class",
@@ -6192,6 +6506,12 @@
         "flox_backtest_runner_run_csv",
         "flox_backtest_runner_run_ohlcv",
         "flox_backtest_runner_run_replay_source",
+        "flox_backtest_runner_run_tape",
+        "flox_backtest_runner_run_tapes",
+        "flox_backtest_runner_set_kill_switch",
+        "flox_backtest_runner_set_order_validator",
+        "flox_backtest_runner_set_pnl_tracker",
+        "flox_backtest_runner_set_risk_manager",
         "flox_backtest_runner_set_strategy",
         "flox_backtest_runner_take_result"
       ],
@@ -6240,6 +6560,65 @@
           "aggregate_tick_bars",
           "aggregate_volume_bars"
         ],
+        "status": "required"
+      }
+    },
+    "bar_dispatch": {
+      "capi_functions": [
+        "flox_bar_dispatch_recorder_add_time_seconds",
+        "flox_bar_dispatch_recorder_count",
+        "flox_bar_dispatch_recorder_create",
+        "flox_bar_dispatch_recorder_destroy",
+        "flox_bar_dispatch_recorder_finalize",
+        "flox_bar_dispatch_recorder_on_trade",
+        "flox_bar_dispatch_recorder_param_at",
+        "flox_bar_dispatch_recorder_type_at"
+      ],
+      "codon": {
+        "present": true,
+        "status": "required"
+      },
+      "napi": {
+        "classes": [
+          "BarDispatchRecorder"
+        ],
+        "functions": [],
+        "status": "required"
+      },
+      "pybind11": {
+        "classes": [
+          "BarDispatchRecorder"
+        ],
+        "functions": [],
+        "status": "required"
+      }
+    },
+    "binary_log_recorder_hook": {
+      "capi_functions": [
+        "flox_binary_log_recorder_hook_add_symbol",
+        "flox_binary_log_recorder_hook_as_recorder",
+        "flox_binary_log_recorder_hook_create",
+        "flox_binary_log_recorder_hook_create_ex",
+        "flox_binary_log_recorder_hook_destroy",
+        "flox_binary_log_recorder_hook_flush",
+        "flox_binary_log_recorder_hook_stats"
+      ],
+      "codon": {
+        "present": true,
+        "status": "required"
+      },
+      "napi": {
+        "classes": [
+          "BinaryLogRecorderHook"
+        ],
+        "functions": [],
+        "status": "required"
+      },
+      "pybind11": {
+        "classes": [
+          "BinaryLogRecorderHook"
+        ],
+        "functions": [],
         "status": "required"
       }
     },
@@ -6328,6 +6707,7 @@
         "flox_data_writer_create",
         "flox_data_writer_destroy",
         "flox_data_writer_flush",
+        "flox_data_writer_write_book",
         "flox_data_writer_write_trade"
       ],
       "codon": {
@@ -6382,38 +6762,10 @@
         "status": "required"
       }
     },
-    "datarecorder": {
-      "capi_functions": [
-        "flox_data_recorder_add_symbol",
-        "flox_data_recorder_create",
-        "flox_data_recorder_destroy",
-        "flox_data_recorder_flush",
-        "flox_data_recorder_is_recording",
-        "flox_data_recorder_start",
-        "flox_data_recorder_stop"
-      ],
-      "codon": {
-        "present": true,
-        "status": "required"
-      },
-      "napi": {
-        "classes": [
-          "DataRecorder"
-        ],
-        "functions": [],
-        "status": "required"
-      },
-      "pybind11": {
-        "classes": [
-          "DataRecorder"
-        ],
-        "functions": [],
-        "status": "required"
-      }
-    },
     "datawriter": {
       "capi_functions": [
-        "flox_data_writer_stats"
+        "flox_data_writer_stats",
+        "flox_data_writer_write_books"
       ],
       "codon": {
         "present": true,
@@ -7036,6 +7388,39 @@
         "status": "required"
       }
     },
+    "merged_tape_reader": {
+      "capi_functions": [
+        "flox_merged_tape_reader_count_books",
+        "flox_merged_tape_reader_count_trades",
+        "flox_merged_tape_reader_create",
+        "flox_merged_tape_reader_destroy",
+        "flox_merged_tape_reader_get_symbols",
+        "flox_merged_tape_reader_get_tape_stats",
+        "flox_merged_tape_reader_read_books",
+        "flox_merged_tape_reader_read_trades",
+        "flox_merged_tape_reader_symbol_count",
+        "flox_merged_tape_reader_tape_count",
+        "flox_merged_tape_reader_time_range"
+      ],
+      "codon": {
+        "present": true,
+        "status": "required"
+      },
+      "napi": {
+        "classes": [
+          "MergedTapeReader"
+        ],
+        "functions": [],
+        "status": "required"
+      },
+      "pybind11": {
+        "classes": [
+          "MergedTapeReader"
+        ],
+        "functions": [],
+        "status": "required"
+      }
+    },
     "metrics": {
       "capi_functions": [
         "flox_live_engine_set_pnl_tracker",
@@ -7225,6 +7610,7 @@
     },
     "pointer_out": {
       "capi_functions": [
+        "flox_binary_log_recorder_hook_stats_p",
         "flox_data_reader_stats_p",
         "flox_data_reader_summary_p",
         "flox_data_writer_stats_p",

@@ -16,6 +16,8 @@ namespace flox
 {
 
 class ISignalHandler;
+class IPositionManager;
+struct OrderEvent;
 
 class IStrategy : public ISubsystem, public IMarketDataSubscriber
 {
@@ -23,6 +25,14 @@ class IStrategy : public ISubsystem, public IMarketDataSubscriber
   virtual ~IStrategy() = default;
 
   virtual void setSignalHandler(ISignalHandler*) {}
+  virtual void setPositionManager(IPositionManager*) {}
+
+  // Forwarded by the runner each time the executor publishes an
+  // OrderEvent for an order this strategy emitted. Default no-op so
+  // callers don't have to override; the concrete Strategy dispatches
+  // to virtual `onSymbolFill` / `onSymbolOrderUpdate` based on
+  // status.
+  virtual void onOrderEvent(const OrderEvent&) {}
 };
 
 }  // namespace flox

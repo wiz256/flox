@@ -2168,6 +2168,317 @@ static JSValue js_run_reader_fills(JSContext* ctx, JSValueConst, int, JSValueCon
 }
 
 // ============================================================
+// Order group (multi-leg state machine + risk gate + pair-latency)
+// ============================================================
+//
+// Thin shim over the C ABI. The high-level OrderGroup class lives in
+// quickjs/flox/order_group.js and wraps these globals so the four
+// bindings (pybind11 / NAPI / QuickJS / Codon) all reach the same
+// C++ engine.
+
+static JSValue js_order_group_create(JSContext* ctx, JSValueConst, int, JSValueConst* argv)
+{
+  int64_t parent = 0;
+  uint32_t policy = 0;
+  if (argv)
+  {
+    JS_ToInt64(ctx, &parent, argv[0]);
+    JS_ToUint32(ctx, &policy, argv[1]);
+  }
+  auto h = flox_order_group_create(static_cast<uint64_t>(parent), static_cast<uint8_t>(policy));
+  return createHandleObject(ctx, h);
+}
+
+static JSValue js_order_group_destroy(JSContext* ctx, JSValueConst, int, JSValueConst* argv)
+{
+  flox_order_group_destroy(static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0])));
+  return JS_UNDEFINED;
+}
+
+static JSValue js_order_group_add_market_leg(JSContext* ctx, JSValueConst, int,
+                                             JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  uint32_t symbol = toUint32(ctx, argv[1]);
+  uint32_t side = toUint32(ctx, argv[2]);
+  double qty = toDouble(ctx, argv[3]);
+  int64_t qty_raw = static_cast<int64_t>(qty * 100'000'000LL);
+  return JS_NewUint32(ctx,
+                      flox_order_group_add_market_leg(h, symbol, static_cast<uint8_t>(side),
+                                                      qty_raw));
+}
+
+static JSValue js_order_group_add_limit_leg(JSContext* ctx, JSValueConst, int,
+                                            JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  uint32_t symbol = toUint32(ctx, argv[1]);
+  uint32_t side = toUint32(ctx, argv[2]);
+  double price = toDouble(ctx, argv[3]);
+  double qty = toDouble(ctx, argv[4]);
+  int64_t price_raw = static_cast<int64_t>(price * 100'000'000LL);
+  int64_t qty_raw = static_cast<int64_t>(qty * 100'000'000LL);
+  return JS_NewUint32(
+      ctx, flox_order_group_add_limit_leg(h, symbol, static_cast<uint8_t>(side), price_raw,
+                                          qty_raw));
+}
+
+static JSValue js_order_group_leg_count(JSContext* ctx, JSValueConst, int, JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  return JS_NewUint32(ctx, flox_order_group_leg_count(h));
+}
+
+static JSValue js_order_group_leg_state(JSContext* ctx, JSValueConst, int, JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  uint32_t i = toUint32(ctx, argv[1]);
+  return JS_NewUint32(ctx, flox_order_group_leg_state(h, i));
+}
+
+static JSValue js_order_group_leg_filled(JSContext* ctx, JSValueConst, int, JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  uint32_t i = toUint32(ctx, argv[1]);
+  int64_t raw = flox_order_group_leg_filled_raw(h, i);
+  return JS_NewFloat64(ctx, static_cast<double>(raw) / 1e8);
+}
+
+static JSValue js_order_group_leg_order_id(JSContext* ctx, JSValueConst, int, JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  uint32_t i = toUint32(ctx, argv[1]);
+  return JS_NewInt64(ctx, static_cast<int64_t>(flox_order_group_leg_order_id(h, i)));
+}
+
+static JSValue js_order_group_record_submit(JSContext* ctx, JSValueConst, int,
+                                            JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  uint32_t i = toUint32(ctx, argv[1]);
+  int64_t order_id = 0;
+  JS_ToInt64(ctx, &order_id, argv[2]);
+  flox_order_group_record_submit(h, i, static_cast<uint64_t>(order_id));
+  return JS_UNDEFINED;
+}
+
+static JSValue js_order_group_record_fill(JSContext* ctx, JSValueConst, int, JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  uint32_t i = toUint32(ctx, argv[1]);
+  double qty = toDouble(ctx, argv[2]);
+  flox_order_group_record_fill(h, i, static_cast<int64_t>(qty * 100'000'000LL));
+  return JS_UNDEFINED;
+}
+
+static JSValue js_order_group_record_cancel(JSContext* ctx, JSValueConst, int,
+                                            JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  uint32_t i = toUint32(ctx, argv[1]);
+  flox_order_group_record_cancel(h, i);
+  return JS_UNDEFINED;
+}
+
+static JSValue js_order_group_record_failure(JSContext* ctx, JSValueConst, int,
+                                             JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  uint32_t i = toUint32(ctx, argv[1]);
+  flox_order_group_record_failure(h, i);
+  return JS_UNDEFINED;
+}
+
+static JSValue js_order_group_state(JSContext* ctx, JSValueConst, int, JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  return JS_NewUint32(ctx, flox_order_group_state(h));
+}
+
+static JSValue js_order_group_recommended_actions(JSContext* ctx, JSValueConst, int,
+                                                  JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  constexpr uint32_t kMax = 32;
+  int64_t buf[kMax * 5];
+  uint32_t n = flox_order_group_recommended_actions(h, buf, kMax);
+  JSValue out = JS_NewArray(ctx);
+  for (uint32_t i = 0; i < n; ++i)
+  {
+    int64_t* row = buf + i * 5;
+    JSValue rec = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, rec, "kind",
+                      JS_NewString(ctx, row[0] == 0 ? "cancel" : "revert"));
+    JS_SetPropertyStr(ctx, rec, "legIndex", JS_NewInt32(ctx, static_cast<int32_t>(row[1])));
+    if (row[0] == 0)
+    {
+      JS_SetPropertyStr(ctx, rec, "orderId", JS_NewInt64(ctx, row[2]));
+    }
+    else
+    {
+      JS_SetPropertyStr(ctx, rec, "symbol", JS_NewInt32(ctx, static_cast<int32_t>(row[2])));
+      JS_SetPropertyStr(ctx, rec, "side", JS_NewInt32(ctx, static_cast<int32_t>(row[3])));
+      JS_SetPropertyStr(ctx, rec, "qty", JS_NewFloat64(ctx, static_cast<double>(row[4]) / 1e8));
+    }
+    JS_SetPropertyUint32(ctx, out, i, rec);
+  }
+  return out;
+}
+
+static JSValue js_order_group_mark_action_dispatched(JSContext* ctx, JSValueConst, int,
+                                                     JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  uint32_t leg = toUint32(ctx, argv[1]);
+  uint32_t kind = toUint32(ctx, argv[2]);
+  flox_order_group_mark_action_dispatched(h, leg, static_cast<uint8_t>(kind));
+  return JS_UNDEFINED;
+}
+
+static JSValue js_order_group_set_risk_limits(JSContext* ctx, JSValueConst, int,
+                                              JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  double max_gross = toDouble(ctx, argv[1]);
+  double max_conc = toDouble(ctx, argv[2]);
+  double max_leg = toDouble(ctx, argv[3]);
+  int64_t gross_raw = static_cast<int64_t>(max_gross * 100'000'000LL);
+  int64_t leg_raw = static_cast<int64_t>(max_leg * 100'000'000LL);
+  flox_order_group_set_risk_limits(h, gross_raw, max_conc, leg_raw);
+  return JS_UNDEFINED;
+}
+
+static JSValue js_order_group_precheck_submission(JSContext* ctx, JSValueConst, int,
+                                                  JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  double equity = toDouble(ctx, argv[1]);
+
+  std::vector<int64_t> prices_raw;
+  uint32_t plen = 0;
+  if (JS_IsArray(ctx, argv[2]))
+  {
+    JSValue lenVal = JS_GetPropertyStr(ctx, argv[2], "length");
+    JS_ToUint32(ctx, &plen, lenVal);
+    JS_FreeValue(ctx, lenVal);
+    prices_raw.reserve(plen);
+    for (uint32_t i = 0; i < plen; ++i)
+    {
+      JSValue v = JS_GetPropertyUint32(ctx, argv[2], i);
+      double p = 0;
+      JS_ToFloat64(ctx, &p, v);
+      JS_FreeValue(ctx, v);
+      prices_raw.push_back(static_cast<int64_t>(p * 100'000'000LL));
+    }
+  }
+
+  char rule[64] = {};
+  char detail[256] = {};
+  uint8_t denied = flox_order_group_precheck_submission(
+      h, equity, prices_raw.empty() ? nullptr : prices_raw.data(), plen, rule, sizeof(rule),
+      detail, sizeof(detail));
+
+  JSValue out = JS_NewObject(ctx);
+  JS_SetPropertyStr(ctx, out, "denied", JS_NewBool(ctx, denied != 0));
+  JS_SetPropertyStr(ctx, out, "rule", JS_NewString(ctx, rule));
+  JS_SetPropertyStr(ctx, out, "detail", JS_NewString(ctx, detail));
+  return out;
+}
+
+static JSValue js_order_group_set_pair_latency_budget_ns(JSContext* ctx, JSValueConst, int,
+                                                         JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  int64_t budget = 0;
+  JS_ToInt64(ctx, &budget, argv[1]);
+  flox_order_group_set_pair_latency_budget_ns(h, budget);
+  return JS_UNDEFINED;
+}
+
+static JSValue js_order_group_pair_latency_decision(JSContext* ctx, JSValueConst, int,
+                                                    JSValueConst* argv)
+{
+  auto h = static_cast<FloxOrderGroupHandle>(getHandle(ctx, argv[0]));
+  int64_t submit_ts = 0, ack_ts = 0;
+  JS_ToInt64(ctx, &submit_ts, argv[1]);
+  JS_ToInt64(ctx, &ack_ts, argv[2]);
+  uint32_t ack_received = toUint32(ctx, argv[3]);
+  uint8_t d = flox_order_group_pair_latency_decision(h, submit_ts, ack_ts,
+                                                     static_cast<uint8_t>(ack_received));
+  const char* name = d == 0 ? "wait" : (d == 1 ? "submit_follower" : "cancel_leader");
+  return JS_NewString(ctx, name);
+}
+
+// ============================================================
+// Bar dispatch recorder (cross-binding parity test fixture)
+// ============================================================
+
+static JSValue js_bar_dispatch_recorder_create(JSContext* ctx, JSValueConst, int, JSValueConst*)
+{
+  return createHandleObject(ctx, flox_bar_dispatch_recorder_create());
+}
+
+static JSValue js_bar_dispatch_recorder_destroy(JSContext* ctx, JSValueConst, int,
+                                                JSValueConst* argv)
+{
+  flox_bar_dispatch_recorder_destroy(
+      static_cast<FloxBarDispatchRecorderHandle>(getHandle(ctx, argv[0])));
+  return JS_UNDEFINED;
+}
+
+static JSValue js_bar_dispatch_recorder_add_time_seconds(JSContext* ctx, JSValueConst, int,
+                                                         JSValueConst* argv)
+{
+  auto h = static_cast<FloxBarDispatchRecorderHandle>(getHandle(ctx, argv[0]));
+  uint32_t seconds = toUint32(ctx, argv[1]);
+  return JS_NewUint32(ctx, flox_bar_dispatch_recorder_add_time_seconds(h, seconds));
+}
+
+static JSValue js_bar_dispatch_recorder_on_trade(JSContext* ctx, JSValueConst, int,
+                                                 JSValueConst* argv)
+{
+  auto h = static_cast<FloxBarDispatchRecorderHandle>(getHandle(ctx, argv[0]));
+  uint32_t symbol = toUint32(ctx, argv[1]);
+  double price = toDouble(ctx, argv[2]);
+  double qty = toDouble(ctx, argv[3]);
+  int64_t ts_ns = 0;
+  JS_ToInt64(ctx, &ts_ns, argv[4]);
+  flox_bar_dispatch_recorder_on_trade(h, symbol, price, qty, ts_ns);
+  return JS_UNDEFINED;
+}
+
+static JSValue js_bar_dispatch_recorder_finalize(JSContext* ctx, JSValueConst, int,
+                                                 JSValueConst* argv)
+{
+  flox_bar_dispatch_recorder_finalize(
+      static_cast<FloxBarDispatchRecorderHandle>(getHandle(ctx, argv[0])));
+  return JS_UNDEFINED;
+}
+
+static JSValue js_bar_dispatch_recorder_count(JSContext* ctx, JSValueConst, int,
+                                              JSValueConst* argv)
+{
+  auto h = static_cast<FloxBarDispatchRecorderHandle>(getHandle(ctx, argv[0]));
+  return JS_NewUint32(ctx, flox_bar_dispatch_recorder_count(h));
+}
+
+static JSValue js_bar_dispatch_recorder_type_at(JSContext* ctx, JSValueConst, int,
+                                                JSValueConst* argv)
+{
+  auto h = static_cast<FloxBarDispatchRecorderHandle>(getHandle(ctx, argv[0]));
+  uint32_t i = toUint32(ctx, argv[1]);
+  return JS_NewUint32(ctx, flox_bar_dispatch_recorder_type_at(h, i));
+}
+
+static JSValue js_bar_dispatch_recorder_param_at(JSContext* ctx, JSValueConst, int,
+                                                 JSValueConst* argv)
+{
+  auto h = static_cast<FloxBarDispatchRecorderHandle>(getHandle(ctx, argv[0]));
+  uint32_t i = toUint32(ctx, argv[1]);
+  return JS_NewInt64(ctx, static_cast<int64_t>(flox_bar_dispatch_recorder_param_at(h, i)));
+}
+
+// ============================================================
 // Tape diff bindings (replay-equivalence localization)
 // ============================================================
 
@@ -3194,6 +3505,233 @@ static JSValue js_dw_stats(JSContext* c, JSValueConst, int, JSValueConst* a)
   return o;
 }
 
+// Extract raw int64 [price,qty,...] pairs from a BigInt64Array (or ArrayBuffer) into a
+// vector<FloxBookLevel>. Returns true on success; throws on type/size error.
+static bool extractBookLevels(JSContext* c, JSValueConst arr, uint32_t expectedPairs,
+                              std::vector<FloxBookLevel>& out)
+{
+  if (expectedPairs == 0)
+  {
+    out.clear();
+    return true;
+  }
+  if (JS_IsUndefined(arr) || JS_IsNull(arr))
+  {
+    JS_ThrowTypeError(c, "writeBook: levels buffer is null but count > 0");
+    return false;
+  }
+  size_t byteOffset = 0;
+  size_t byteLength = 0;
+  size_t bytesPerElement = 0;
+  JSValue ab = JS_GetTypedArrayBuffer(c, arr, &byteOffset, &byteLength, &bytesPerElement);
+  uint8_t* base = nullptr;
+  size_t totalSize = 0;
+  if (!JS_IsException(ab))
+  {
+    base = JS_GetArrayBuffer(c, &totalSize, ab);
+    JS_FreeValue(c, ab);
+  }
+  else
+  {
+    // Maybe a plain ArrayBuffer.
+    JS_GetException(c);  // clear pending
+    base = JS_GetArrayBuffer(c, &totalSize, arr);
+    byteOffset = 0;
+    byteLength = totalSize;
+    bytesPerElement = 8;
+  }
+  if (!base)
+  {
+    JS_ThrowTypeError(c, "writeBook: expected BigInt64Array or ArrayBuffer");
+    return false;
+  }
+  if (bytesPerElement != 0 && bytesPerElement != 8)
+  {
+    JS_ThrowTypeError(c, "writeBook: typed array must be BigInt64Array (8-byte elements)");
+    return false;
+  }
+  size_t needed = static_cast<size_t>(expectedPairs) * 2 * 8;
+  if (byteLength < needed)
+  {
+    JS_ThrowRangeError(c, "writeBook: buffer too small for declared level count");
+    return false;
+  }
+  const int64_t* p = reinterpret_cast<const int64_t*>(base + byteOffset);
+  out.resize(expectedPairs);
+  for (uint32_t i = 0; i < expectedPairs; i++)
+  {
+    out[i].price_raw = p[i * 2];
+    out[i].quantity_raw = p[i * 2 + 1];
+  }
+  return true;
+}
+
+static JSValue js_dw_write_book(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  auto h = static_cast<FloxDataWriterHandle>(getHandle(c, a[0]));
+  int64_t exchangeTsNs = toInt64(c, a[1]);
+  int64_t recvTsNs = toInt64(c, a[2]);
+  int64_t seq = toInt64(c, a[3]);
+  uint32_t symbolId = toUint32(c, a[4]);
+  uint8_t isSnapshot = static_cast<uint8_t>(toUint32(c, a[5]));
+  uint32_t nBids = toUint32(c, a[7]);
+  uint32_t nAsks = toUint32(c, a[9]);
+
+  std::vector<FloxBookLevel> bids;
+  std::vector<FloxBookLevel> asks;
+  if (!extractBookLevels(c, a[6], nBids, bids))
+  {
+    return JS_EXCEPTION;
+  }
+  if (!extractBookLevels(c, a[8], nAsks, asks))
+  {
+    return JS_EXCEPTION;
+  }
+  uint8_t ok = flox_data_writer_write_book(h, exchangeTsNs, recvTsNs, seq, symbolId, isSnapshot,
+                                           bids.empty() ? nullptr : bids.data(), nBids,
+                                           asks.empty() ? nullptr : asks.data(), nAsks);
+  return JS_NewBool(c, ok);
+}
+
+// ============================================================
+// BinaryLogRecorderHook
+// ============================================================
+
+static JSValue js_blrh_create(JSContext* c, JSValueConst, int argc, JSValueConst* a)
+{
+  const char* dir = JS_ToCString(c, a[0]);
+  uint64_t mb = (argc < 2 || JS_IsUndefined(a[1]) || JS_IsNull(a[1]))
+                    ? 256
+                    : static_cast<uint64_t>(toInt64(c, a[1]));
+  uint8_t eid = (argc < 3 || JS_IsUndefined(a[2]) || JS_IsNull(a[2]))
+                    ? 0
+                    : static_cast<uint8_t>(toUint32(c, a[2]));
+  uint8_t comp = (argc < 4 || JS_IsUndefined(a[3]) || JS_IsNull(a[3]))
+                     ? 0
+                     : static_cast<uint8_t>(toUint32(c, a[3]));
+  // Optional a[4] = exchange_name, a[5] = instrument_type. Both feed the
+  // RecordingMetadata stamp the merged-tape reader keys on.
+  const char* exch = (argc > 4 && JS_IsString(a[4])) ? JS_ToCString(c, a[4]) : nullptr;
+  const char* itype = (argc > 5 && JS_IsString(a[5])) ? JS_ToCString(c, a[5]) : nullptr;
+  JSValue ret = createHandleObject(
+      c, flox_binary_log_recorder_hook_create_ex(dir, mb, eid, comp, exch, itype));
+  JS_FreeCString(c, dir);
+  if (exch)
+  {
+    JS_FreeCString(c, exch);
+  }
+  if (itype)
+  {
+    JS_FreeCString(c, itype);
+  }
+  return ret;
+}
+
+// ── Recorder-handle drivers (used by smoke tests + bindings that want
+//    to push events directly through a BinaryLogRecorderHook without
+//    spinning up a Runner). The recorder handle's first member is the
+//    callbacks struct, so the cast is layout-stable.
+static JSValue js_recorder_on_start(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  auto* cb = static_cast<FloxMarketDataRecorderCallbacks*>(getHandle(c, a[0]));
+  if (cb && cb->on_start)
+  {
+    cb->on_start(cb->user_data);
+  }
+  return JS_UNDEFINED;
+}
+
+static JSValue js_recorder_on_stop(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  auto* cb = static_cast<FloxMarketDataRecorderCallbacks*>(getHandle(c, a[0]));
+  if (cb && cb->on_stop)
+  {
+    cb->on_stop(cb->user_data);
+  }
+  return JS_UNDEFINED;
+}
+
+static JSValue js_recorder_on_trade(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  // (handle, symbolId, price, qty, isBuy, exchangeTsNs)
+  auto* cb = static_cast<FloxMarketDataRecorderCallbacks*>(getHandle(c, a[0]));
+  if (!cb || !cb->on_trade)
+  {
+    return JS_UNDEFINED;
+  }
+  FloxTradeData td{};
+  td.symbol = toUint32(c, a[1]);
+  double px = toDouble(c, a[2]);
+  double qty = toDouble(c, a[3]);
+  td.price_raw = static_cast<int64_t>(px * 1e8);
+  td.quantity_raw = static_cast<int64_t>(qty * 1e8);
+  td.is_buy = JS_ToBool(c, a[4]) ? 1 : 0;
+  td.exchange_ts_ns = toInt64(c, a[5]);
+  cb->on_trade(cb->user_data, &td);
+  return JS_UNDEFINED;
+}
+
+static JSValue js_blrh_destroy(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  flox_binary_log_recorder_hook_destroy(
+      static_cast<FloxBinaryLogRecorderHookHandle>(getHandle(c, a[0])));
+  return JS_UNDEFINED;
+}
+
+static JSValue js_blrh_as_recorder(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  auto rec = flox_binary_log_recorder_hook_as_recorder(
+      static_cast<FloxBinaryLogRecorderHookHandle>(getHandle(c, a[0])));
+  return createHandleObject(c, rec);
+}
+
+static JSValue js_blrh_add_symbol(JSContext* c, JSValueConst, int argc, JSValueConst* a)
+{
+  auto h = static_cast<FloxBinaryLogRecorderHookHandle>(getHandle(c, a[0]));
+  uint32_t symbolId = toUint32(c, a[1]);
+  const char* name = JS_ToCString(c, a[2]);
+  const char* base = argc > 3 ? JS_ToCString(c, a[3]) : nullptr;
+  const char* quote = argc > 4 ? JS_ToCString(c, a[4]) : nullptr;
+  int8_t pp = argc > 5 ? static_cast<int8_t>(toInt64(c, a[5])) : 8;
+  int8_t qp = argc > 6 ? static_cast<int8_t>(toInt64(c, a[6])) : 8;
+  flox_binary_log_recorder_hook_add_symbol(h, symbolId, name ? name : "", base ? base : "",
+                                           quote ? quote : "", pp, qp);
+  if (name)
+  {
+    JS_FreeCString(c, name);
+  }
+  if (base)
+  {
+    JS_FreeCString(c, base);
+  }
+  if (quote)
+  {
+    JS_FreeCString(c, quote);
+  }
+  return JS_UNDEFINED;
+}
+
+static JSValue js_blrh_flush(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  flox_binary_log_recorder_hook_flush(
+      static_cast<FloxBinaryLogRecorderHookHandle>(getHandle(c, a[0])));
+  return JS_UNDEFINED;
+}
+
+static JSValue js_blrh_stats(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  FloxWriterStats s = flox_binary_log_recorder_hook_stats(
+      static_cast<FloxBinaryLogRecorderHookHandle>(getHandle(c, a[0])));
+  JSValue o = JS_NewObject(c);
+  JS_SetPropertyStr(c, o, "tradesWritten", JS_NewInt64(c, static_cast<int64_t>(s.trades_written)));
+  JS_SetPropertyStr(c, o, "bookUpdatesWritten",
+                    JS_NewInt64(c, static_cast<int64_t>(s.events_written - s.trades_written)));
+  JS_SetPropertyStr(c, o, "bytesWritten", JS_NewInt64(c, static_cast<int64_t>(s.bytes_written)));
+  JS_SetPropertyStr(c, o, "segmentsCreated",
+                    JS_NewInt64(c, static_cast<int64_t>(s.segments_created)));
+  return o;
+}
+
 // ============================================================
 // DataReader
 // ============================================================
@@ -3468,71 +4006,200 @@ static JSValue js_dr_read_book_updates_from(JSContext* c, JSValueConst, int, JSV
 }
 
 // ============================================================
-// DataRecorder
+// MergedTapeReader — N-tape merged consumption
 // ============================================================
 
-static JSValue js_recorder_create(JSContext* c, JSValueConst, int argc, JSValueConst* a)
+static JSValue js_mtr_create(JSContext* c, JSValueConst, int argc, JSValueConst* a)
 {
-  const char* dir = JS_ToCString(c, a[0]);
-  const char* exc = argc > 1 ? JS_ToCString(c, a[1]) : "";
-  uint64_t mb = argc > 2 ? static_cast<uint64_t>(toInt64(c, a[2])) : 256;
-  JSValue ret = createHandleObject(c, flox_data_recorder_create(dir, exc ? exc : "", mb));
-  JS_FreeCString(c, dir);
-  if (argc > 1)
+  // a[0]: array of paths (string[])
+  // a[1]: fromNs (int64, -1 = none)
+  // a[2]: toNs   (int64, -1 = none)
+  // a[3]: symbol filter (uint32[], optional)
+  std::vector<const char*> path_cstrs;
+  std::vector<JSValue> path_jsvals;  // hold for JS_FreeCString
+  if (JS_IsArray(c, a[0]))
   {
-    JS_FreeCString(c, exc);
+    JSValue lenVal = JS_GetPropertyStr(c, a[0], "length");
+    uint32_t n = 0;
+    JS_ToUint32(c, &n, lenVal);
+    JS_FreeValue(c, lenVal);
+    path_cstrs.reserve(n);
+    path_jsvals.reserve(n);
+    for (uint32_t i = 0; i < n; i++)
+    {
+      JSValue e = JS_GetPropertyUint32(c, a[0], i);
+      const char* s = JS_ToCString(c, e);
+      path_cstrs.push_back(s ? s : "");
+      path_jsvals.push_back(e);  // freed after C call
+    }
   }
-  return ret;
-}
+  int64_t from_ns = argc > 1 ? toInt64(c, a[1]) : -1;
+  int64_t to_ns = argc > 2 ? toInt64(c, a[2]) : -1;
 
-static JSValue js_recorder_destroy(JSContext* c, JSValueConst, int, JSValueConst* a)
-{
-  flox_data_recorder_destroy(static_cast<FloxDataRecorderHandle>(getHandle(c, a[0])));
-  return JS_UNDEFINED;
-}
-
-static JSValue js_recorder_add_symbol(JSContext* c, JSValueConst, int argc, JSValueConst* a)
-{
-  auto h = static_cast<FloxDataRecorderHandle>(getHandle(c, a[0]));
-  const char* name = JS_ToCString(c, a[2]);
-  const char* base = argc > 3 ? JS_ToCString(c, a[3]) : "";
-  const char* quote = argc > 4 ? JS_ToCString(c, a[4]) : "";
-  int8_t pp = argc > 5 ? static_cast<int8_t>(toInt64(c, a[5])) : 8;
-  int8_t qp = argc > 6 ? static_cast<int8_t>(toInt64(c, a[6])) : 8;
-  flox_data_recorder_add_symbol(h, toUint32(c, a[1]), name, base ? base : "", quote ? quote : "", pp, qp);
-  JS_FreeCString(c, name);
-  if (argc > 3)
+  std::vector<uint32_t> syms;
+  if (argc > 3 && JS_IsArray(c, a[3]))
   {
-    JS_FreeCString(c, base);
+    JSValue lenVal = JS_GetPropertyStr(c, a[3], "length");
+    uint32_t n = 0;
+    JS_ToUint32(c, &n, lenVal);
+    JS_FreeValue(c, lenVal);
+    syms.reserve(n);
+    for (uint32_t i = 0; i < n; i++)
+    {
+      JSValue e = JS_GetPropertyUint32(c, a[3], i);
+      syms.push_back(toUint32(c, e));
+      JS_FreeValue(c, e);
+    }
   }
-  if (argc > 4)
+
+  auto handle = flox_merged_tape_reader_create(
+      path_cstrs.empty() ? nullptr : path_cstrs.data(),
+      static_cast<uint32_t>(path_cstrs.size()), from_ns, to_ns,
+      syms.empty() ? nullptr : syms.data(), static_cast<uint32_t>(syms.size()));
+
+  // Release borrowed strings + JS values
+  for (size_t i = 0; i < path_cstrs.size(); ++i)
   {
-    JS_FreeCString(c, quote);
+    if (path_cstrs[i])
+    {
+      JS_FreeCString(c, path_cstrs[i]);
+    }
+    JS_FreeValue(c, path_jsvals[i]);
   }
+
+  return createHandleObject(c, handle);
+}
+
+static JSValue js_mtr_destroy(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  flox_merged_tape_reader_destroy(
+      static_cast<FloxMergedTapeReaderHandle>(getHandle(c, a[0])));
   return JS_UNDEFINED;
 }
 
-static JSValue js_recorder_start(JSContext* c, JSValueConst, int, JSValueConst* a)
+static JSValue js_mtr_symbol_count(JSContext* c, JSValueConst, int, JSValueConst* a)
 {
-  flox_data_recorder_start(static_cast<FloxDataRecorderHandle>(getHandle(c, a[0])));
-  return JS_UNDEFINED;
+  return JS_NewUint32(c, flox_merged_tape_reader_symbol_count(
+                             static_cast<FloxMergedTapeReaderHandle>(getHandle(c, a[0]))));
 }
 
-static JSValue js_recorder_stop(JSContext* c, JSValueConst, int, JSValueConst* a)
+static JSValue js_mtr_get_symbols(JSContext* c, JSValueConst, int, JSValueConst* a)
 {
-  flox_data_recorder_stop(static_cast<FloxDataRecorderHandle>(getHandle(c, a[0])));
-  return JS_UNDEFINED;
+  auto h = static_cast<FloxMergedTapeReaderHandle>(getHandle(c, a[0]));
+  uint32_t n = flox_merged_tape_reader_symbol_count(h);
+  if (n == 0)
+  {
+    return JS_NewArray(c);
+  }
+  std::vector<FloxMergedSymbol> syms(n);
+  uint32_t got = flox_merged_tape_reader_get_symbols(h, syms.data(), n);
+  JSValue arr = JS_NewArray(c);
+  for (uint32_t i = 0; i < got; i++)
+  {
+    JSValue o = JS_NewObject(c);
+    JS_SetPropertyStr(c, o, "globalId", JS_NewUint32(c, syms[i].global_id));
+    JS_SetPropertyStr(c, o, "pricePrecision",
+                      JS_NewInt32(c, static_cast<int32_t>(syms[i].price_precision)));
+    JS_SetPropertyStr(c, o, "qtyPrecision",
+                      JS_NewInt32(c, static_cast<int32_t>(syms[i].qty_precision)));
+    JS_SetPropertyStr(c, o, "exchange", JS_NewString(c, syms[i].exchange ? syms[i].exchange : ""));
+    JS_SetPropertyStr(c, o, "name", JS_NewString(c, syms[i].name ? syms[i].name : ""));
+    JS_SetPropertyUint32(c, arr, i, o);
+  }
+  return arr;
 }
 
-static JSValue js_recorder_flush(JSContext* c, JSValueConst, int, JSValueConst* a)
+static JSValue js_mtr_tape_count(JSContext* c, JSValueConst, int, JSValueConst* a)
 {
-  flox_data_recorder_flush(static_cast<FloxDataRecorderHandle>(getHandle(c, a[0])));
-  return JS_UNDEFINED;
+  return JS_NewUint32(c, flox_merged_tape_reader_tape_count(
+                             static_cast<FloxMergedTapeReaderHandle>(getHandle(c, a[0]))));
 }
 
-static JSValue js_recorder_is_recording(JSContext* c, JSValueConst, int, JSValueConst* a)
+static JSValue js_mtr_get_tape_stats(JSContext* c, JSValueConst, int, JSValueConst* a)
 {
-  return JS_NewBool(c, flox_data_recorder_is_recording(static_cast<FloxDataRecorderHandle>(getHandle(c, a[0]))));
+  auto h = static_cast<FloxMergedTapeReaderHandle>(getHandle(c, a[0]));
+  uint32_t n = flox_merged_tape_reader_tape_count(h);
+  if (n == 0)
+  {
+    return JS_NewArray(c);
+  }
+  std::vector<FloxMergedTapeStats> stats(n);
+  uint32_t got = flox_merged_tape_reader_get_tape_stats(h, stats.data(), n);
+  JSValue arr = JS_NewArray(c);
+  for (uint32_t i = 0; i < got; i++)
+  {
+    JSValue o = JS_NewObject(c);
+    JS_SetPropertyStr(c, o, "firstEventNs", JS_NewBigInt64(c, stats[i].first_event_ns));
+    JS_SetPropertyStr(c, o, "lastEventNs", JS_NewBigInt64(c, stats[i].last_event_ns));
+    JS_SetPropertyStr(c, o, "trades",
+                      JS_NewBigInt64(c, static_cast<int64_t>(stats[i].trades)));
+    JS_SetPropertyStr(c, o, "books", JS_NewBigInt64(c, static_cast<int64_t>(stats[i].books)));
+    JS_SetPropertyStr(c, o, "path", JS_NewString(c, stats[i].path ? stats[i].path : ""));
+    JS_SetPropertyUint32(c, arr, i, o);
+  }
+  return arr;
+}
+
+static JSValue js_mtr_time_range(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  auto h = static_cast<FloxMergedTapeReaderHandle>(getHandle(c, a[0]));
+  int64_t lo = 0, hi = 0;
+  flox_merged_tape_reader_time_range(h, &lo, &hi);
+  JSValue o = JS_NewObject(c);
+  JS_SetPropertyStr(c, o, "minFirstNs", JS_NewBigInt64(c, lo));
+  JS_SetPropertyStr(c, o, "maxLastNs", JS_NewBigInt64(c, hi));
+  return o;
+}
+
+static JSValue js_mtr_count_trades(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  return JS_NewBigInt64(c, static_cast<int64_t>(flox_merged_tape_reader_count_trades(
+                               static_cast<FloxMergedTapeReaderHandle>(getHandle(c, a[0])))));
+}
+
+static JSValue js_mtr_read_trades(JSContext* c, JSValueConst, int argc, JSValueConst* a)
+{
+  auto h = static_cast<FloxMergedTapeReaderHandle>(getHandle(c, a[0]));
+  uint64_t max = argc > 1 ? static_cast<uint64_t>(toInt64(c, a[1])) : 0;
+  uint64_t n = flox_merged_tape_reader_count_trades(h);
+  if (max > 0 && max < n)
+  {
+    n = max;
+  }
+  if (n == 0)
+  {
+    return JS_NewArray(c);
+  }
+  std::vector<FloxTradeRecord> trades(n);
+  uint64_t got = flox_merged_tape_reader_read_trades(h, trades.data(), n);
+  return js_dr_build_trades_array(c, trades, got);
+}
+
+static JSValue js_mtr_count_books(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  auto h = static_cast<FloxMergedTapeReaderHandle>(getHandle(c, a[0]));
+  uint64_t total_levels = 0;
+  uint64_t n_events = flox_merged_tape_reader_count_books(h, &total_levels);
+  JSValue o = JS_NewObject(c);
+  JS_SetPropertyStr(c, o, "events", JS_NewBigInt64(c, static_cast<int64_t>(n_events)));
+  JS_SetPropertyStr(c, o, "levels", JS_NewBigInt64(c, static_cast<int64_t>(total_levels)));
+  return o;
+}
+
+static JSValue js_mtr_read_books(JSContext* c, JSValueConst, int, JSValueConst* a)
+{
+  auto h = static_cast<FloxMergedTapeReaderHandle>(getHandle(c, a[0]));
+  uint64_t total_levels = 0;
+  uint64_t n_events = flox_merged_tape_reader_count_books(h, &total_levels);
+  if (n_events == 0)
+  {
+    return JS_NewArray(c);
+  }
+  std::vector<FloxBookUpdateHeader> headers(n_events);
+  std::vector<FloxLevel> levels(total_levels);
+  uint64_t got = flox_merged_tape_reader_read_books(h, headers.data(), n_events,
+                                                    levels.data(), total_levels);
+  return js_dr_build_book_updates_array(c, headers, levels, got);
 }
 
 // ============================================================
@@ -4218,6 +4885,48 @@ void registerFloxBindings(JSContext* ctx)
   addGlobalFunc(ctx, "__flox_run_reader_orders", js_run_reader_orders, 1);
   addGlobalFunc(ctx, "__flox_run_reader_fills", js_run_reader_fills, 1);
 
+  // Order group (multi-leg state machine; QuickJS class wraps these in
+  // quickjs/flox/order_group.js so all four bindings share the engine).
+  addGlobalFunc(ctx, "__flox_order_group_create", js_order_group_create, 2);
+  addGlobalFunc(ctx, "__flox_order_group_destroy", js_order_group_destroy, 1);
+  addGlobalFunc(ctx, "__flox_order_group_add_market_leg", js_order_group_add_market_leg, 4);
+  addGlobalFunc(ctx, "__flox_order_group_add_limit_leg", js_order_group_add_limit_leg, 5);
+  addGlobalFunc(ctx, "__flox_order_group_leg_count", js_order_group_leg_count, 1);
+  addGlobalFunc(ctx, "__flox_order_group_leg_state", js_order_group_leg_state, 2);
+  addGlobalFunc(ctx, "__flox_order_group_leg_filled", js_order_group_leg_filled, 2);
+  addGlobalFunc(ctx, "__flox_order_group_leg_order_id", js_order_group_leg_order_id, 2);
+  addGlobalFunc(ctx, "__flox_order_group_record_submit", js_order_group_record_submit, 3);
+  addGlobalFunc(ctx, "__flox_order_group_record_fill", js_order_group_record_fill, 3);
+  addGlobalFunc(ctx, "__flox_order_group_record_cancel", js_order_group_record_cancel, 2);
+  addGlobalFunc(ctx, "__flox_order_group_record_failure", js_order_group_record_failure, 2);
+  addGlobalFunc(ctx, "__flox_order_group_state", js_order_group_state, 1);
+  addGlobalFunc(ctx, "__flox_order_group_recommended_actions",
+                js_order_group_recommended_actions, 1);
+  addGlobalFunc(ctx, "__flox_order_group_mark_action_dispatched",
+                js_order_group_mark_action_dispatched, 3);
+  addGlobalFunc(ctx, "__flox_order_group_set_risk_limits", js_order_group_set_risk_limits, 4);
+  addGlobalFunc(ctx, "__flox_order_group_precheck_submission",
+                js_order_group_precheck_submission, 3);
+  addGlobalFunc(ctx, "__flox_order_group_set_pair_latency_budget_ns",
+                js_order_group_set_pair_latency_budget_ns, 2);
+  addGlobalFunc(ctx, "__flox_order_group_pair_latency_decision",
+                js_order_group_pair_latency_decision, 4);
+
+  // Bar dispatch recorder (cross-binding parity test fixture)
+  addGlobalFunc(ctx, "__flox_bar_dispatch_recorder_create", js_bar_dispatch_recorder_create, 0);
+  addGlobalFunc(ctx, "__flox_bar_dispatch_recorder_destroy", js_bar_dispatch_recorder_destroy, 1);
+  addGlobalFunc(ctx, "__flox_bar_dispatch_recorder_add_time_seconds",
+                js_bar_dispatch_recorder_add_time_seconds, 2);
+  addGlobalFunc(ctx, "__flox_bar_dispatch_recorder_on_trade",
+                js_bar_dispatch_recorder_on_trade, 5);
+  addGlobalFunc(ctx, "__flox_bar_dispatch_recorder_finalize",
+                js_bar_dispatch_recorder_finalize, 1);
+  addGlobalFunc(ctx, "__flox_bar_dispatch_recorder_count", js_bar_dispatch_recorder_count, 1);
+  addGlobalFunc(ctx, "__flox_bar_dispatch_recorder_type_at",
+                js_bar_dispatch_recorder_type_at, 2);
+  addGlobalFunc(ctx, "__flox_bar_dispatch_recorder_param_at",
+                js_bar_dispatch_recorder_param_at, 2);
+
   // Tape diff
   addGlobalFunc(ctx, "__flox_tape_diff", js_tape_diff, 3);
 
@@ -4465,6 +5174,7 @@ void registerFloxBindings(JSContext* ctx)
   addGlobalFunc(ctx, "__flox_dw_create", js_dw_create, 3);
   addGlobalFunc(ctx, "__flox_dw_destroy", js_dw_destroy, 1);
   addGlobalFunc(ctx, "__flox_dw_write_trade", js_dw_write_trade, 8);
+  addGlobalFunc(ctx, "__flox_dw_write_book", js_dw_write_book, 10);
   addGlobalFunc(ctx, "__flox_dw_flush", js_dw_flush, 1);
   addGlobalFunc(ctx, "__flox_dw_close", js_dw_close, 1);
   addGlobalFunc(ctx, "__flox_dw_stats", js_dw_stats, 1);
@@ -4483,14 +5193,32 @@ void registerFloxBindings(JSContext* ctx)
   addGlobalFunc(ctx, "__flox_dr_read_bbo_from", js_dr_read_bbo_from, 3);
   addGlobalFunc(ctx, "__flox_dr_read_book_updates_from", js_dr_read_book_updates_from, 2);
 
-  // DataRecorder
-  addGlobalFunc(ctx, "__flox_recorder_create", js_recorder_create, 3);
-  addGlobalFunc(ctx, "__flox_recorder_destroy", js_recorder_destroy, 1);
-  addGlobalFunc(ctx, "__flox_recorder_add_symbol", js_recorder_add_symbol, 7);
-  addGlobalFunc(ctx, "__flox_recorder_start", js_recorder_start, 1);
-  addGlobalFunc(ctx, "__flox_recorder_stop", js_recorder_stop, 1);
-  addGlobalFunc(ctx, "__flox_recorder_flush", js_recorder_flush, 1);
-  addGlobalFunc(ctx, "__flox_recorder_is_recording", js_recorder_is_recording, 1);
+  // MergedTapeReader
+  addGlobalFunc(ctx, "__flox_mtr_create", js_mtr_create, 4);
+  addGlobalFunc(ctx, "__flox_mtr_destroy", js_mtr_destroy, 1);
+  addGlobalFunc(ctx, "__flox_mtr_symbol_count", js_mtr_symbol_count, 1);
+  addGlobalFunc(ctx, "__flox_mtr_get_symbols", js_mtr_get_symbols, 1);
+  addGlobalFunc(ctx, "__flox_mtr_tape_count", js_mtr_tape_count, 1);
+  addGlobalFunc(ctx, "__flox_mtr_get_tape_stats", js_mtr_get_tape_stats, 1);
+  addGlobalFunc(ctx, "__flox_mtr_time_range", js_mtr_time_range, 1);
+  addGlobalFunc(ctx, "__flox_mtr_count_trades", js_mtr_count_trades, 1);
+  addGlobalFunc(ctx, "__flox_mtr_read_trades", js_mtr_read_trades, 2);
+  addGlobalFunc(ctx, "__flox_mtr_count_books", js_mtr_count_books, 1);
+  addGlobalFunc(ctx, "__flox_mtr_read_books", js_mtr_read_books, 1);
+
+  // BinaryLogRecorderHook
+  addGlobalFunc(ctx, "__flox_blrh_create", js_blrh_create, 6);
+  addGlobalFunc(ctx, "__flox_blrh_destroy", js_blrh_destroy, 1);
+  addGlobalFunc(ctx, "__flox_blrh_as_recorder", js_blrh_as_recorder, 1);
+  addGlobalFunc(ctx, "__flox_blrh_add_symbol", js_blrh_add_symbol, 7);
+  addGlobalFunc(ctx, "__flox_blrh_flush", js_blrh_flush, 1);
+  addGlobalFunc(ctx, "__flox_blrh_stats", js_blrh_stats, 1);
+
+  // MarketDataRecorder handle drivers — push lifecycle + trade events
+  // directly through the recorder callbacks, no Runner required.
+  addGlobalFunc(ctx, "__flox_recorder_on_start", js_recorder_on_start, 1);
+  addGlobalFunc(ctx, "__flox_recorder_on_stop", js_recorder_on_stop, 1);
+  addGlobalFunc(ctx, "__flox_recorder_on_trade", js_recorder_on_trade, 6);
 
   // Partitioner
   addGlobalFunc(ctx, "__flox_part_create", js_part_create, 1);

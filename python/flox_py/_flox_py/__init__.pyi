@@ -8,7 +8,7 @@ import numpy.typing
 import typing
 from . import _heatmap
 from . import targets
-__all__: list[str] = ['ALL_OR_NOTHING', 'ATR', 'AutoCorrelation', 'BEST_EFFORT', 'BacktestResult', 'BacktestRunner', 'BarData', 'Bollinger', 'CANCELLED', 'CCI', 'CompositeBookMatrix', 'ConstantLatency', 'Correlation', 'DEMA', 'DataReader', 'DataRecorder', 'DataWriter', 'DeltaBookEncoder', 'DeltaBookReplayer', 'EMA', 'EmpiricalLatency', 'Engine', 'ExchangeCapabilities', 'ExecutionListener', 'Executor', 'ExponentialLatency', 'FAILED', 'FILLED', 'FIRE_ON_ANY', 'FeedClockPolicy', 'FillLiquidity', 'FloxError', 'FootprintBar', 'GaussianLatency', 'GridSearch', 'IndicatorGraph', 'KAMA', 'KillSwitch', 'Kurtosis', 'L3Book', 'LEADER_FOLLOWER', 'LatencyModel', 'LatencySample', 'LegState', 'MACD', 'MarketDataRecorderHook', 'MarketProfile', 'MultiFeedClock', 'ONE_SIDED', 'ORDER_FLAG_IOC', 'ORDER_FLAG_POST_ONLY', 'ORDER_FLAG_REDUCE_ONLY', 'Order', 'OrderBook', 'OrderEventKind', 'OrderGroup', 'OrderGroupPolicy', 'OrderGroupState', 'OrderTracker', 'OrderValidator', 'PARTIALLY_FILLED', 'PENDING', 'PRICE_SCALE', 'ParkinsonVol', 'Partitioner', 'PnLTracker', 'PositionGroupTracker', 'PositionTracker', 'QUANTITY_SCALE', 'QUEUE_FULL', 'QUEUE_NONE', 'QUEUE_TOB', 'REVERTING', 'RMA', 'RSI', 'ReplayEvent', 'ReplaySource', 'RiskManager', 'RogersSatchellVol', 'RollingZScore', 'Runner', 'SIGNAL_FLAG_ENTER', 'SIGNAL_FLAG_EXIT', 'SIGNAL_FLAG_REBALANCE', 'SLIPPAGE_FIXED_BPS', 'SLIPPAGE_FIXED_TICKS', 'SLIPPAGE_NONE', 'SLIPPAGE_VOLUME_IMPACT', 'SMA', 'SUBMITTED', 'ShannonEntropy', 'Signal', 'SignalBuilder', 'SimulatedExecutor', 'Skewness', 'Slope', 'Stats', 'Stochastic', 'StorageSink', 'Strategy', 'StreamingIndicatorGraph', 'Symbol', 'SymbolContext', 'SymbolRegistry', 'TEMA', 'TapeRef', 'TraceReader', 'TraceRecorder', 'TradeData', 'VOLUME_SCALE', 'VolumeProfile', 'WAIT_FOR_ALL', 'WalkForwardRunner', 'adf', 'adx', 'aggregate_heikin_ashi_bars', 'aggregate_range_bars', 'aggregate_renko_bars', 'aggregate_tick_bars', 'aggregate_time_bars', 'aggregate_volume_bars', 'atr', 'autocorrelation', 'bar_returns', 'bollinger', 'bootstrap_ci', 'cci', 'chop', 'correlation', 'cvd', 'dema', 'ema', 'export_data', 'extract_symbols', 'extract_time_range', 'inspect', 'kama', 'kurtosis', 'list_indicators', 'macd', 'merge', 'merge_dir', 'obv', 'parkinson_vol', 'permutation_test', 'prices_to_double', 'profit_factor', 'quantities_to_double', 'recompress', 'rma', 'rogers_satchell_vol', 'rolling_correlation', 'rolling_zscore', 'rsi', 'set_log_callback', 'shannon_entropy', 'skewness', 'slope', 'sma', 'split', 'stochastic', 'targets', 'tema', 'trade_pnl', 'validate', 'validate_dataset', 'volumes_to_double', 'vwap', 'whites_reality_check', 'win_rate']
+__all__: list[str] = ['ALL_OR_NOTHING', 'ATR', 'AutoCorrelation', 'BEST_EFFORT', 'BacktestResult', 'BacktestRunner', 'BarData', 'BarDispatchRecorder', 'BinaryLogRecorderHook', 'Bollinger', 'CANCELLED', 'CCI', 'CompositeBookMatrix', 'ConstantLatency', 'Correlation', 'DEMA', 'DataReader', 'DataWriter', 'DeltaBookEncoder', 'DeltaBookReplayer', 'EMA', 'EmpiricalLatency', 'Engine', 'ExchangeCapabilities', 'ExecutionListener', 'Executor', 'ExponentialLatency', 'FAILED', 'FILLED', 'FIRE_ON_ANY', 'FeedClockPolicy', 'FillLiquidity', 'FloxError', 'FootprintBar', 'GaussianLatency', 'GridSearch', 'IndicatorGraph', 'KAMA', 'KillSwitch', 'Kurtosis', 'L3Book', 'LEADER_FOLLOWER', 'LatencyModel', 'LatencySample', 'LegState', 'MACD', 'MarketDataRecorderHook', 'MarketProfile', 'MergedTapeReader', 'MultiFeedClock', 'ONE_SIDED', 'ORDER_FLAG_IOC', 'ORDER_FLAG_POST_ONLY', 'ORDER_FLAG_REDUCE_ONLY', 'Order', 'OrderBook', 'OrderEventData', 'OrderEventKind', 'OrderGroup', 'OrderGroupPolicy', 'OrderGroupState', 'OrderTracker', 'OrderValidator', 'PARTIALLY_FILLED', 'PENDING', 'PRICE_SCALE', 'ParkinsonVol', 'Partitioner', 'PnLTracker', 'PositionGroupTracker', 'PositionTracker', 'QUANTITY_SCALE', 'QUEUE_FULL', 'QUEUE_NONE', 'QUEUE_TOB', 'REVERTING', 'RMA', 'RSI', 'ReplayEvent', 'ReplaySource', 'RiskManager', 'RogersSatchellVol', 'RollingZScore', 'Runner', 'SIGNAL_FLAG_ENTER', 'SIGNAL_FLAG_EXIT', 'SIGNAL_FLAG_REBALANCE', 'SLIPPAGE_FIXED_BPS', 'SLIPPAGE_FIXED_TICKS', 'SLIPPAGE_NONE', 'SLIPPAGE_VOLUME_IMPACT', 'SMA', 'SUBMITTED', 'ShannonEntropy', 'Signal', 'SignalBuilder', 'SimulatedExecutor', 'Skewness', 'Slope', 'Stats', 'Stochastic', 'StorageSink', 'Strategy', 'StreamingIndicatorGraph', 'Symbol', 'SymbolContext', 'SymbolRegistry', 'TEMA', 'TapeRef', 'TraceReader', 'TraceRecorder', 'TradeData', 'VOLUME_SCALE', 'VolumeProfile', 'WAIT_FOR_ALL', 'WalkForwardRunner', 'adf', 'adx', 'aggregate_heikin_ashi_bars', 'aggregate_range_bars', 'aggregate_renko_bars', 'aggregate_tick_bars', 'aggregate_time_bars', 'aggregate_volume_bars', 'atr', 'autocorrelation', 'bar_returns', 'bollinger', 'bootstrap_ci', 'cci', 'chop', 'correlation', 'cvd', 'dema', 'ema', 'export_data', 'extract_symbols', 'extract_time_range', 'inspect', 'kama', 'kurtosis', 'list_indicators', 'macd', 'merge', 'merge_dir', 'obv', 'parkinson_vol', 'permutation_test', 'prices_to_double', 'profit_factor', 'quantities_to_double', 'recompress', 'rma', 'rogers_satchell_vol', 'rolling_correlation', 'rolling_zscore', 'rsi', 'set_log_callback', 'shannon_entropy', 'skewness', 'slope', 'sma', 'split', 'stochastic', 'targets', 'tema', 'trade_pnl', 'validate', 'validate_dataset', 'volumes_to_double', 'vwap', 'whites_reality_check', 'win_rate']
 class ATR:
     def __init__(self, period: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
@@ -85,8 +85,32 @@ class BacktestRunner:
         ...
     def run_ohlcv(self, ts: typing.Annotated[numpy.typing.ArrayLike, numpy.int64], close: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], symbol: str = '') -> typing.Any:
         ...
+    def run_tape(self, path: str) -> typing.Any:
+        """
+        Run a backtest off a `.floxlog` tape directory. The tape is the canonical recorded artifact (`flox tape record` writes it). Returns the same stats dict shape as run_csv / run_bars.
+        """
+    def run_tapes(self, paths: collections.abc.Sequence[str]) -> typing.Any:
+        """
+        Run a backtest off N `.floxlog` tapes merged on read. Symbols are rekeyed by (metadata.exchange, name) so two captures of the same venue/symbol collapse, and two different venues stay distinct. `run_tapes([t])` is equivalent to `run_tape(t)`. Stats shape mirrors run_tape.
+        """
     def set_executor(self, executor: Executor) -> None:
         ...
+    def set_kill_switch(self, ks: KillSwitch) -> None:
+        """
+        Attach (or detach with None) a kill switch. Reduce-only orders bypass so tightening caps does not strand a position.
+        """
+    def set_order_validator(self, ov: OrderValidator) -> None:
+        """
+        Attach (or detach with None) an order validator. Reduce-only orders bypass.
+        """
+    def set_pnl_tracker(self, tracker: PnLTracker) -> None:
+        """
+        Attach (or detach with None) a PnL tracker. Fires `on_signal(signal)` for every fill the simulator dispatches.
+        """
+    def set_risk_manager(self, rm: RiskManager) -> None:
+        """
+        Attach (or detach with None) a pre-trade risk manager. Reduce-only orders bypass the gate by design.
+        """
     def set_strategy(self, strategy: Strategy) -> None:
         ...
     def trades(self) -> typing.Any:
@@ -169,6 +193,46 @@ class BarData:
     @volume.setter
     def volume(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
+class BarDispatchRecorder:
+    def __init__(self) -> None:
+        ...
+    def add_time_interval_seconds(self, seconds: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    def count(self) -> int:
+        ...
+    def finalize(self) -> None:
+        ...
+    def on_trade(self, symbol: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, ts_ns: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def param_at(self, index: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    def type_at(self, index: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+class BinaryLogRecorderHook:
+    def __init__(self, output_dir: str, max_segment_mb: typing.SupportsInt | typing.SupportsIndex = 256, exchange_id: typing.SupportsInt | typing.SupportsIndex = 0, compression: str = 'none', exchange_name: str = '', instrument_type: str = '') -> None:
+        """
+        Create a binary-log recorder hook. Trades and books are written via BinaryLogWriter on the engine thread — no Python callback per event. exchange_name + instrument_type are stamped into the recording's metadata.json so MergedTapeReader can key by (exchange, name) across multiple tapes.
+        """
+    def add_symbol(self, symbol_id: typing.SupportsInt | typing.SupportsIndex, name: str, base: str = '', quote: str = '', price_precision: typing.SupportsInt | typing.SupportsIndex = 8, qty_precision: typing.SupportsInt | typing.SupportsIndex = 8) -> None:
+        """
+        Register a symbol for recording metadata
+        """
+    def close(self) -> None:
+        """
+        Stop recording (idempotent; engine on_stop also calls this)
+        """
+    def current_segment_path(self) -> str:
+        """
+        Return the path of the segment currently being written
+        """
+    def flush(self) -> None:
+        """
+        Flush buffered data to disk
+        """
+    def stats(self) -> dict:
+        """
+        Return recorder statistics as a dict
+        """
 class Bollinger:
     def __init__(self, period: typing.SupportsInt | typing.SupportsIndex = 20, multiplier: typing.SupportsFloat | typing.SupportsIndex = 2.0) -> None:
         ...
@@ -361,35 +425,6 @@ class DataReader:
         """
         Return (start_ns, end_ns) tuple or None
         """
-class DataRecorder:
-    def __init__(self, output_dir: str, exchange_name: str, max_segment_mb: typing.SupportsInt | typing.SupportsIndex = 256) -> None:
-        """
-        Create a DataRecorder for market data recording
-        """
-    def add_symbol(self, symbol_id: typing.SupportsInt | typing.SupportsIndex, name: str, base: str = '', quote: str = '', price_precision: typing.SupportsInt | typing.SupportsIndex = 8, qty_precision: typing.SupportsInt | typing.SupportsIndex = 8) -> None:
-        """
-        Register a symbol for recording metadata
-        """
-    def flush(self) -> None:
-        """
-        Flush buffered data to disk
-        """
-    def is_recording(self) -> bool:
-        """
-        Return True if currently recording
-        """
-    def start(self) -> None:
-        """
-        Start recording
-        """
-    def stats(self) -> dict:
-        """
-        Return recorder statistics as a dict
-        """
-    def stop(self) -> None:
-        """
-        Stop recording and finalize output
-        """
 class DataWriter:
     def __init__(self, output_dir: str, max_segment_mb: typing.SupportsInt | typing.SupportsIndex = 256, exchange_id: typing.SupportsInt | typing.SupportsIndex = 0, compression: str = 'none') -> None:
         """
@@ -410,6 +445,14 @@ class DataWriter:
     def stats(self) -> dict:
         """
         Return writer statistics as a dict
+        """
+    def write_book(self, exchange_ts_ns: typing.SupportsInt | typing.SupportsIndex, recv_ts_ns: typing.SupportsInt | typing.SupportsIndex, seq: typing.SupportsInt | typing.SupportsIndex, symbol_id: typing.SupportsInt | typing.SupportsIndex, is_snapshot: bool, bids: typing.Annotated[numpy.typing.ArrayLike, ...], asks: typing.Annotated[numpy.typing.ArrayLike, ...]) -> bool:
+        """
+        Write a single book update. bids/asks are PyLevel structured arrays.
+        """
+    def write_books(self, headers: typing.Annotated[numpy.typing.ArrayLike, ...], levels: typing.Annotated[numpy.typing.ArrayLike, ...]) -> int:
+        """
+        Batched book writer. Round-trip with DataReader.read_book_updates.
         """
     def write_trade(self, exchange_ts_ns: typing.SupportsInt | typing.SupportsIndex, recv_ts_ns: typing.SupportsInt | typing.SupportsIndex, price: typing.SupportsFloat | typing.SupportsIndex, qty: typing.SupportsFloat | typing.SupportsIndex, trade_id: typing.SupportsInt | typing.SupportsIndex, symbol_id: typing.SupportsInt | typing.SupportsIndex, side: typing.SupportsInt | typing.SupportsIndex) -> bool:
         """
@@ -973,6 +1016,39 @@ class MarketProfile:
         ...
     def value_area_low(self) -> float:
         ...
+class MergedTapeReader:
+    def __init__(self, paths: collections.abc.Sequence[str], from_ns: typing.Any = None, to_ns: typing.Any = None, symbols: typing.Any = None) -> None:
+        """
+        Open N `.floxlog` directories and expose a merged trade / book stream. Symbols are rekeyed into a global id space, keyed by (metadata.exchange, name). Ties on exchange_ts_ns are broken by tape order in `paths`. read_trades / read_books are eager — they materialise the merged arrays.
+        """
+    def per_tape_stats(self) -> list:
+        """
+        Per-tape breakdown — useful for debugging an empty input.
+        """
+    def read_books(self) -> tuple:
+        """
+        (headers, levels) tuple. Headers carry global symbol_id; level_offset slices the levels array per event.
+        """
+    def read_trades(self) -> numpy.ndarray:
+        """
+        Merged trades as PyTrade structured numpy array, sorted by exchange_ts_ns; tie-break by tape order.
+        """
+    def stream_events(self, on_trade: typing.Any = None, on_book: typing.Any = None) -> None:
+        """
+        Walk the merged stream via N-way heap merge (O(N tapes) peak memory). Calls on_trade(exchange_ts_ns, recv_ts_ns, price_raw, qty_raw, symbol_id, tape_index, side) and on_book(exchange_ts_ns, recv_ts_ns, symbol_id, tape_index, is_snapshot, bids, asks). bids/asks are lists of (price_raw, qty_raw) tuples. Returning False from either aborts the walk.
+        """
+    def summary(self) -> dict:
+        """
+        Aggregate stats: first_event_ns, last_event_ns, total_events (populated after readTrades/readBooks), tape_count, symbol_count.
+        """
+    def symbol_table(self) -> list:
+        """
+        List of dicts: global_id, exchange, name, price_precision, qty_precision.
+        """
+    def time_range(self) -> tuple:
+        """
+        (min first_event_ns, max last_event_ns) across all tapes.
+        """
 class MultiFeedClock:
     def __init__(self, symbols: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex], policy: FeedClockPolicy = ..., timeout_ms: typing.SupportsInt | typing.SupportsIndex = 200, leader_symbol: typing.SupportsInt | typing.SupportsIndex = 0, staleness_budget_ms: typing.SupportsInt | typing.SupportsIndex = 200) -> None:
         ...
@@ -1116,6 +1192,41 @@ class OrderBook:
         """
         Bid-ask spread or None
         """
+class OrderEventData:
+    order_type: str
+    reject_reason: str
+    side: str
+    status: str
+    @property
+    def exchange_ts_ns(self) -> int:
+        ...
+    @exchange_ts_ns.setter
+    def exchange_ts_ns(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def fill_price(self) -> float:
+        ...
+    @fill_price.setter
+    def fill_price(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def fill_qty(self) -> float:
+        ...
+    @fill_qty.setter
+    def fill_qty(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def order_id(self) -> int:
+        ...
+    @order_id.setter
+    def order_id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def symbol_id(self) -> int:
+        ...
+    @symbol_id.setter
+    def symbol_id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
 class OrderEventKind:
     """
     Members:
@@ -1624,7 +1735,11 @@ class Runner:
         ...
     def set_kill_switch(self, ks: KillSwitch) -> None:
         ...
+    @typing.overload
     def set_market_data_recorder(self, recorder: MarketDataRecorderHook) -> None:
+        ...
+    @typing.overload
+    def set_market_data_recorder(self, recorder: BinaryLogRecorderHook) -> None:
         ...
     def set_order_validator(self, ov: OrderValidator) -> None:
         ...
@@ -2020,6 +2135,10 @@ class Strategy:
     def on_bar(self, ctx: SymbolContext, bar: BarData) -> None:
         ...
     def on_book_update(self, ctx: SymbolContext) -> None:
+        ...
+    def on_fill(self, ctx: SymbolContext, event: OrderEventData) -> None:
+        ...
+    def on_order_update(self, ctx: SymbolContext, event: OrderEventData) -> None:
         ...
     def on_start(self) -> None:
         ...

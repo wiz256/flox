@@ -96,6 +96,47 @@ export interface TradeData {
   timestampNs: bigint;
 }
 
+/** Order-event lifecycle status, mirrored from `FloxOrderEventStatus`. */
+export type OrderEventStatus =
+  | "NEW"
+  | "ACCEPTED"
+  | "PENDING_NEW"
+  | "PARTIALLY_FILLED"
+  | "FILLED"
+  | "PENDING_CANCEL"
+  | "CANCELED"
+  | "EXPIRED"
+  | "REJECTED"
+  | "REPLACED"
+  | "PENDING_TRIGGER"
+  | "TRIGGERED"
+  | "TRAILING_UPDATED"
+  | "UNKNOWN";
+
+/** Order-event payload delivered to `onFill` / `onOrderUpdate`. */
+export interface OrderEventData {
+  orderId: number;
+  symbolId: number;
+  side: Side;
+  orderType:
+    | "LIMIT"
+    | "MARKET"
+    | "STOP_MARKET"
+    | "STOP_LIMIT"
+    | "TP_MARKET"
+    | "TP_LIMIT"
+    | "ICEBERG"
+    | "UNKNOWN";
+  status: OrderEventStatus;
+  /** Cumulative or last-fill quantity depending on the executor. */
+  fillQty: number;
+  /** Last-fill price; 0 for non-fill events. */
+  fillPrice: number;
+  exchangeTsNs: number;
+  /** Set only when status === "REJECTED". */
+  rejectReason: string | null;
+}
+
 /** Order-emission helper passed as the third arg to strategy callbacks. */
 export interface EmitMethods {
   marketBuy(qty: number): void;
@@ -125,6 +166,13 @@ export interface Strategy {
   onTrade?(ctx: SymbolContext, trade: TradeData, emit: EmitMethods): void;
   onBookUpdate?(ctx: SymbolContext, emit: EmitMethods): void;
   onBar?(ctx: SymbolContext, bar: BarData, emit: EmitMethods): void;
+  /** Fires on every fill the strategy's own orders produce
+   *  (status PARTIALLY_FILLED or FILLED). */
+  onFill?(ctx: SymbolContext, ev: OrderEventData, emit: EmitMethods): void;
+  /** Fires on every order-lifecycle status change: NEW / ACCEPTED /
+   *  CANCELED / REJECTED / REPLACED / TRIGGERED / TRAILING_UPDATED.
+   *  Includes fills too — pick `onFill` if you only care about those. */
+  onOrderUpdate?(ctx: SymbolContext, ev: OrderEventData, emit: EmitMethods): void;
 }
 
 // ── Extension hooks ──────────────────────────────────────────────────
@@ -203,13 +251,14 @@ export interface OrderValidator {
  *  recording (CSV, parquet, custom binary). */
 export interface MarketDataRecorderHook {
   onTrade?(trade: TradeData): void;
-  /** `bids` / `asks` are arrays of `[price, quantity]` pairs. */
+  /** `bids` / `asks` are flat `BigInt64Array`s: `[price_raw, qty_raw, ...]`,
+   *  raw int64 ticks (multiply by 1e-8 to get a double price/qty). */
   onBookUpdate?(
     symbol: number,
     isSnapshot: boolean,
-    bids: ReadonlyArray<readonly [number, number]>,
-    asks: ReadonlyArray<readonly [number, number]>,
-    timestampNs: number
+    bids: BigInt64Array,
+    asks: BigInt64Array,
+    timestampNs: bigint
   ): void;
   onStart?(): void;
   onStop?(): void;
@@ -361,7 +410,7 @@ export class Runner {
   setKillSwitch(ks: KillSwitch | null): void;
   /** Sync only — OrderValidator.validate is read inline. */
   setOrderValidator(ov: OrderValidator | null): void;
-  setMarketDataRecorder(recorder: MarketDataRecorderHook | null): void;
+  setMarketDataRecorder(recorder: MarketDataRecorderHook | BinaryLogRecorderHook | null): void;
   /** Sync only — Executor.capabilities() is read inline. */
   setExecutor(executor: Executor | null): void;
 
@@ -525,6 +574,16 @@ export class BacktestRunner {
   setStrategy(strategy: Strategy): void;
   runCsv(path: string, symbol: string): BacktestStats;
   runOhlcv(timestamps: Float64Array, closes: Float64Array, symbol: string): BacktestStats;
+  /** Replay a `.floxlog` tape directory through the backtest. The tape
+   *  is the canonical recording format written by `flox tape record`
+   *  (live) or `scripts/backfill_to_tape.py` (historical). */
+  runTape(path: string): BacktestStats;
+  /** Merge N `.floxlog` tape directories on read and replay the merged
+   *  event stream through the backtest. Symbols are rekeyed by
+   *  `(metadata.exchange, name)` so two venues stay distinct.
+   *  `runTapes([t])` is equivalent to `runTape(t)`. Throws on bad paths
+   *  or overlapping book streams across tapes. */
+  runTapes(paths: string[]): BacktestStats;
   /** Replace the built-in SimulatedExecutor with a binding-supplied one. */
   setExecutor(executor: Executor | null): void;
   /** Attach a listener for order lifecycle events. Multiple listeners
@@ -1148,6 +1207,17 @@ export class DataWriter {
     symbolId: number,
     side: Side,
   ): boolean;
+  /** `bids` / `asks` are flat `BigInt64Array`s of interleaved raw int64
+   *  `[price, qty, price, qty, ...]` (Price/Quantity scale = 1e8). */
+  writeBook(
+    exchangeTsNs: bigint,
+    recvTsNs: bigint,
+    seq: bigint,
+    symbolId: number,
+    isSnapshot: boolean,
+    bids: BigInt64Array,
+    asks: BigInt64Array,
+  ): boolean;
   flush(): void;
   close(): void;
   stats(): DataWriterStats;
@@ -1167,8 +1237,32 @@ export class DataReader {
   readBookUpdatesFrom(startTsNs: number | bigint): BookUpdateRecord[];
 }
 
-export class DataRecorder {
-  constructor(outputDir: string, exchangeName?: string, maxSegmentMb?: number);
+/** Built-in `.floxlog` recorder. Owns a `BinaryLogWriter` on the engine
+ *  thread — trade/book events are persisted in C++ on the hot path without
+ *  bouncing through JS. Attach via `runner.setMarketDataRecorder(hook)`. */
+export interface BinaryLogRecorderHookStats {
+  tradesWritten: bigint;
+  bookUpdatesWritten: bigint;
+  bytesWritten: bigint;
+  segmentsCreated: bigint;
+  errors: bigint;
+}
+
+export class BinaryLogRecorderHook {
+  constructor(
+    outputDir: string,
+    maxSegmentMb?: number,
+    exchangeId?: number,
+    /** `"none"` (default) or `"lz4"`. */
+    compression?: "none" | "lz4",
+    /** Stamped into the tape manifest as `metadata.exchange`. Required
+     *  for `MergedTapeReader` keying — tapes without an exchange name
+     *  will refuse to merge. */
+    exchangeName?: string,
+    /** Stamped into the tape manifest as `metadata.instrument_type`
+     *  (e.g. `"spot"`, `"perpetual"`, `"futures"`, `"option"`). */
+    instrumentType?: string,
+  );
   addSymbol(
     symbolId: number,
     name: string,
@@ -1177,10 +1271,68 @@ export class DataRecorder {
     pricePrecision?: number,
     qtyPrecision?: number,
   ): void;
-  start(): void;
-  stop(): void;
   flush(): void;
-  readonly isRecording: boolean;
+  stats(): BinaryLogRecorderHookStats;
+}
+
+/** A single rekeyed symbol entry from `MergedTapeReader.symbolTable()`.
+ *  `globalId` is allocated 1..M on construction and is stable for the
+ *  lifetime of the reader. Ties between tapes that carry the same
+ *  `(exchange, name)` collapse to one entry; tie-breaking follows the
+ *  order of the `paths` array passed to the constructor. */
+export interface MergedTapeSymbol {
+  globalId: number;
+  exchange: string;
+  name: string;
+  pricePrecision: number;
+  qtyPrecision: number;
+}
+
+export interface MergedTapeStats {
+  path: string;
+  trades: bigint;
+  books: bigint;
+  firstEventNs: bigint;
+  lastEventNs: bigint;
+}
+
+export interface MergedTapeReaderOptions {
+  /** Inclusive ns lower bound. Omit / pass `undefined` for no bound. */
+  fromNs?: bigint | number;
+  /** Inclusive ns upper bound. Omit / pass `undefined` for no bound. */
+  toNs?: bigint | number;
+  /** Post-rekey global IDs (see `symbolTable()`). Filters the merged
+   *  stream to just these symbols. */
+  symbols?: number[];
+}
+
+/** N-tape merge-on-read. Walks the K-way heap of per-tape readers and
+ *  emits a single event stream ordered by `exchange_ts_ns`. Symbol IDs
+ *  are rekeyed: each tape's local `symbol_id` is mapped to a `globalId`
+ *  keyed by `(metadata.exchange, name)`. Two tapes that carry the same
+ *  `(exchange, name)` share a `globalId`; ties on identical
+ *  `exchange_ts_ns` break by the order of the `paths` array. Throws if
+ *  any two tapes have books for the same `(exchange, name)` with
+ *  overlapping time ranges — `MergedTapeReader: invalid paths or
+ *  overlapping book streams`. */
+export class MergedTapeReader {
+  constructor(paths: string[], options?: MergedTapeReaderOptions);
+  /** All distinct symbols across the merged tapes. `globalId` is
+   *  rekeyed and ties break by `paths` order. */
+  symbolTable(): MergedTapeSymbol[];
+  /** `[minFirstEventNs, maxLastEventNs]` across all tapes. */
+  timeRange(): [bigint, bigint];
+  /** Per-input-tape breakdown. `path` order matches the constructor's
+   *  `paths` array. */
+  perTapeStats(): MergedTapeStats[];
+  /** Materialized merged trade stream. `symbolId` is the rekeyed
+   *  `globalId`. Use `replayTapes` / streaming APIs for memory-bounded
+   *  consumption — this method is for `DataReader` parity. */
+  readTrades(): TradeRecord[];
+  /** Materialized merged book stream, same shape as
+   *  `DataReader.readBookUpdates()`. `symbolId` is the rekeyed
+   *  `globalId`. */
+  readBooks(): BookUpdateRecord[];
 }
 
 export interface Partition {
@@ -1642,6 +1794,22 @@ export class OrderGroup {
   recordFailure(legIndex: number): void;
   state(): OrderGroupStateName;
   recommendedActions(): OrderGroupAction[];
+}
+
+// ── Bar-close dispatch recorder (cross-binding parity test fixture) ──
+
+export class BarDispatchRecorder {
+  constructor();
+  /** Register a time-bar timeframe. Returns its slot index (or 8 if full). */
+  addTimeIntervalSeconds(seconds: number): number;
+  onTrade(symbol: number, price: number, qty: number, tsNs: number): void;
+  /** Drain the bus so all bars at the final tied close fire. */
+  finalize(): void;
+  count(): number;
+  /** BarType enum value at index. */
+  typeAt(index: number): number;
+  /** barTypeParam (nanoseconds for time bars) at index. */
+  paramAt(index: number): number;
 }
 
 // ── Multi-feed clock ─────────────────────────────────────────────────

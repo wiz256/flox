@@ -77,6 +77,24 @@ def test_lookup_symbol_requires_string():
     assert "required" in out.lower() or "must be" in out.lower()
 
 
+def test_lookup_symbol_attaches_gotcha_when_keyed_input():
+    """A gotcha keyed on `Strategy.market_buy` should attach when the
+    user types `market_buy` — even if the resolver finds no symbol,
+    the curated footgun is the real reason the tool exists for this
+    name."""
+    out = lookup.lookup_symbol("market_buy")
+    assert "Gotchas" in out
+    assert "tick step" in out
+
+
+def test_lookup_symbol_attaches_gotcha_when_resolved():
+    """When the resolver does match (e.g. `Strategy`), gotchas on any
+    member key (`Strategy.symbols`) are still surfaced via tail-segment
+    matching."""
+    out = lookup.lookup_symbol("symbols")
+    assert "subscribed" in out.lower()
+
+
 # ── list_bindings ─────────────────────────────────────────────────────
 
 
@@ -206,14 +224,44 @@ def test_scaffold_invalid_language():
     assert "unsupported language" in out
 
 
+def test_scaffold_missing_language_is_required():
+    """language is required — picking the binding for the user is wrong."""
+    out = scaffold.scaffold_strategy()
+    assert "`language` is required" in out
+    assert "polyglot" in out
+
+
 def test_scaffold_invalid_kind():
-    out = scaffold.scaffold_strategy(kind="quantum-driven")
+    out = scaffold.scaffold_strategy(language="python", kind="quantum-driven")
     assert "unsupported kind" in out
 
 
 def test_scaffold_invalid_name():
-    out = scaffold.scaffold_strategy(name="123 not an ident")
+    out = scaffold.scaffold_strategy(language="python", name="123 not an ident")
     assert "valid identifier" in out
+
+
+def test_scaffold_includes_next_steps():
+    """Tool result includes a Next steps section with docs_search queries
+    so the agent has explicit pointers at recording / backtest / layout."""
+    rendered = scaffold.scaffold_strategy(language="python", kind="bar-driven",
+                                           name="MyStrat")
+    assert "## Next steps" in rendered
+    assert 'docs_search("project layout")' in rendered
+    assert 'docs_search("record tape")' in rendered
+    assert 'docs_search("backtest")' in rendered
+
+
+@pytest.mark.parametrize("language", ["codon", "quickjs"])
+@pytest.mark.parametrize("kind", scaffold.SUPPORTED_KINDS)
+def test_scaffold_codon_quickjs_renders(language, kind):
+    """Template-rot gate for the new languages — every (language, kind)
+    combination renders with the strategy class name substituted."""
+    rendered = scaffold.scaffold_strategy(language=language, kind=kind,
+                                           name="MyStrat")
+    assert "MyStrat" in rendered
+    assert "scaffold_strategy:" in rendered  # markdown header
+    assert "## Next steps" in rendered
 
 
 def _extract_code_block(rendered: str, lang: str) -> str:
@@ -244,6 +292,25 @@ def test_docs_search_phrase_with_punctuation():
     """Inputs with dashes / punctuation must not blow up the FTS5 parser."""
     out = docs_search_tool.docs_search("walk-forward", k=3)
     assert "no matches" not in out.lower()
+
+
+def test_docs_search_multi_word_and_matches():
+    """Plain multi-word queries AND-match every token rather than
+    requiring an exact phrase. A query like `ccxt fetch_ohlcv historical`
+    has to find docs where every term appears, but they need not be
+    adjacent. The previous default phrase-quoted, returning zero hits
+    on natural agent queries.
+    """
+    out = docs_search_tool.docs_search("ccxt fetch_ohlcv historical", k=5)
+    assert "no matches" not in out.lower()
+    assert "docs/" in out
+
+
+def test_docs_search_explicit_phrase_still_works():
+    """Wrapping in double quotes preserves exact-phrase ranking."""
+    out = docs_search_tool.docs_search('"walk forward"', k=3)
+    assert "walk forward" in out.lower() or "walk-forward" in out.lower()
+    assert "docs/" in out
 
 
 def test_docs_search_unknown_query_is_friendly():
