@@ -70,6 +70,9 @@ class SimulatedExecutor : public IOrderExecutor
   void cancelAllOrders(SymbolId symbol) override;
   void replaceOrder(OrderId oldOrderId, const Order& newOrder) override;
 
+  // Feed close price for SL/TP/trailing evaluation without filling pending market orders
+  void onBarCloseNoFill(SymbolId symbol, Price price);
+
   // OCO: one-cancels-other
   void submitOCO(const OCOParams& params) override;
 
