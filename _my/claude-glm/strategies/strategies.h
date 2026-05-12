@@ -985,4 +985,64 @@ private:
     StreamingAtr _atr; StreamingSma _volSma;
 };
 
+// =====================================================================
+// BENCHMARK: SMA Crossover (50/200 Golden Cross)
+// Canonical benchmark: expected Sharpe 0.5-0.7 on equities, 0.8-1.3 on BTC bull
+// Used to validate the backtest engine against known results.
+// =====================================================================
+struct SmaCrossoverParams
+{
+    int fastPeriod = 50;
+    int slowPeriod = 200;
+    std::string toString() const {
+        return "fast=" + std::to_string(fastPeriod) + ",slow=" + std::to_string(slowPeriod);
+    }
+};
+
+class SmaCrossoverStrategy : public Strategy
+{
+public:
+    SmaCrossoverStrategy(SubscriberId id, SymbolId sym, const SymbolRegistry& reg, SmaCrossoverParams p = {})
+        : Strategy(id, sym, reg), _p(p), _fast(p.fastPeriod), _slow(p.slowPeriod) {}
+
+protected:
+    void onSymbolBar(SymbolContext& ctx, const BarEvent& ev) override
+    {
+        double c = ev.bar.close.toDouble();
+        _fast.update(c);
+        _slow.update(c);
+
+        if (!_slow.ready()) return;
+
+        double fastVal = _fast.value();
+        double slowVal = _slow.value();
+
+        Quantity pos = position(ev.symbol);
+
+        if (pos.raw() == 0) {
+            // Golden cross: fast SMA crosses above slow SMA
+            if (fastVal > slowVal && _prevFast <= _prevSlow)
+                emitMarketBuy(ev.symbol, qtyFromNotional(c));
+            // Death cross: fast SMA crosses below slow SMA
+            else if (fastVal < slowVal && _prevFast >= _prevSlow)
+                emitMarketSell(ev.symbol, qtyFromNotional(c));
+        } else if (pos.raw() > 0) {
+            // Exit long on death cross
+            if (fastVal < slowVal && _prevFast >= _prevSlow)
+                emitClosePosition(ev.symbol);
+        } else {
+            // Exit short on golden cross
+            if (fastVal > slowVal && _prevFast <= _prevSlow)
+                emitClosePosition(ev.symbol);
+        }
+
+        _prevFast = fastVal;
+        _prevSlow = slowVal;
+    }
+private:
+    SmaCrossoverParams _p;
+    StreamingSma _fast, _slow;
+    double _prevFast = 0, _prevSlow = 0;
+};
+
 }  // namespace flox::strategy

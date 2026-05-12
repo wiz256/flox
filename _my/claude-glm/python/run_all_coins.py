@@ -164,6 +164,54 @@ def main():
                              f"{avg_r:.2f}", f"{avg_p:.4f}", f"{avg_wfo:.4f}", coins])
     print(f"Exported to {out_path}")
 
+    # ===== Combined multi-coin CSVs =====
+    # Merge all per-coin grid results into one file with coin column
+    all_grid_rows = []
+    all_wfo_rows = []
+    for csv_file in sorted(RESULTS_DIR.glob("*_grid_results.csv")):
+        coin = csv_file.stem.replace("_grid_results", "")
+        with open(csv_file) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                row["coin"] = coin
+                all_grid_rows.append(row)
+
+    for csv_file in sorted(RESULTS_DIR.glob("*_wfo_results.csv")):
+        coin = csv_file.stem.replace("_wfo_results", "")
+        with open(csv_file) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                row["coin"] = coin
+                all_wfo_rows.append(row)
+
+    if all_grid_rows:
+        # Read header from first file, add 'coin' column
+        grid_cols = list(all_grid_rows[0].keys())
+        # Move 'coin' to front
+        if "coin" in grid_cols:
+            grid_cols.remove("coin")
+            grid_cols.insert(0, "coin")
+
+        combined_grid = RESULTS_DIR / "combined_all_grid.csv"
+        with open(combined_grid, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=grid_cols)
+            writer.writeheader()
+            writer.writerows(all_grid_rows)
+        print(f"Combined grid: {len(all_grid_rows)} rows from {len(RESULTS_DIR.glob('*_grid_results.csv'))} coins → {combined_grid}")
+
+    if all_wfo_rows:
+        wfo_cols = list(all_wfo_rows[0].keys())
+        if "coin" in wfo_cols:
+            wfo_cols.remove("coin")
+            wfo_cols.insert(0, "coin")
+
+        combined_wfo = RESULTS_DIR / "combined_all_wfo.csv"
+        with open(combined_wfo, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=wfo_cols)
+            writer.writeheader()
+            writer.writerows(all_wfo_rows)
+        print(f"Combined WFO: {len(all_wfo_rows)} rows from {len(RESULTS_DIR.glob('*_wfo_results.csv'))} coins → {combined_wfo}")
+
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,414 @@
+bar=40 CROSS_UP fast=101467.71 slow=96956.80 → pending_entry=LONG
+bar=40 ENTRY LONG @ open=102853.00 qty=0.0972 atr@entry=7065.98 hardSl=94373.82
+bar=41 CHAN_LONG bits=1 anchor=102853.00 trail=89532.07 hardSl=94373.82 level=94373.82 low=102240.00 hold
+bar=42 CHAN_LONG bits=2 anchor=103336.10 trail=90810.08 hardSl=94373.82 level=94373.82 low=102700.00 hold
+bar=43 CHAN_LONG bits=3 anchor=103366.00 trail=91639.55 hardSl=94373.82 level=94373.82 low=102784.00 hold
+bar=75 CROSS_DN fast=103217.03 slow=103365.06 → pending_entry=SHRT
+bar=82 EXIT SHRT @ open=104144.00 reason=risk
+bar=84 CROSS_UP fast=103513.86 slow=103485.12 → pending_entry=LONG
+bar=84 ENTRY LONG @ open=103412.20 qty=0.0967 atr@entry=1369.22 hardSl=101769.13
+bar=85 CHAN_LONG bits=1 anchor=103412.20 trail=100779.34 hardSl=101769.13 level=101769.13 low=102541.60 hold
+bar=86 CHAN_LONG bits=2 anchor=103564.70 trail=100973.75 hardSl=101769.13 level=101769.13 low=103239.60 hold
+bar=87 CHAN_LONG bits=3 anchor=103658.00 trail=101192.34 hardSl=101769.13 level=101769.13 low=102705.00 hold
+bar=96 EXIT SHRT @ open=106407.50 reason=risk
+bar=139 CROSS_DN fast=108152.44 slow=108184.24 → pending_entry=SHRT
+bar=139 ENTRY SHRT @ open=109587.10 qty=0.0913 atr@entry=1438.81 hardSl=111313.68
+bar=140 CHAN_SHRT bits=1 anchor=109587.10 trail=112436.24 hardSl=111313.68 level=111313.68 high=110197.90 hold
+bar=141 CHAN_SHRT bits=2 anchor=109327.40 trail=112097.39 hardSl=111313.68 level=111313.68 high=110138.80 hold
+bar=142 CHAN_SHRT bits=3 anchor=109327.40 trail=111990.79 hardSl=111313.68 level=111313.68 high=110400.00 hold
+bar=148 EXIT SHRT @ open=110091.30 reason=risk
+bar=153 CROSS_DN fast=109245.88 slow=109269.18 → pending_entry=SHRT
+bar=153 ENTRY SHRT @ open=108821.30 qty=0.0919 atr@entry=1229.16 hardSl=110296.29
+bar=154 CHAN_SHRT bits=1 anchor=108821.30 trail=111232.32 hardSl=110296.29 level=110296.29 high=109012.00 hold
+bar=155 CHAN_SHRT bits=2 anchor=107000.00 trail=109526.23 hardSl=110296.29 level=109526.23 high=107793.00 hold
+bar=156 CHAN_SHRT bits=3 anchor=106881.50 trail=109357.50 hardSl=110296.29 level=109357.50 high=107999.00 hold
+bar=179 EXIT SHRT @ open=105075.20 reason=risk
+bar=194 CROSS_UP fast=105479.71 slow=105350.18 → pending_entry=LONG
+bar=194 ENTRY LONG @ open=105260.10 qty=0.0950 atr@entry=1049.17 hardSl=104001.09
+bar=195 CHAN_LONG bits=1 anchor=105260.10 trail=103259.29 hardSl=104001.09 level=104001.09 low=105039.10 hold
+bar=196 CHAN_LONG bits=2 anchor=105967.20 trail=103976.72 hardSl=104001.09 level=104001.09 low=104111.70 hold
+bar=197 CHAN_LONG bits=3 anchor=105967.20 trail=103919.11 hardSl=104001.09 level=104001.09 low=104824.00 hold
+bar=202 EXIT SHRT @ open=104490.50 reason=risk
+bar=203 CROSS_DN fast=104567.17 slow=104775.88 → pending_entry=SHRT
+bar=203 ENTRY SHRT @ open=101873.00 qty=0.0982 atr@entry=991.03 hardSl=103062.23
+bar=204 CHAN_SHRT bits=1 anchor=101873.00 trail=104148.89 hardSl=103062.23 level=103062.23 high=102163.90 hold
+bar=205 CHAN_SHRT bits=2 anchor=100305.10 trail=102683.97 hardSl=103062.23 level=102683.97 high=102464.70 hold
+bar=206 CHAN_SHRT bits=3 anchor=100305.10 trail=102722.81 hardSl=103062.23 level=102722.81 high=103424.50 EXIT
+bar=206 EXIT SHRT @ open=103096.70 reason=risk
+bar=216 CROSS_UP fast=104875.84 slow=104721.32 → pending_entry=LONG
+bar=216 ENTRY LONG @ open=105507.50 qty=0.0948 atr@entry=1028.14 hardSl=104273.74
+bar=217 CHAN_LONG bits=1 anchor=105507.50 trail=103541.59 hardSl=104273.74 level=104273.74 low=105347.00 hold
+bar=218 CHAN_LONG bits=2 anchor=105760.50 trail=103875.94 hardSl=104273.74 level=104273.74 low=105358.20 hold
+bar=219 CHAN_LONG bits=3 anchor=105760.50 trail=103973.55 hardSl=104273.74 level=104273.74 low=104927.40 hold
+bar=232 EXIT SHRT @ open=108975.20 reason=risk
+bar=248 CROSS_DN fast=106792.99 slow=107050.92 → pending_entry=SHRT
+bar=248 ENTRY SHRT @ open=104831.40 qty=0.0954 atr@entry=1249.47 hardSl=106330.77
+bar=249 CHAN_SHRT bits=1 anchor=104831.40 trail=107317.23 hardSl=106330.77 level=106330.77 high=105459.70 hold
+bar=250 CHAN_SHRT bits=2 anchor=104360.00 trail=106825.37 hardSl=106330.77 level=106330.77 high=105750.00 hold
+bar=251 CHAN_SHRT bits=3 anchor=104069.50 trail=106598.85 hardSl=106330.77 level=106330.77 high=105912.00 hold
+bar=266 EXIT SHRT @ open=107023.80 reason=risk
+bar=272 CROSS_UP fast=106750.21 slow=106644.08 → pending_entry=LONG
+bar=272 ENTRY LONG @ open=106711.00 qty=0.0937 atr@entry=1183.22 hardSl=105291.14
+bar=273 CHAN_LONG bits=1 anchor=106711.00 trail=104336.13 hardSl=105291.14 level=105291.14 low=105461.40 hold
+bar=274 CHAN_LONG bits=2 anchor=106785.20 trail=104390.85 hardSl=105291.14 level=105291.14 low=104068.00 EXIT
+bar=274 EXIT SHRT @ open=104199.20 reason=risk
+bar=278 CROSS_DN fast=105859.73 slow=105927.52 → pending_entry=SHRT
+bar=278 ENTRY SHRT @ open=104925.60 qty=0.0953 atr@entry=1223.26 hardSl=106393.52
+bar=279 CHAN_SHRT bits=1 anchor=104925.60 trail=107317.38 hardSl=106393.52 level=106393.52 high=105276.80 hold
+bar=280 CHAN_SHRT bits=2 anchor=104111.40 trail=106498.82 hardSl=106393.52 level=106393.52 high=105300.00 hold
+bar=281 CHAN_SHRT bits=3 anchor=103750.00 trail=106188.32 hardSl=106393.52 level=106188.32 high=104795.00 hold
+bar=290 EXIT SHRT @ open=105763.60 reason=risk
+bar=317 CROSS_UP fast=103856.07 slow=103534.15 → pending_entry=LONG
+bar=317 ENTRY LONG @ open=105582.10 qty=0.0947 atr@entry=1501.60 hardSl=103780.18
+bar=318 CHAN_LONG bits=1 anchor=105582.10 trail=102634.32 hardSl=103780.18 level=103780.18 low=105382.40 hold
+bar=319 CHAN_LONG bits=2 anchor=106073.90 trail=103237.89 hardSl=103780.18 level=103780.18 low=105755.60 hold
+bar=320 CHAN_LONG bits=3 anchor=106750.90 trail=103975.27 hardSl=103780.18 level=103975.27 low=105949.20 hold
+bar=352 EXIT SHRT @ open=107525.70 reason=risk
+bar=358 CROSS_DN fast=107268.94 slow=107283.69 → pending_entry=SHRT
+bar=358 ENTRY SHRT @ open=105908.30 qty=0.0944 atr@entry=781.92 hardSl=106846.61
+bar=359 CHAN_SHRT bits=1 anchor=105908.30 trail=107583.68 hardSl=106846.61 level=106846.61 high=106248.60 hold
+bar=360 CHAN_SHRT bits=2 anchor=105333.00 trail=107019.51 hardSl=106846.61 level=106846.61 high=106066.10 hold
+bar=361 CHAN_SHRT bits=3 anchor=105182.60 trail=106874.86 hardSl=106846.61 level=106846.61 high=106165.10 hold
+bar=362 EXIT SHRT @ open=107026.10 reason=risk
+bar=368 CROSS_UP fast=107653.06 slow=107398.65 → pending_entry=LONG
+bar=368 ENTRY LONG @ open=109234.90 qty=0.0915 atr@entry=914.90 hardSl=108137.02
+bar=369 CHAN_LONG bits=1 anchor=109234.90 trail=107391.92 hardSl=108137.02 level=108137.02 low=109234.90 hold
+bar=370 CHAN_LONG bits=2 anchor=110265.10 trail=108406.59 hardSl=108137.02 level=108406.59 low=108706.00 hold
+bar=371 CHAN_LONG bits=3 anchor=110484.00 trail=108504.24 hardSl=108137.02 level=108504.24 low=108966.00 hold
+bar=375 EXIT SHRT @ open=108842.20 reason=risk
+bar=401 CROSS_DN fast=108401.60 slow=108480.47 → pending_entry=SHRT
+bar=401 ENTRY SHRT @ open=108723.60 qty=0.0920 atr@entry=768.51 hardSl=109645.81
+bar=402 CHAN_SHRT bits=1 anchor=108723.60 trail=110304.31 hardSl=109645.81 level=109645.81 high=108928.00 hold
+bar=403 CHAN_SHRT bits=2 anchor=108570.10 trail=110089.03 hardSl=109645.81 level=109645.81 high=109107.40 hold
+bar=404 CHAN_SHRT bits=3 anchor=108284.20 trail=109812.24 hardSl=109645.81 level=109645.81 high=108900.00 hold
+bar=406 CROSS_UP fast=108583.51 slow=108538.11 → pending_entry=LONG
+bar=436 EXIT SHRT @ open=119863.10 reason=risk
+bar=465 CROSS_DN fast=118573.97 slow=118575.47 → pending_entry=SHRT
+bar=465 ENTRY SHRT @ open=118300.00 qty=0.0845 atr@entry=1385.90 hardSl=119963.08
+bar=466 CHAN_SHRT bits=1 anchor=118300.00 trail=120952.67 hardSl=119963.08 level=119963.08 high=118301.40 hold
+bar=467 CHAN_SHRT bits=2 anchor=117615.30 trail=120176.51 hardSl=119963.08 level=119963.08 high=118149.80 hold
+bar=468 CHAN_SHRT bits=3 anchor=117562.10 trail=120024.32 hardSl=119963.08 level=119963.08 high=118125.70 hold
+bar=476 EXIT SHRT @ open=119352.30 reason=risk
+bar=478 CROSS_UP fast=118188.02 slow=118163.00 → pending_entry=LONG
+bar=478 ENTRY LONG @ open=118304.20 qty=0.0845 atr@entry=1233.19 hardSl=116824.38
+bar=479 CHAN_LONG bits=1 anchor=118304.20 trail=115803.52 hardSl=116824.38 level=116824.38 low=116600.00 EXIT
+bar=479 CROSS_DN fast=118067.08 slow=118150.89 → pending_entry=SHRT
+bar=480 CHAN_SHRT bits=2 anchor=116724.70 trail=119301.18 hardSl=119784.02 level=119301.18 high=117596.60 hold
+bar=481 CHAN_SHRT bits=3 anchor=116566.90 trail=119106.45 hardSl=119784.02 level=119106.45 high=117947.10 hold
+bar=482 EXIT SHRT @ open=117959.50 reason=risk
+bar=489 CROSS_UP fast=118522.15 slow=118353.82 → pending_entry=LONG
+bar=489 ENTRY LONG @ open=118484.70 qty=0.0844 atr@entry=1418.57 hardSl=116782.42
+bar=490 CHAN_LONG bits=1 anchor=118484.70 trail=115736.34 hardSl=116782.42 level=116782.42 low=117259.70 hold
+bar=491 CHAN_LONG bits=2 anchor=118687.10 trail=115931.14 hardSl=116782.42 level=116782.42 low=117250.00 hold
+bar=492 CHAN_LONG bits=3 anchor=118687.10 trail=115944.99 hardSl=116782.42 level=116782.42 low=117319.00 hold
+bar=499 EXIT SHRT @ open=115384.70 reason=risk
+bar=500 CROSS_DN fast=117937.92 slow=118138.58 → pending_entry=SHRT
+bar=500 ENTRY SHRT @ open=115288.90 qty=0.0867 atr@entry=1416.73 hardSl=116988.97
+bar=501 CHAN_SHRT bits=1 anchor=115288.90 trail=118124.64 hardSl=116988.97 level=116988.97 high=116759.60 hold
+bar=502 CHAN_SHRT bits=2 anchor=115000.00 trail=117884.56 hardSl=116988.97 level=116988.97 high=116629.00 hold
+bar=503 CHAN_SHRT bits=3 anchor=114846.10 trail=117779.32 hardSl=116988.97 level=116988.97 high=116989.90 EXIT
+bar=503 EXIT SHRT @ open=116649.60 reason=risk
+bar=515 CROSS_UP fast=118108.85 slow=118013.18 → pending_entry=LONG
+bar=515 ENTRY LONG @ open=118953.30 qty=0.0841 atr@entry=962.92 hardSl=117797.80
+bar=516 CHAN_LONG bits=1 anchor=118953.30 trail=117026.56 hardSl=117797.80 level=117797.80 low=118709.20 hold
+bar=517 CHAN_LONG bits=2 anchor=119766.00 trail=117825.92 hardSl=117797.80 level=117825.92 low=118949.90 hold
+bar=518 CHAN_LONG bits=3 anchor=119812.00 trail=117887.34 hardSl=117797.80 level=117887.34 low=118742.00 hold
+bar=520 EXIT SHRT @ open=118152.90 reason=risk
+bar=533 CROSS_DN fast=117867.53 slow=117922.10 → pending_entry=SHRT
+bar=533 ENTRY SHRT @ open=116865.20 qty=0.0856 atr@entry=1039.18 hardSl=118112.22
+bar=534 CHAN_SHRT bits=1 anchor=116865.20 trail=119123.03 hardSl=118112.22 level=118112.22 high=117866.40 hold
+bar=535 CHAN_SHRT bits=2 anchor=116829.80 trail=119074.44 hardSl=118112.22 level=118112.22 high=118590.00 EXIT
+bar=535 EXIT SHRT @ open=118429.00 reason=risk
+bar=537 CROSS_UP fast=117958.35 slow=117878.42 → pending_entry=LONG
+bar=537 ENTRY LONG @ open=118330.90 qty=0.0845 atr@entry=1073.80 hardSl=117042.34
+bar=538 CHAN_LONG bits=1 anchor=118330.90 trail=116267.96 hardSl=117042.34 level=117042.34 low=117783.30 hold
+bar=539 CHAN_LONG bits=2 anchor=118684.40 trail=116640.08 hardSl=117042.34 level=117042.34 low=116691.10 EXIT
+bar=539 CROSS_DN fast=117855.82 slow=117910.90 → pending_entry=SHRT
+bar=540 CHAN_SHRT bits=3 anchor=116718.90 trail=118925.61 hardSl=119619.46 level=118925.61 high=116927.80 hold
+bar=557 EXIT SHRT @ open=114259.10 reason=risk
+bar=578 CROSS_UP fast=114425.43 slow=114263.43 → pending_entry=LONG
+bar=578 ENTRY LONG @ open=114751.20 qty=0.0871 atr@entry=1009.18 hardSl=113540.18
+bar=579 CHAN_LONG bits=1 anchor=114751.20 trail=112788.00 hardSl=113540.18 level=113540.18 low=114750.00 hold
+bar=580 CHAN_LONG bits=2 anchor=116782.60 trail=114669.26 hardSl=113540.18 level=114669.26 low=115950.10 hold
+bar=581 CHAN_LONG bits=3 anchor=116782.60 trail=114706.28 hardSl=113540.18 level=114706.28 low=115555.20 hold
+bar=604 EXIT SHRT @ open=120271.20 reason=risk
+bar=629 CROSS_DN fast=118790.11 slow=119249.66 → pending_entry=SHRT
+bar=629 ENTRY SHRT @ open=116900.00 qty=0.0855 atr@entry=1412.33 hardSl=118594.79
+bar=630 CHAN_SHRT bits=1 anchor=116900.00 trail=119683.34 hardSl=118594.79 level=118594.79 high=117711.00 hold
+bar=631 CHAN_SHRT bits=2 anchor=116820.50 trail=119532.24 hardSl=118594.79 level=118594.79 high=117853.50 hold
+bar=632 CHAN_SHRT bits=3 anchor=116820.50 trail=119437.25 hardSl=118594.79 level=118594.79 high=117857.10 hold
+bar=647 EXIT SHRT @ open=116273.40 reason=risk
+bar=676 CROSS_UP fast=114938.07 slow=114885.34 → pending_entry=LONG
+bar=676 ENTRY LONG @ open=114776.40 qty=0.0871 atr@entry=1233.96 hardSl=113295.65
+bar=677 CHAN_LONG bits=1 anchor=114776.40 trail=112350.47 hardSl=113295.65 level=113295.65 low=114648.70 hold
+bar=678 CHAN_LONG bits=2 anchor=115166.50 trail=112839.88 hardSl=113295.65 level=113295.65 low=114957.70 hold
+bar=679 CHAN_LONG bits=3 anchor=115380.00 trail=113159.24 hardSl=113295.65 level=113295.65 low=114902.00 hold
+bar=683 EXIT SHRT @ open=112556.40 reason=risk
+bar=686 CROSS_DN fast=113975.80 slow=114171.27 → pending_entry=SHRT
+bar=686 ENTRY SHRT @ open=111469.70 qty=0.0897 atr@entry=1291.35 hardSl=113019.32
+bar=687 CHAN_SHRT bits=1 anchor=111469.70 trail=114121.79 hardSl=113019.32 level=113019.32 high=111789.90 hold
+bar=688 CHAN_SHRT bits=2 anchor=110891.00 trail=113482.07 hardSl=113019.32 level=113019.32 high=112533.20 hold
+bar=689 CHAN_SHRT bits=3 anchor=110532.20 trail=113224.05 hardSl=113019.32 level=113019.32 high=112897.70 hold
+bar=696 EXIT SHRT @ open=111710.00 reason=risk
+bar=739 CROSS_UP fast=110099.18 slow=109928.87 → pending_entry=LONG
+bar=739 ENTRY LONG @ open=110991.80 qty=0.0901 atr@entry=1265.48 hardSl=109473.22
+bar=740 CHAN_LONG bits=1 anchor=110991.80 trail=108514.44 hardSl=109473.22 level=109473.22 low=110486.90 hold
+bar=741 CHAN_LONG bits=2 anchor=111117.50 trail=108727.01 hardSl=109473.22 level=109473.22 low=110843.00 hold
+bar=742 CHAN_LONG bits=3 anchor=111670.00 trail=109332.12 hardSl=109473.22 level=109473.22 low=110966.80 hold
+bar=746 EXIT SHRT @ open=110417.30 reason=risk
+bar=769 CROSS_DN fast=110756.03 slow=110774.39 → pending_entry=SHRT
+bar=769 ENTRY SHRT @ open=111004.80 qty=0.0901 atr@entry=853.81 hardSl=112029.37
+bar=770 CHAN_SHRT bits=1 anchor=111004.80 trail=112701.66 hardSl=112029.37 level=112029.37 high=111580.70 hold
+bar=771 CHAN_SHRT bits=2 anchor=110852.10 trail=112531.84 hardSl=112029.37 level=112029.37 high=112144.00 EXIT
+bar=771 EXIT SHRT @ open=112022.00 reason=risk
+bar=844 CROSS_DN fast=115965.36 slow=116022.22 → pending_entry=SHRT
+bar=844 ENTRY SHRT @ open=115928.40 qty=0.0863 atr@entry=801.60 hardSl=116890.32
+bar=845 CHAN_SHRT bits=1 anchor=115928.40 trail=117461.16 hardSl=116890.32 level=116890.32 high=116017.90 hold
+bar=846 CHAN_SHRT bits=2 anchor=115636.60 trail=117114.35 hardSl=116890.32 level=116890.32 high=115887.60 hold
+bar=847 CHAN_SHRT bits=3 anchor=115549.90 trail=116970.34 hardSl=116890.32 level=116890.32 high=115671.20 hold
+bar=856 EXIT SHRT @ open=112768.70 reason=risk
+bar=898 CROSS_UP fast=111001.35 slow=110976.18 → pending_entry=LONG
+bar=898 ENTRY LONG @ open=113752.00 qty=0.0879 atr@entry=753.47 hardSl=112847.84
+bar=899 CHAN_LONG bits=1 anchor=113752.00 trail=112017.88 hardSl=112847.84 level=112847.84 low=113404.50 hold
+bar=900 CHAN_LONG bits=2 anchor=114349.70 trail=112604.42 hardSl=112847.84 level=112847.84 low=113960.60 hold
+bar=901 CHAN_LONG bits=3 anchor=114377.20 trail=112697.07 hardSl=112847.84 level=112847.84 low=113985.10 hold
+bar=903 EXIT SHRT @ open=113003.70 reason=risk
+bar=954 CROSS_DN fast=122353.42 slow=122440.81 → pending_entry=SHRT
+bar=954 ENTRY SHRT @ open=123237.40 qty=0.0811 atr@entry=1422.54 hardSl=124944.45
+bar=955 CHAN_SHRT bits=1 anchor=123237.40 trail=126012.37 hardSl=124944.45 level=124944.45 high=123279.70 hold
+bar=956 CHAN_SHRT bits=2 anchor=121411.80 trail=124255.40 hardSl=124944.45 level=124255.40 high=122221.00 hold
+bar=957 CHAN_SHRT bits=3 anchor=121411.80 trail=124132.82 hardSl=124944.45 level=124132.82 high=122777.00 hold
+bar=964 EXIT SHRT @ open=118965.20 reason=risk
+bar=1025 CROSS_UP fast=109433.98 slow=109286.25 → pending_entry=LONG
+bar=1025 ENTRY LONG @ open=110735.10 qty=0.0903 atr@entry=1448.55 hardSl=108996.84
+bar=1026 CHAN_LONG bits=1 anchor=110735.10 trail=107837.08 hardSl=108996.84 level=108996.84 low=110355.00 hold
+bar=1027 CHAN_LONG bits=2 anchor=111215.30 trail=108401.38 hardSl=108996.84 level=108996.84 low=109005.00 hold
+bar=1028 CHAN_LONG bits=3 anchor=111215.30 trail=108390.76 hardSl=108996.84 level=108996.84 low=107400.00 EXIT
+bar=1028 EXIT SHRT @ open=108019.90 reason=risk
+bar=1041 CROSS_DN fast=108271.38 slow=108380.22 → pending_entry=SHRT
+bar=1041 ENTRY SHRT @ open=109218.50 qty=0.0916 atr@entry=1734.78 hardSl=111300.23
+bar=1042 CHAN_SHRT bits=1 anchor=109218.50 trail=112561.15 hardSl=111300.23 level=111300.23 high=110088.00 hold
+bar=1043 CHAN_SHRT bits=2 anchor=108639.40 trail=111950.23 hardSl=111300.23 level=111300.23 high=111240.00 hold
+bar=1044 CHAN_SHRT bits=3 anchor=108639.40 trail=111951.47 hardSl=111300.23 level=111300.23 high=110145.80 hold
+bar=1046 EXIT SHRT @ open=111013.70 reason=risk
+bar=1081 CROSS_DN fast=112283.67 slow=112374.28 → pending_entry=SHRT
+bar=1081 ENTRY SHRT @ open=110694.40 qty=0.0903 atr@entry=1420.37 hardSl=112398.84
+bar=1082 CHAN_SHRT bits=1 anchor=110694.40 trail=113516.12 hardSl=112398.84 level=112398.84 high=111565.10 hold
+bar=1083 CHAN_SHRT bits=2 anchor=107817.30 trail=110972.87 hardSl=112398.84 level=110972.87 high=111400.00 EXIT
+bar=1083 EXIT SHRT @ open=109665.90 reason=risk
+bar=1147 CROSS_UP fast=103074.20 slow=103039.06 → pending_entry=LONG
+bar=1147 ENTRY LONG @ open=105990.60 qty=0.0943 atr@entry=1338.38 hardSl=104384.54
+bar=1148 CHAN_LONG bits=1 anchor=105990.60 trail=103153.59 hardSl=104384.54 level=104384.54 low=105800.00 hold
+bar=1149 CHAN_LONG bits=2 anchor=106499.00 trail=103764.78 hardSl=104384.54 level=104384.54 low=105780.10 hold
+bar=1150 CHAN_LONG bits=3 anchor=106570.00 trail=103918.24 hardSl=104384.54 level=104384.54 low=104615.70 hold
+bar=1156 EXIT SHRT @ open=103417.20 reason=risk
+bar=1164 CROSS_DN fast=103104.27 slow=103208.26 → pending_entry=SHRT
+bar=1164 ENTRY SHRT @ open=101605.80 qty=0.0984 atr@entry=1484.65 hardSl=103387.37
+bar=1165 CHAN_SHRT bits=1 anchor=101605.80 trail=104488.24 hardSl=103387.37 level=103387.37 high=102581.70 hold
+bar=1166 CHAN_SHRT bits=2 anchor=100850.00 trail=103773.94 hardSl=103387.37 level=103387.37 high=104024.60 EXIT
+bar=1166 EXIT SHRT @ open=103430.90 reason=risk
+bar=1240 CROSS_UP fast=87313.67 slow=87212.13 → pending_entry=LONG
+bar=1240 ENTRY LONG @ open=86946.60 qty=0.1150 atr@entry=1515.75 hardSl=85127.70
+bar=1241 CHAN_LONG bits=1 anchor=86946.60 trail=83892.83 hardSl=85127.70 level=85127.70 low=86132.70 hold
+bar=1242 CHAN_LONG bits=2 anchor=88115.00 trail=84996.17 hardSl=85127.70 level=85127.70 low=86542.00 hold
+bar=1243 CHAN_LONG bits=3 anchor=88115.00 trail=85029.32 hardSl=85127.70 level=85127.70 low=87022.20 hold
+bar=1259 EXIT SHRT @ open=91106.00 reason=risk
+bar=1275 CROSS_DN fast=89561.99 slow=89632.15 → pending_entry=SHRT
+bar=1275 ENTRY SHRT @ open=86100.00 qty=0.1161 atr@entry=1193.17 hardSl=87531.80
+bar=1276 CHAN_SHRT bits=1 anchor=86100.00 trail=88429.60 hardSl=87531.80 level=87531.80 high=86625.00 hold
+bar=1277 CHAN_SHRT bits=2 anchor=83786.00 trail=86354.77 hardSl=87531.80 level=86354.77 high=85528.70 hold
+bar=1278 CHAN_SHRT bits=3 anchor=83786.00 trail=86388.10 hardSl=87531.80 level=86388.10 high=86817.00 EXIT
+bar=1278 EXIT SHRT @ open=86241.50 reason=risk
+bar=1288 CROSS_UP fast=90598.58 slow=90150.63 → pending_entry=LONG
+bar=1288 ENTRY LONG @ open=92333.00 qty=0.1083 atr@entry=1485.88 hardSl=90549.94
+bar=1289 CHAN_LONG bits=1 anchor=92333.00 trail=89285.47 hardSl=90549.94 level=90549.94 low=91733.20 hold
+bar=1290 CHAN_LONG bits=2 anchor=93471.10 trail=90392.98 hardSl=90549.94 level=90549.94 low=92784.30 hold
+bar=1291 CHAN_LONG bits=3 anchor=94185.00 trail=91126.65 hardSl=90549.94 level=91126.65 low=92628.00 hold
+bar=1295 EXIT SHRT @ open=91941.50 reason=risk
+bar=1307 CROSS_DN fast=90068.27 slow=90291.69 → pending_entry=SHRT
+bar=1307 ENTRY SHRT @ open=89369.50 qty=0.1119 atr@entry=1206.07 hardSl=90816.79
+bar=1308 CHAN_SHRT bits=1 anchor=89369.50 trail=91714.68 hardSl=90816.79 level=90816.79 high=89578.30 hold
+bar=1309 CHAN_SHRT bits=2 anchor=88870.10 trail=91148.94 hardSl=90816.79 level=90816.79 high=89704.50 hold
+bar=1310 CHAN_SHRT bits=3 anchor=88870.10 trail=91068.02 hardSl=90816.79 level=90816.79 high=89750.00 hold
+bar=1313 EXIT SHRT @ open=91379.80 reason=risk
+bar=1325 CROSS_UP fast=91163.49 slow=91132.68 → pending_entry=LONG
+bar=1325 ENTRY LONG @ open=93761.90 qty=0.1067 atr@entry=1368.03 hardSl=92120.27
+bar=1326 CHAN_LONG bits=1 anchor=93761.90 trail=90950.07 hardSl=92120.27 level=92120.27 low=92199.00 hold
+bar=1327 CHAN_LONG bits=2 anchor=93819.10 trail=90976.67 hardSl=92120.27 level=92120.27 low=91900.00 EXIT
+bar=1327 EXIT SHRT @ open=92366.00 reason=risk
+bar=1348 CROSS_DN fast=90822.11 slow=91008.90 → pending_entry=SHRT
+bar=1348 ENTRY SHRT @ open=90055.30 qty=0.1110 atr@entry=1191.26 hardSl=91484.81
+bar=1349 CHAN_SHRT bits=1 anchor=90055.30 trail=92346.77 hardSl=91484.81 level=91484.81 high=90236.60 hold
+bar=1350 CHAN_SHRT bits=2 anchor=89944.00 trail=92113.59 hardSl=91484.81 level=91484.81 high=90248.00 hold
+bar=1351 CHAN_SHRT bits=3 anchor=89711.90 trail=91803.11 hardSl=91484.81 level=91484.81 high=90440.00 hold
+bar=1357 EXIT SHRT @ open=89240.00 reason=risk
+bar=1389 CROSS_UP fast=87689.96 slow=87673.78 → pending_entry=LONG
+bar=1389 ENTRY LONG @ open=88243.60 qty=0.1133 atr@entry=1389.78 hardSl=86575.87
+bar=1390 CHAN_LONG bits=1 anchor=88243.60 trail=85614.87 hardSl=86575.87 level=86575.87 low=87698.50 hold
+bar=1391 CHAN_LONG bits=2 anchor=88320.00 trail=85790.25 hardSl=86575.87 level=86575.87 low=88060.00 hold
+bar=1392 CHAN_LONG bits=3 anchor=88407.70 trail=86008.98 hardSl=86575.87 level=86575.87 low=88111.10 hold
+bar=1403 EXIT SHRT @ open=88011.00 reason=risk
+bar=1412 CROSS_DN fast=87683.80 slow=87785.69 → pending_entry=SHRT
+bar=1412 ENTRY SHRT @ open=86868.10 qty=0.1151 atr@entry=1119.32 hardSl=88211.28
+bar=1413 CHAN_SHRT bits=1 anchor=86868.10 trail=89045.58 hardSl=88211.28 level=88211.28 high=87316.70 hold
+bar=1414 CHAN_SHRT bits=2 anchor=86671.70 trail=88785.79 hardSl=88211.28 level=88211.28 high=87450.00 hold
+bar=1415 CHAN_SHRT bits=3 anchor=86355.00 trail=88474.51 hardSl=88211.28 level=88211.28 high=87660.00 hold
+bar=1420 EXIT SHRT @ open=88339.00 reason=risk
+bar=1441 CROSS_UP fast=87940.79 slow=87799.77 → pending_entry=LONG
+bar=1441 ENTRY LONG @ open=90091.50 qty=0.1110 atr@entry=637.12 hardSl=89326.96
+bar=1442 CHAN_LONG bits=1 anchor=90091.50 trail=88568.57 hardSl=89326.96 level=89326.96 low=89448.10 hold
+bar=1443 CHAN_LONG bits=2 anchor=90373.40 trail=88827.06 hardSl=89326.96 level=89326.96 low=87520.10 EXIT
+bar=1443 EXIT SHRT @ open=87529.10 reason=risk
+bar=1452 CROSS_DN fast=87797.70 slow=87825.61 → pending_entry=SHRT
+bar=1452 ENTRY SHRT @ open=88455.20 qty=0.1131 atr@entry=900.47 hardSl=89535.76
+bar=1453 CHAN_SHRT bits=1 anchor=88455.20 trail=90227.47 hardSl=89535.76 level=89535.76 high=88780.00 hold
+bar=1454 CHAN_SHRT bits=2 anchor=88134.90 trail=89872.74 hardSl=89535.76 level=89535.76 high=88596.00 hold
+bar=1455 CHAN_SHRT bits=3 anchor=88134.90 trail=89793.73 hardSl=89535.76 level=89535.76 high=89000.00 hold
+bar=1464 EXIT SHRT @ open=88800.00 reason=risk
+bar=1504 CROSS_DN fast=91365.52 slow=91462.55 → pending_entry=SHRT
+bar=1504 ENTRY SHRT @ open=90730.00 qty=0.1102 atr@entry=1092.46 hardSl=92040.95
+bar=1505 CHAN_SHRT bits=1 anchor=90730.00 trail=92980.00 hardSl=92040.95 level=92040.95 high=91425.10 hold
+bar=1506 CHAN_SHRT bits=2 anchor=90244.70 trail=92502.61 hardSl=92040.95 level=92040.95 high=91449.90 hold
+bar=1507 CHAN_SHRT bits=3 anchor=90244.70 trail=92474.19 hardSl=92040.95 level=92040.95 high=91600.00 hold
+bar=1510 EXIT SHRT @ open=91137.80 reason=risk
+bar=1531 CROSS_UP fast=91222.66 slow=91180.15 → pending_entry=LONG
+bar=1531 ENTRY LONG @ open=91380.90 qty=0.1094 atr@entry=928.33 hardSl=90266.91
+bar=1532 CHAN_LONG bits=1 anchor=91380.90 trail=89583.50 hardSl=90266.91 level=90266.91 low=91316.30 hold
+bar=1533 CHAN_LONG bits=2 anchor=92258.00 trail=90454.46 hardSl=90266.91 level=90454.46 low=91850.60 hold
+bar=1534 CHAN_LONG bits=3 anchor=92676.60 trail=90883.89 hardSl=90266.91 level=90883.89 low=91700.60 hold
+bar=1538 EXIT SHRT @ open=95166.60 reason=risk
+bar=1568 CROSS_DN fast=94510.64 slow=94804.24 → pending_entry=SHRT
+bar=1568 ENTRY SHRT @ open=92787.80 qty=0.1078 atr@entry=851.13 hardSl=93809.16
+bar=1569 CHAN_SHRT bits=1 anchor=92787.80 trail=94434.97 hardSl=93809.16 level=93809.16 high=93312.80 hold
+bar=1570 CHAN_SHRT bits=2 anchor=92635.00 trail=94261.35 hardSl=93809.16 level=93809.16 high=93188.00 hold
+bar=1571 CHAN_SHRT bits=3 anchor=92635.00 trail=94220.61 hardSl=93809.16 level=93809.16 high=93379.00 hold
+bar=1580 EXIT SHRT @ open=89171.30 reason=risk
+bar=1625 CROSS_UP fast=88884.29 slow=88856.76 → pending_entry=LONG
+bar=1625 ENTRY LONG @ open=89363.50 qty=0.1119 atr@entry=1008.19 hardSl=88153.67
+bar=1626 CHAN_LONG bits=1 anchor=89363.50 trail=87259.90 hardSl=88153.67 level=88153.67 low=88829.00 hold
+bar=1627 CHAN_LONG bits=2 anchor=89880.10 trail=87776.60 hardSl=88153.67 level=88153.67 low=87650.10 EXIT
+bar=1627 EXIT SHRT @ open=88003.20 reason=risk
+bar=1630 CROSS_DN fast=88530.05 slow=88616.31 → pending_entry=SHRT
+bar=1630 ENTRY SHRT @ open=84897.90 qty=0.1178 atr@entry=1033.56 hardSl=86138.17
+bar=1631 CHAN_SHRT bits=1 anchor=84897.90 trail=87359.91 hardSl=86138.17 level=86138.17 high=85596.10 hold
+bar=1632 CHAN_SHRT bits=2 anchor=83338.30 trail=85946.99 hardSl=86138.17 level=85946.99 high=84699.90 hold
+bar=1633 CHAN_SHRT bits=3 anchor=83338.30 trail=85891.27 hardSl=86138.17 level=85891.27 high=84697.20 hold
+bar=1637 EXIT SHRT @ open=84199.90 reason=risk
+bar=1727 CROSS_UP fast=68789.67 slow=68700.96 → pending_entry=LONG
+bar=1727 ENTRY LONG @ open=69848.90 qty=0.1432 atr@entry=1288.55 hardSl=68302.64
+bar=1728 CHAN_LONG bits=1 anchor=69848.90 trail=67363.85 hardSl=68302.64 level=68302.64 low=69600.00 hold
+bar=1729 CHAN_LONG bits=2 anchor=70230.60 trail=67832.97 hardSl=68302.64 level=68302.64 low=69212.20 hold
+bar=1730 CHAN_LONG bits=3 anchor=70230.60 trail=67896.34 hardSl=68302.64 level=68302.64 low=69925.90 hold
+bar=1733 EXIT SHRT @ open=68263.70 reason=risk
+bar=1744 CROSS_DN fast=68195.10 slow=68210.06 → pending_entry=SHRT
+bar=1744 ENTRY SHRT @ open=67363.60 qty=0.1484 atr@entry=1099.30 hardSl=68682.77
+bar=1745 CHAN_SHRT bits=1 anchor=67363.60 trail=69656.88 hardSl=68682.77 level=68682.77 high=68220.10 hold
+bar=1746 CHAN_SHRT bits=2 anchor=66824.50 trail=69153.35 hardSl=68682.77 level=68682.77 high=67897.60 hold
+bar=1747 CHAN_SHRT bits=3 anchor=66824.50 trail=69064.41 hardSl=68682.77 level=68682.77 high=67683.40 hold
+bar=1760 EXIT SHRT @ open=67794.80 reason=risk
+bar=1769 CROSS_UP fast=67883.53 slow=67868.57 → pending_entry=LONG
+bar=1769 ENTRY LONG @ open=68516.30 qty=0.1460 atr@entry=911.34 hardSl=67422.69
+bar=1770 CHAN_LONG bits=1 anchor=68516.30 trail=66742.88 hardSl=67422.69 level=67422.69 low=67860.00 hold
+bar=1771 CHAN_LONG bits=2 anchor=68568.10 trail=66820.19 hardSl=67422.69 level=67422.69 low=67763.70 hold
+bar=1772 CHAN_LONG bits=3 anchor=68568.10 trail=66882.93 hardSl=67422.69 level=67422.69 low=67850.40 hold
+bar=1774 EXIT SHRT @ open=67660.00 reason=risk
+bar=1778 CROSS_DN fast=67410.17 slow=67498.18 → pending_entry=SHRT
+bar=1778 ENTRY SHRT @ open=65915.70 qty=0.1517 atr@entry=934.90 hardSl=67037.58
+bar=1779 CHAN_SHRT bits=1 anchor=65915.70 trail=67845.01 hardSl=67037.58 level=67037.58 high=66574.50 hold
+bar=1780 CHAN_SHRT bits=2 anchor=65534.60 trail=67474.66 hardSl=67037.58 level=67037.58 high=66490.00 hold
+bar=1781 CHAN_SHRT bits=3 anchor=65500.00 trail=67442.92 hardSl=67037.58 level=67037.58 high=65701.20 hold
+bar=1787 EXIT SHRT @ open=64405.40 reason=risk
+bar=1797 CROSS_UP fast=66812.35 slow=66645.15 → pending_entry=LONG
+bar=1797 ENTRY LONG @ open=68025.20 qty=0.1470 atr@entry=1296.02 hardSl=66469.98
+bar=1798 CHAN_LONG bits=1 anchor=68025.20 trail=65484.06 hardSl=66469.98 level=66469.98 low=66730.70 hold
+bar=1799 CHAN_LONG bits=2 anchor=68270.90 trail=65691.25 hardSl=66469.98 level=66469.98 low=66462.00 EXIT
+bar=1799 EXIT SHRT @ open=67550.70 reason=risk
+bar=1809 CROSS_DN fast=65938.04 slow=66173.85 → pending_entry=SHRT
+bar=1809 ENTRY SHRT @ open=63810.40 qty=0.1567 atr@entry=1253.57 hardSl=65314.69
+bar=1810 CHAN_SHRT bits=1 anchor=63810.40 trail=66274.75 hardSl=65314.69 level=65314.69 high=65335.80 EXIT
+bar=1810 EXIT SHRT @ open=64800.10 reason=risk
+bar=1818 CROSS_UP fast=66138.00 slow=65973.45 → pending_entry=LONG
+bar=1818 ENTRY LONG @ open=65749.90 qty=0.1521 atr@entry=1341.22 hardSl=64140.44
+bar=1819 CHAN_LONG bits=1 anchor=65749.90 trail=62990.92 hardSl=64140.44 level=64140.44 low=65726.00 hold
+bar=1820 CHAN_LONG bits=2 anchor=67082.50 trail=64326.81 hardSl=64140.44 level=64326.81 low=65509.00 hold
+bar=1821 CHAN_LONG bits=3 anchor=67082.50 trail=64315.50 hardSl=64140.44 level=64315.50 low=65612.40 hold
+bar=1827 EXIT SHRT @ open=67000.00 reason=risk
+bar=1852 CROSS_DN fast=68860.34 slow=69010.81 → pending_entry=SHRT
+bar=1852 ENTRY SHRT @ open=67844.80 qty=0.1474 atr@entry=1241.71 hardSl=69334.86
+bar=1853 CHAN_SHRT bits=1 anchor=67844.80 trail=70221.23 hardSl=69334.86 level=69334.86 high=67913.60 hold
+bar=1854 CHAN_SHRT bits=2 anchor=66850.10 trail=69208.71 hardSl=69334.86 level=69208.71 high=67445.90 hold
+bar=1855 CHAN_SHRT bits=3 anchor=66850.10 trail=69099.94 hardSl=69334.86 level=69099.94 high=67459.00 hold
+bar=1862 EXIT SHRT @ open=67504.90 reason=risk
+bar=1872 CROSS_UP fast=69544.13 slow=69412.51 → pending_entry=LONG
+bar=1872 ENTRY LONG @ open=69901.80 qty=0.1431 atr@entry=1364.89 hardSl=68263.94
+bar=1873 CHAN_LONG bits=1 anchor=69901.80 trail=67225.95 hardSl=68263.94 level=68263.94 low=69455.60 hold
+bar=1874 CHAN_LONG bits=2 anchor=70139.60 trail=67557.17 hardSl=68263.94 level=68263.94 low=69329.70 hold
+bar=1875 CHAN_LONG bits=3 anchor=70249.10 trail=67719.79 hardSl=68263.94 level=68263.94 low=69098.00 hold
+bar=1889 EXIT SHRT @ open=71148.10 reason=risk
+bar=1923 CROSS_DN fast=71995.49 slow=72196.60 → pending_entry=SHRT
+bar=1923 ENTRY SHRT @ open=69926.80 qty=0.1430 atr@entry=1179.52 hardSl=71342.23
+bar=1924 CHAN_SHRT bits=1 anchor=69926.80 trail=72213.73 hardSl=71342.23 level=71342.23 high=70144.60 hold
+bar=1925 CHAN_SHRT bits=2 anchor=68750.00 trail=71072.81 hardSl=71342.23 level=71072.81 high=70563.50 hold
+bar=1926 CHAN_SHRT bits=3 anchor=68750.00 trail=71120.91 hardSl=71342.23 level=71120.91 high=70655.20 hold
+bar=1929 EXIT SHRT @ open=70440.00 reason=risk
+bar=1955 CROSS_UP fast=70209.25 slow=70166.64 → pending_entry=LONG
+bar=1955 ENTRY LONG @ open=69342.60 qty=0.1442 atr@entry=1181.10 hardSl=67925.28
+bar=1956 CHAN_LONG bits=1 anchor=69342.60 trail=66992.77 hardSl=67925.28 level=67925.28 low=69257.90 hold
+bar=1957 CHAN_LONG bits=2 anchor=70800.00 trail=68397.72 hardSl=67925.28 level=68397.72 low=70375.00 hold
+bar=1958 CHAN_LONG bits=3 anchor=71028.00 trail=68704.02 hardSl=67925.28 level=68704.02 low=70659.90 hold
+bar=1964 EXIT SHRT @ open=70053.80 reason=risk
+bar=1969 CROSS_DN fast=69819.24 slow=69887.81 → pending_entry=SHRT
+bar=1969 ENTRY SHRT @ open=68728.80 qty=0.1455 atr@entry=1114.97 hardSl=70066.76
+bar=1970 CHAN_SHRT bits=1 anchor=68728.80 trail=70897.20 hardSl=70066.76 level=70066.76 high=68925.00 hold
+bar=1971 CHAN_SHRT bits=2 anchor=68257.20 trail=70366.11 hardSl=70066.76 level=70066.76 high=68619.90 hold
+bar=1972 CHAN_SHRT bits=3 anchor=66175.40 trail=68482.89 hardSl=70066.76 level=68482.89 high=66742.20 hold
+bar=1987 EXIT SHRT @ open=67140.00 reason=risk
+bar=2001 CROSS_UP fast=67663.17 slow=67539.42 → pending_entry=LONG
+bar=2001 ENTRY LONG @ open=68670.00 qty=0.1456 atr@entry=1073.92 hardSl=67381.30
+bar=2002 CHAN_LONG bits=1 anchor=68670.00 trail=66609.65 hardSl=67381.30 level=67381.30 low=67883.70 hold
+bar=2003 CHAN_LONG bits=2 anchor=68938.80 trail=66874.89 hardSl=67381.30 level=67381.30 low=67900.40 hold
+bar=2004 CHAN_LONG bits=3 anchor=69142.60 trail=67048.66 hardSl=67381.30 level=67381.30 low=67927.00 hold
+bar=2005 EXIT SHRT @ open=66538.40 reason=risk
+bar=2012 CROSS_DN fast=67001.83 slow=67066.71 → pending_entry=SHRT
+bar=2012 ENTRY SHRT @ open=67008.80 qty=0.1492 atr@entry=994.61 hardSl=68202.33
+bar=2013 CHAN_SHRT bits=1 anchor=67008.80 trail=68978.54 hardSl=68202.33 level=68202.33 high=67258.00 hold
+bar=2014 CHAN_SHRT bits=2 anchor=66644.00 trail=68560.76 hardSl=68202.33 level=68202.33 high=67350.00 hold
+bar=2015 CHAN_SHRT bits=3 anchor=66478.50 trail=68382.84 hardSl=68202.33 level=68202.33 high=67046.10 hold
+bar=2026 EXIT SHRT @ open=67272.20 reason=risk
+bar=2028 CROSS_UP fast=67349.27 slow=67303.38 → pending_entry=LONG
+bar=2028 ENTRY LONG @ open=68997.90 qty=0.1449 atr@entry=641.87 hardSl=68227.65
+bar=2029 CHAN_LONG bits=1 anchor=68997.90 trail=67547.90 hardSl=68227.65 level=68227.65 low=68740.20 hold
+bar=2030 CHAN_LONG bits=2 anchor=69583.00 trail=68116.18 hardSl=68227.65 level=68227.65 low=68769.60 hold
+bar=2031 CHAN_LONG bits=3 anchor=69583.00 trail=68139.72 hardSl=68227.65 level=68227.65 low=69047.70 hold
+bar=2034 EXIT SHRT @ open=68817.90 reason=risk
+bar=2073 CROSS_DN fast=71287.13 slow=71304.30 → pending_entry=SHRT
+bar=2073 ENTRY SHRT @ open=70883.90 qty=0.1411 atr@entry=804.77 hardSl=71849.63
+bar=2074 CHAN_SHRT bits=1 anchor=70883.90 trail=72441.76 hardSl=71849.63 level=71849.63 high=72431.00 EXIT
+bar=2074 EXIT SHRT @ open=71823.60 reason=risk
+bar=2077 CROSS_UP fast=71912.08 slow=71789.87 → pending_entry=LONG
+bar=2077 ENTRY LONG @ open=74408.80 qty=0.1344 atr@entry=986.00 hardSl=73225.60
+bar=2078 CHAN_LONG bits=1 anchor=74408.80 trail=72486.78 hardSl=73225.60 level=73225.60 low=74112.20 hold
+bar=2079 CHAN_LONG bits=2 anchor=74900.00 trail=73002.72 hardSl=73225.60 level=73225.60 low=74267.20 hold
+bar=2080 CHAN_LONG bits=3 anchor=74900.00 trail=73051.63 hardSl=73225.60 level=73225.60 low=74234.00 hold
+bar=2081 EXIT SHRT @ open=74176.50 reason=risk
+bar=2115 CROSS_DN fast=75091.18 slow=75146.48 → pending_entry=SHRT
+bar=2115 ENTRY SHRT @ open=75148.80 qty=0.1331 atr@entry=976.27 hardSl=76320.32
+bar=2116 CHAN_SHRT bits=1 anchor=75148.80 trail=77077.85 hardSl=76320.32 level=76320.32 high=75750.00 hold
+bar=2117 CHAN_SHRT bits=2 anchor=74639.50 trail=76589.41 hardSl=76320.32 level=76320.32 high=76449.80 EXIT
+bar=2117 EXIT SHRT @ open=76252.50 reason=risk
+bar=2121 CROSS_UP fast=75413.46 slow=75365.08 → pending_entry=LONG
+bar=2121 ENTRY LONG @ open=76408.30 qty=0.1309 atr@entry=958.21 hardSl=75258.45
+bar=2122 CHAN_LONG bits=1 anchor=76408.30 trail=74489.63 hardSl=75258.45 level=75258.45 low=75355.20 hold
+bar=2123 CHAN_LONG bits=2 anchor=76574.30 trail=74618.52 hardSl=75258.45 level=75258.45 low=74777.90 EXIT
+bar=2123 EXIT SHRT @ open=74988.70 reason=risk
+bar=2162 CROSS_DN fast=77575.73 slow=77684.03 → pending_entry=SHRT
+bar=2162 ENTRY SHRT @ open=76828.30 qty=0.1302 atr@entry=821.94 hardSl=77814.63
+bar=2163 CHAN_SHRT bits=1 anchor=76828.30 trail=78470.23 hardSl=77814.63 level=77814.63 high=76956.00 hold
+bar=2164 CHAN_SHRT bits=2 anchor=76088.00 trail=77736.65 hardSl=77814.63 level=77736.65 high=76403.70 hold
+bar=2165 CHAN_SHRT bits=3 anchor=75635.60 trail=77276.22 hardSl=77814.63 level=77276.22 high=76352.00 hold
+bar=2168 EXIT SHRT @ open=77003.80 reason=risk
+bar=2185 CROSS_UP fast=77316.28 slow=77102.04 → pending_entry=LONG
+bar=2185 ENTRY LONG @ open=78377.70 qty=0.1276 atr@entry=741.33 hardSl=77488.11
+bar=2186 CHAN_LONG bits=1 anchor=78377.70 trail=76946.54 hardSl=77488.11 level=77488.11 low=77979.30 hold
+bar=2187 CHAN_LONG bits=2 anchor=78416.80 trail=77025.36 hardSl=77488.11 level=77488.11 low=78113.00 hold
+bar=2188 CHAN_LONG bits=3 anchor=78416.80 trail=77089.58 hardSl=77488.11 level=77488.11 low=78056.00 hold

@@ -1,0 +1,1584 @@
+{
+  "raw_rank_by_sharpe": 3,
+  "rank_by_robust_score": 2,
+  "combo_idx": 73,
+  "params": {
+    "channel_period": 55,
+    "exit_period": 15,
+    "vol_mult": 1.3,
+    "exit_mode": "signal_be_trail",
+    "exit_label": "signal_be_trail"
+  },
+  "metrics": {
+    "sharpe_ratio": 0.9728416628707521,
+    "calmar_ratio": 4.552023475085641,
+    "total_return": 0.09577184452139553,
+    "max_drawdown": -0.021039400399751607,
+    "profit_factor": 1.8488768766361563,
+    "n_trades": 89,
+    "win_rate": 0.43820224719101125
+  },
+  "robustness_flags": {
+    "within_plateau": true,
+    "param_neighbors_avg_sharpe": 0.7871580001819091,
+    "neighbor_consistency": 0.8091326987981678,
+    "neighbor_count": 5,
+    "trade_count_stable": true,
+    "regime_balance_ok": true
+  },
+  "cost_sensitivity": {
+    "method": "fast_estimate_from_persisted_trade_costs",
+    "sharpe_after_2x_fees": 0.900172548955021,
+    "sharpe_after_3x_slippage": 0.8638379919971554,
+    "break_even_fee_rate": 0.005379369937876021,
+    "break_even_fee_rate_pct": 0.005379369937876021,
+    "interpretation": "Estimated from persisted trade costs; PROVE slippage stress is still the final authority."
+  },
+  "out_of_sample_preview": {
+    "available": true,
+    "first_80pct_sharpe": 1.2447292974905404,
+    "last_20pct_sharpe": -0.4883309450181105,
+    "decay_ratio": -0.3923189933768082,
+    "interpretation": "Quick time-split preview only; full WFO remains the validation gate.",
+    "suggestion": "Decay ratio >= 0.85 supports refinement; <0.70 is a reject-or-redesign warning."
+  },
+  "gate_results": {
+    "gates": {
+      "min_trades": true,
+      "min_sharpe": true,
+      "min_pf": true,
+      "max_dd": true,
+      "neighbor_consistency": false,
+      "cost_resilience": true
+    },
+    "passed_count": 5,
+    "required_count": 5,
+    "passes_top_result_gate": true
+  },
+  "final_score": 0.8318764747877512,
+  "recommendation": "PROCEED_TO_NATIVE_VALIDATION",
+  "trade_diagnostics": {
+    "available": true,
+    "trade_count": 89,
+    "win_loss_profile": {
+      "available": true,
+      "win_rate": 0.43820224719101125,
+      "avg_win_usdt": 53.476536201091655,
+      "avg_loss_usdt": -22.560560286059548,
+      "reward_risk_ratio": 2.3703549700463546,
+      "kelly_fraction": 0.20119228036819303,
+      "kelly_pct": 0.20119228036819303,
+      "expectancy_usdt_per_trade": 10.75906626448985,
+      "expectancy_r_per_trade": 1.120656179775281,
+      "total_pnl_usdt": 957.5568975395965,
+      "win_pnl_distribution_usdt": {
+        "count": 39,
+        "sum": 2085.5849118425745,
+        "avg": 53.476536201091655,
+        "median": 34.98129626420809,
+        "p25": 14.65700227016826,
+        "p75": 75.64434042224192,
+        "p90": 116.19130198958663,
+        "p95": 163.81776380255997,
+        "min": 2.2308926139265175,
+        "max": 219.77536186243998,
+        "unit": "USDT",
+        "total_usdt": 2085.5849118425745
+      },
+      "loss_pnl_distribution_usdt": {
+        "count": 50,
+        "sum": -1128.0280143029775,
+        "avg": -22.560560286059548,
+        "median": -20.02049935570341,
+        "p25": -33.755808558638975,
+        "p75": -12.773035005396212,
+        "p90": -5.624530699819639,
+        "p95": -2.37419546344714,
+        "min": -54.68294755080952,
+        "max": -1.5675114353624728,
+        "unit": "USDT",
+        "total_usdt": -1128.0280143029775
+      },
+      "pnl_distribution_usdt": {
+        "count": 89,
+        "sum": 957.5568975395965,
+        "avg": 10.75906626448985,
+        "median": -5.881311165605804,
+        "p25": -22.096873405522476,
+        "p75": 20.50890321129083,
+        "p90": 82.07079176842093,
+        "p95": 109.7281797378034,
+        "min": -54.68294755080952,
+        "max": 219.77536186243998,
+        "unit": "USDT",
+        "total_usdt": 957.5568975395965
+      },
+      "interpretation": "Reward-risk combines win rate and average payoff; Kelly is a theoretical sizing ceiling, not a live sizing recommendation.",
+      "suggestion": "Keep this reward-risk profile only if robustness gates pass."
+    },
+    "streak_profile": {
+      "available": true,
+      "max_consecutive_losses": 6,
+      "max_consecutive_wins": 5,
+      "loss_streak_stats": {
+        "count": 23,
+        "sum": 50.0,
+        "avg": 2.1739130434782608,
+        "median": 2.0,
+        "p25": 1.0,
+        "p75": 3.0,
+        "p90": 3.8000000000000007,
+        "p95": 4.0,
+        "min": 1.0,
+        "max": 6.0
+      },
+      "win_streak_stats": {
+        "count": 22,
+        "sum": 39.0,
+        "avg": 1.7727272727272727,
+        "median": 1.0,
+        "p25": 1.0,
+        "p75": 2.0,
+        "p90": 3.0,
+        "p95": 3.9499999999999993,
+        "min": 1.0,
+        "max": 5.0
+      },
+      "loss_streak_distribution": {
+        "1": 10,
+        "2": 4,
+        "3": 6,
+        "4-5": 2,
+        "6-8": 1,
+        "9-13": 0,
+        "14+": 0
+      },
+      "win_streak_distribution": {
+        "1": 13,
+        "2": 4,
+        "3": 3,
+        "4-5": 2,
+        "6-8": 0,
+        "9-13": 0,
+        "14+": 0
+      },
+      "distribution_definition": "Each distribution counts completed consecutive losing or winning streak lengths, bucketed by number of trades in the streak.",
+      "interpretation": "Streaks show how painful the strategy can feel even when final metrics look acceptable.",
+      "suggestion": "Use max losing streak plus Monte Carlo as a minimum stress case before sizing."
+    },
+    "drawdown_profile": {
+      "available": true,
+      "max_drawdown_fraction": -0.021039400399751607,
+      "sortino_ratio_per_bar": 0.011517333404026945,
+      "recovery_factor": 4.364577330426961,
+      "net_profit_usdt": 957.7184452139554,
+      "time_under_water_fraction": 0.9682510719824834,
+      "time_under_water_pct": 0.9682510719824834,
+      "max_drawdown_duration_bars": 1449,
+      "drawdown_duration_stats_bars": {
+        "count": 54,
+        "sum": 10613.0,
+        "avg": 196.53703703703704,
+        "median": 9.0,
+        "p25": 2.0,
+        "p75": 239.5,
+        "p90": 667.7000000000002,
+        "p95": 873.7999999999994,
+        "min": 1.0,
+        "max": 1449.0
+      },
+      "drawdown_duration_distribution_bars": {
+        "1": 11,
+        "2": 6,
+        "3": 2,
+        "4-5": 2,
+        "6-8": 4,
+        "9-13": 3,
+        "14+": 26
+      },
+      "drawdown_fraction_stats": {
+        "count": 10961,
+        "sum": -73.96614158693444,
+        "avg": -0.006748119841888007,
+        "median": -0.006024472138405401,
+        "p25": -0.00957089016120738,
+        "p75": -0.0029017024787381107,
+        "p90": -0.0011576147474537946,
+        "p95": -0.0008079346809061194,
+        "min": -0.021039400399751607,
+        "max": 0.0
+      },
+      "drawdown_fraction_distribution": {
+        "lt_-0.50": 0,
+        "-0.50_to_-0.30": 0,
+        "-0.30_to_-0.20": 0,
+        "-0.20_to_-0.10": 0,
+        "-0.10_to_-0.05": 0,
+        "-0.05_to_0.0": 10961
+      },
+      "interpretation": "Time under water measures how often equity is below its prior peak; duration shows recovery pain.",
+      "suggestion": "Equity spends most of the run underwater; improve entries/exits or reject unless the strategy is explicitly long-horizon."
+    },
+    "exposure_profile": {
+      "available": true,
+      "starting_capital_usdt_assumption": 10000.0,
+      "entry_notional_usdt": {
+        "count": 89,
+        "sum": 89002.70000000003,
+        "avg": 1000.030337078652,
+        "median": 1000.2999999999998,
+        "p25": 999.7,
+        "p75": 1000.3,
+        "p90": 1000.3000000000001,
+        "p95": 1000.3000000000001,
+        "min": 999.6999999999999,
+        "max": 1000.3000000000001
+      },
+      "effective_leverage_distribution": {
+        "count": 89,
+        "sum": 8.90027,
+        "avg": 0.10000303370786517,
+        "median": 0.10002999999999998,
+        "p25": 0.09997,
+        "p75": 0.10003,
+        "p90": 0.10003000000000001,
+        "p95": 0.10003000000000001,
+        "min": 0.09996999999999999,
+        "max": 0.10003000000000001
+      },
+      "effective_leverage_buckets": {
+        "0-0.1x": 40,
+        "0.1-0.25x": 49,
+        "0.25-0.5x": 0,
+        "0.5-1x": 0,
+        "1-2x": 0,
+        "2x+": 0
+      },
+      "interpretation": "Effective leverage here is entry notional divided by starting capital, useful even for fixed-notional research runs.",
+      "suggestion": "Use this exposure profile to verify fixed-notional sizing stayed consistent across the run."
+    },
+    "side_counts": {
+      "Long": 49,
+      "Short": 40
+    },
+    "regime_axis_at_entry": {
+      "direction": {
+        "distribution": {
+          "bull": 49,
+          "bear": 40
+        },
+        "confidence": {
+          "count": 89,
+          "sum": 88.8178,
+          "avg": 0.9979528089887642,
+          "median": 1.0,
+          "p25": 1.0,
+          "p75": 1.0,
+          "p90": 1.0,
+          "p95": 1.0,
+          "min": 0.8596,
+          "max": 1.0
+        },
+        "confidence_by_label": {
+          "bear": {
+            "count": 40,
+            "sum": 39.8596,
+            "avg": 0.99649,
+            "median": 1.0,
+            "p25": 1.0,
+            "p75": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "min": 0.8596,
+            "max": 1.0
+          },
+          "bull": {
+            "count": 49,
+            "sum": 48.9582,
+            "avg": 0.9991469387755102,
+            "median": 1.0,
+            "p25": 1.0,
+            "p75": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "min": 0.9582,
+            "max": 1.0
+          }
+        }
+      },
+      "trend_strength": {
+        "distribution": {
+          "strong_trend": 34,
+          "weak_trend": 25,
+          "choppy": 17,
+          "parabolic": 13
+        },
+        "confidence": {
+          "count": 89,
+          "sum": 30.977600000000002,
+          "avg": 0.3480629213483146,
+          "median": 0.2442,
+          "p25": 0.1418,
+          "p75": 0.5538,
+          "p90": 0.70604,
+          "p95": 0.9541599999999993,
+          "min": 0.0029,
+          "max": 1.0
+        },
+        "confidence_by_label": {
+          "choppy": {
+            "count": 17,
+            "sum": 6.702399999999999,
+            "avg": 0.3942588235294117,
+            "median": 0.3724,
+            "p25": 0.2428,
+            "p75": 0.462,
+            "p90": 0.6653,
+            "p95": 0.7232399999999999,
+            "min": 0.159,
+            "max": 0.8854
+          },
+          "parabolic": {
+            "count": 13,
+            "sum": 8.956999999999999,
+            "avg": 0.689,
+            "median": 0.6713,
+            "p25": 0.4094,
+            "p75": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "min": 0.1418,
+            "max": 1.0
+          },
+          "strong_trend": {
+            "count": 34,
+            "sum": 11.9554,
+            "avg": 0.35162941176470586,
+            "median": 0.28564999999999996,
+            "p25": 0.13865,
+            "p75": 0.5766,
+            "p90": 0.69933,
+            "p95": 0.70682,
+            "min": 0.0029,
+            "max": 0.738
+          },
+          "weak_trend": {
+            "count": 25,
+            "sum": 3.3627999999999996,
+            "avg": 0.134512,
+            "median": 0.1368,
+            "p25": 0.0778,
+            "p75": 0.1868,
+            "p90": 0.23746,
+            "p95": 0.23874,
+            "min": 0.0217,
+            "max": 0.2442
+          }
+        }
+      },
+      "volatility_level": {
+        "distribution": {
+          "normal": 37,
+          "extreme": 19,
+          "low": 17,
+          "high": 16
+        },
+        "confidence": {
+          "count": 89,
+          "sum": 39.2083,
+          "avg": 0.44054269662921347,
+          "median": 0.4167,
+          "p25": 0.25,
+          "p75": 0.5833,
+          "p90": 0.875,
+          "p95": 0.9167,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "confidence_by_label": {
+          "extreme": {
+            "count": 19,
+            "sum": 6.5416,
+            "avg": 0.34429473684210526,
+            "median": 0.375,
+            "p25": 0.1875,
+            "p75": 0.5,
+            "p90": 0.5,
+            "p95": 0.5,
+            "min": 0.0417,
+            "max": 0.5
+          },
+          "high": {
+            "count": 16,
+            "sum": 4.7499,
+            "avg": 0.29686875,
+            "median": 0.27085000000000004,
+            "p25": 0.2083,
+            "p75": 0.42710000000000004,
+            "p90": 0.4583,
+            "p95": 0.468725,
+            "min": 0.0417,
+            "max": 0.5
+          },
+          "low": {
+            "count": 17,
+            "sum": 9.500100000000002,
+            "avg": 0.558829411764706,
+            "median": 0.5,
+            "p25": 0.2917,
+            "p75": 0.8333,
+            "p90": 1.0,
+            "p95": 1.0,
+            "min": 0.125,
+            "max": 1.0
+          },
+          "normal": {
+            "count": 37,
+            "sum": 18.4167,
+            "avg": 0.4977486486486486,
+            "median": 0.4583,
+            "p25": 0.2917,
+            "p75": 0.625,
+            "p90": 0.8916799999999999,
+            "p95": 0.9167,
+            "min": 0.0,
+            "max": 0.9167
+          }
+        }
+      },
+      "volatility_regime": {
+        "distribution": {
+          "contraction": 46,
+          "expansion": 22,
+          "normal": 21
+        },
+        "confidence": {
+          "count": 89,
+          "sum": 55.380900000000004,
+          "avg": 0.6222573033707866,
+          "median": 0.625,
+          "p25": 0.3006,
+          "p75": 1.0,
+          "p90": 1.0,
+          "p95": 1.0,
+          "min": 0.0051,
+          "max": 1.0
+        },
+        "confidence_by_label": {
+          "contraction": {
+            "count": 46,
+            "sum": 30.1622,
+            "avg": 0.6557,
+            "median": 0.7290000000000001,
+            "p25": 0.33755,
+            "p75": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "min": 0.0052,
+            "max": 1.0
+          },
+          "expansion": {
+            "count": 22,
+            "sum": 16.7346,
+            "avg": 0.7606636363636364,
+            "median": 1.0,
+            "p25": 0.562025,
+            "p75": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "min": 0.0051,
+            "max": 1.0
+          },
+          "normal": {
+            "count": 21,
+            "sum": 8.4841,
+            "avg": 0.40400476190476187,
+            "median": 0.3423,
+            "p25": 0.2457,
+            "p75": 0.5184,
+            "p90": 0.7986,
+            "p95": 0.8398,
+            "min": 0.0786,
+            "max": 0.9555
+          }
+        }
+      },
+      "momentum": {
+        "distribution": {
+          "strong_positive": 32,
+          "strong_negative": 31,
+          "positive": 17,
+          "negative": 9
+        },
+        "confidence": {
+          "count": 89,
+          "sum": 57.076100000000004,
+          "avg": 0.6413044943820225,
+          "median": 0.6448,
+          "p25": 0.4567,
+          "p75": 0.8359,
+          "p90": 1.0,
+          "p95": 1.0,
+          "min": 0.1572,
+          "max": 1.0
+        },
+        "confidence_by_label": {
+          "negative": {
+            "count": 9,
+            "sum": 3.3505,
+            "avg": 0.37227777777777776,
+            "median": 0.4176,
+            "p25": 0.3403,
+            "p75": 0.4252,
+            "p90": 0.43398000000000003,
+            "p95": 0.44534,
+            "min": 0.1572,
+            "max": 0.4567
+          },
+          "positive": {
+            "count": 17,
+            "sum": 5.7257,
+            "avg": 0.3368058823529412,
+            "median": 0.3378,
+            "p25": 0.2773,
+            "p75": 0.391,
+            "p90": 0.464,
+            "p95": 0.47064,
+            "min": 0.1583,
+            "max": 0.4924
+          },
+          "strong_negative": {
+            "count": 31,
+            "sum": 22.542000000000005,
+            "avg": 0.7271612903225808,
+            "median": 0.6908,
+            "p25": 0.5656,
+            "p75": 0.89315,
+            "p90": 1.0,
+            "p95": 1.0,
+            "min": 0.5029,
+            "max": 1.0
+          },
+          "strong_positive": {
+            "count": 32,
+            "sum": 25.457900000000002,
+            "avg": 0.7955593750000001,
+            "median": 0.74705,
+            "p25": 0.6787,
+            "p75": 0.9681,
+            "p90": 1.0,
+            "p95": 1.0,
+            "min": 0.5078,
+            "max": 1.0
+          }
+        }
+      },
+      "risk": {
+        "distribution": {
+          "unknown": 89
+        },
+        "confidence": {
+          "count": 89,
+          "sum": 0.0,
+          "avg": 0.0,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "p90": 0.0,
+          "p95": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "confidence_by_label": {
+          "unknown": {
+            "count": 89,
+            "sum": 0.0,
+            "avg": 0.0,
+            "median": 0.0,
+            "p25": 0.0,
+            "p75": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        }
+      },
+      "correlation": {
+        "distribution": {
+          "unknown": 89
+        },
+        "confidence": {
+          "count": 89,
+          "sum": 0.0,
+          "avg": 0.0,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "p90": 0.0,
+          "p95": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "confidence_by_label": {
+          "unknown": {
+            "count": 89,
+            "sum": 0.0,
+            "avg": 0.0,
+            "median": 0.0,
+            "p25": 0.0,
+            "p75": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        }
+      },
+      "interpretation": "Six-axis regime labels show which market states the strategy actually traded at entry.",
+      "suggestion": "If profitable trades cluster in one axis bucket, test a typed regime filter for that bucket instead of optimizing all params blindly."
+    },
+    "fee_paid_entry": {
+      "count": 89,
+      "sum": 35.60108,
+      "avg": 0.4000121348314607,
+      "median": 0.40012,
+      "p25": 0.39988,
+      "p75": 0.40012,
+      "p90": 0.40012000000000003,
+      "p95": 0.40012000000000003,
+      "min": 0.39988,
+      "max": 0.40012000000000003,
+      "unit": "USDT",
+      "total_usdt": 35.60108
+    },
+    "fee_paid_exit": {
+      "count": 89,
+      "sum": 35.92629585555466,
+      "avg": 0.40366624556802994,
+      "median": 0.40257041268563537,
+      "p25": 0.3934255212885504,
+      "p75": 0.413361586477267,
+      "p90": 0.4240901862707787,
+      "p95": 0.43767183527000914,
+      "min": 0.3116852291633587,
+      "max": 0.48276098851590615,
+      "unit": "USDT",
+      "total_usdt": 35.92629585555466
+    },
+    "fee_paid_entry_fraction_of_notional": {
+      "count": 89,
+      "sum": 0.03560000000000001,
+      "avg": 0.0004000000000000001,
+      "median": 0.0004,
+      "p25": 0.0004,
+      "p75": 0.0004,
+      "p90": 0.0004,
+      "p95": 0.0004,
+      "min": 0.0004,
+      "max": 0.0004
+    },
+    "fee_paid_exit_fraction_of_notional": {
+      "count": 89,
+      "sum": 0.03560000000000001,
+      "avg": 0.0004000000000000001,
+      "median": 0.0004,
+      "p25": 0.0004,
+      "p75": 0.0004,
+      "p90": 0.0004,
+      "p95": 0.0004,
+      "min": 0.00039999999999999996,
+      "max": 0.0004
+    },
+    "funding_paid_or_received": {
+      "available": true,
+      "unit": "USDT; positive means paid, negative means received",
+      "total_paid_or_received_usdt": 1.4977976743404167,
+      "gross_paid_usdt": 5.475610343465051,
+      "gross_received_usdt": -3.977812669124634,
+      "payment_distribution_usdt": {
+        "count": 89,
+        "sum": 1.4977976743404167,
+        "avg": 0.016829187352139514,
+        "median": 0.0,
+        "p25": 0.0,
+        "p75": 0.0,
+        "p90": 0.09289184461030825,
+        "p95": 0.3274556568807731,
+        "min": -0.914381829920187,
+        "max": 1.4979729419846972,
+        "unit": "USDT",
+        "total_usdt": 1.4977976743404167
+      },
+      "event_count_distribution": {
+        "count": 89,
+        "sum": 159.0,
+        "avg": 1.7865168539325842,
+        "median": 0.0,
+        "p25": 0.0,
+        "p75": 2.0,
+        "p90": 8.0,
+        "p95": 9.599999999999994,
+        "min": 0.0,
+        "max": 16.0
+      },
+      "event_count_definition": "Number of funding settlement timestamps that occurred while each trade was open.",
+      "rate_sum_distribution": {
+        "count": 89,
+        "sum": 0.00603361,
+        "avg": 6.779337078651685e-5,
+        "median": 0.0,
+        "p25": 0.0,
+        "p75": 0.0,
+        "p90": 0.00027947000000000003,
+        "p95": 0.0004709799999999993,
+        "min": -0.00041086,
+        "max": 0.0014273500000000002
+      },
+      "rate_sum_definition": "Sum of fractional funding rates encountered by each trade; 0.0001 means 0.01% for one event.",
+      "interpretation": "Per-trade funding is allocated from settlement events that happened while the trade was open. Amounts are USDT, not percentages.",
+      "suggestion": "Funding drag is modest here; keep it enabled for every perp run."
+    },
+    "slippage_estimate": {
+      "available": true,
+      "unit": "USDT estimate; VBT slippage is already reflected in fill prices/PnL",
+      "configured_rate_distribution": {
+        "count": 89,
+        "sum": 0.026699999999999998,
+        "avg": 0.0003,
+        "median": 0.0003,
+        "p25": 0.0003,
+        "p75": 0.0003,
+        "p90": 0.0003,
+        "p95": 0.0003,
+        "min": 0.0003,
+        "max": 0.0003
+      },
+      "entry_slippage": {
+        "count": 89,
+        "sum": 26.70081,
+        "avg": 0.3000091011235955,
+        "median": 0.3000899999999999,
+        "p25": 0.29991,
+        "p75": 0.30008999999999997,
+        "p90": 0.30008999999999997,
+        "p95": 0.30008999999999997,
+        "min": 0.29990999999999995,
+        "max": 0.30008999999999997,
+        "unit": "USDT",
+        "total_usdt": 26.70081
+      },
+      "exit_slippage": {
+        "count": 89,
+        "sum": 26.944721891665996,
+        "avg": 0.30274968417602244,
+        "median": 0.3019278095142265,
+        "p25": 0.29506914096641274,
+        "p75": 0.3100211898579502,
+        "p90": 0.318067639703084,
+        "p95": 0.3282538764525068,
+        "min": 0.23376392187251904,
+        "max": 0.3620707413869296,
+        "unit": "USDT",
+        "total_usdt": 26.944721891665996
+      },
+      "total_slippage": {
+        "count": 89,
+        "sum": 53.645531891665996,
+        "avg": 0.6027587852996179,
+        "median": 0.6018378095142265,
+        "p25": 0.5949791409664127,
+        "p75": 0.6099311898579503,
+        "p90": 0.6181576397030839,
+        "p95": 0.6283438764525068,
+        "min": 0.533673921872519,
+        "max": 0.6621607413869295,
+        "unit": "USDT",
+        "total_usdt": 53.645531891665996
+      },
+      "interpretation": "Slippage estimates are not extra costs to subtract again; they explain the cost already modelled in VBT fills.",
+      "suggestion": "Current configured slippage is captured per trade; stress it in PROVE before trusting small edges."
+    },
+    "exit_reason": {
+      "stop_loss": 38,
+      "trailing_stop": 24,
+      "tp_or_signal": 15,
+      "signal_reversal": 12
+    },
+    "stop_level": {
+      "available": true,
+      "level_type": "stop",
+      "matched_trade_count": 89,
+      "level_distribution": {
+        "count": 89,
+        "sum": 5556019.970665631,
+        "avg": 62427.190681636304,
+        "median": 62292.56725963756,
+        "p25": 37910.559353358665,
+        "p75": 91072.70371265832,
+        "p90": 100414.9138547382,
+        "p95": 110992.42762350789,
+        "min": 17081.56368110966,
+        "max": 119732.06317334787
+      },
+      "interpretation": "STOP levels are read from the exact execution artifact rows used by VBT.",
+      "suggestion": "Compare these levels with MAE/MFE distributions to tune stop and take-profit distances."
+    },
+    "tp_level": {
+      "available": false,
+      "reason": "No numeric TP level was active on matched exit rows.",
+      "interpretation": "This can be normal for pure signal exits; bracket/chandelier/trail exits should usually have levels."
+    },
+    "mfe": {
+      "count": 89,
+      "sum": 4.71644,
+      "avg": 0.05299370786516854,
+      "median": 0.03186,
+      "p25": 0.013197,
+      "p75": 0.066718,
+      "p90": 0.1417402,
+      "p95": 0.1663763999999998,
+      "min": 0.000155,
+      "max": 0.305978
+    },
+    "mae": {
+      "count": 89,
+      "sum": -2.654041,
+      "avg": -0.029820685393258425,
+      "median": -0.022386,
+      "p25": -0.039883,
+      "p75": -0.011813,
+      "p90": -0.0038735999999999987,
+      "p95": -0.001997200000000001,
+      "min": -0.125254,
+      "max": -0.00074
+    },
+    "r_multiple": {
+      "count": 89,
+      "sum": 99.7384,
+      "avg": 1.120656179775281,
+      "median": -0.348,
+      "p25": -1.3763,
+      "p75": 1.7774,
+      "p90": 5.617720000000002,
+      "p95": 8.766039999999995,
+      "min": -2.8897,
+      "max": 33.3628
+    },
+    "bars_held": {
+      "count": 89,
+      "sum": 1365.0,
+      "avg": 15.337078651685394,
+      "median": 13.0,
+      "p25": 7.0,
+      "p75": 21.0,
+      "p90": 30.200000000000003,
+      "p95": 34.599999999999994,
+      "min": 2.0,
+      "max": 48.0
+    },
+    "bars_held_distribution": {
+      "0-3": 4,
+      "3-6": 18,
+      "6-12": 20,
+      "12-24": 32,
+      "24-48": 15,
+      "48-96": 0,
+      "96+": 0
+    },
+    "mfe_distribution": {
+      "le_0.0": 0,
+      "0.0_to_0.01": 18,
+      "0.01_to_0.03": 23,
+      "0.03_to_0.05": 18,
+      "0.05_to_0.10": 17,
+      "gt_0.10": 13
+    },
+    "mae_distribution": {
+      "lt_-0.10": 2,
+      "-0.10_to_-0.05": 13,
+      "-0.05_to_-0.03": 21,
+      "-0.03_to_-0.01": 35,
+      "-0.01_to_0.0": 18,
+      "ge_0.0": 0
+    },
+    "r_multiple_distribution": {
+      "<-2R": 10,
+      "-2--1R": 22,
+      "-1-0R": 18,
+      "0-1R": 9,
+      "1-2R": 10,
+      "2-5R": 9,
+      "5R+": 11
+    },
+    "fee_distribution_usd": {
+      "0-2": 89,
+      "2-5": 0,
+      "5-10": 0,
+      "10-20": 0,
+      "20-50": 0,
+      "50+": 0
+    },
+    "mfe_mae": {
+      "avg_mfe_pct": 0.05299370786516854,
+      "avg_mae_pct": -0.029820685393258425,
+      "avg_r_multiple": 1.120656179775281,
+      "avg_exit_efficiency": -1.047760227272727,
+      "interpretation": "Exit efficiency is weak: trades move favorably but give back too much before exit.",
+      "suggestion": "Scatter is mixed. Tune stops and filters in a small local grid, then compare zone shares rather than only Sharpe. Winning trades needed up to 2.32R adverse movement; either widen volatility stops or improve entry timing. Prefer volatility-based stops over round-number stops."
+    },
+    "mfe_mae_scatter": {
+      "available": true,
+      "combo_idx": 73,
+      "combo_params": {
+        "channel_period": 55,
+        "exit_period": 15,
+        "vol_mult": 1.3,
+        "exit_mode": "signal_be_trail",
+        "exit_label": "signal_be_trail"
+      },
+      "point_count": 89,
+      "points": [
+        {
+          "trade_index": 0,
+          "mae_r_abs": 1.9371,
+          "mae_r_signed": -1.9371,
+          "mfe_r": 1.5938,
+          "r_multiple": -1.22,
+          "zone": "mixed_high_mae_decent_mfe"
+        },
+        {
+          "trade_index": 1,
+          "mae_r_abs": 0.4827,
+          "mae_r_signed": -0.4827,
+          "mfe_r": 3.5072,
+          "r_multiple": 2.0418,
+          "zone": "optimal_low_mae_high_mfe"
+        },
+        {
+          "trade_index": 2,
+          "mae_r_abs": 0.846,
+          "mae_r_signed": -0.846,
+          "mfe_r": 7.1501,
+          "r_multiple": 5.3266,
+          "zone": "middle"
+        }
+      ],
+      "zone_counts": {
+        "mixed_high_mae_decent_mfe": 29,
+        "danger_high_mae_low_mfe": 26,
+        "optimal_low_mae_high_mfe": 15,
+        "middle": 14,
+        "recovered_high_mae_winner": 5
+      },
+      "grouped_ranges": [
+        {
+          "mae_range": "0-0.5R",
+          "mfe_range": "2-5R",
+          "count": 5,
+          "avg_r": 1.42854,
+          "win_rate": 1.0,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "0-0.5R",
+          "mfe_range": "5R+",
+          "count": 10,
+          "avg_r": 5.57478,
+          "win_rate": 1.0,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "0.5-1R",
+          "mfe_range": "0-1R",
+          "count": 2,
+          "avg_r": -0.81275,
+          "win_rate": 0.0,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "0.5-1R",
+          "mfe_range": "1-2R",
+          "count": 4,
+          "avg_r": -0.13707499999999997,
+          "win_rate": 0.5,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "0.5-1R",
+          "mfe_range": "2-5R",
+          "count": 1,
+          "avg_r": 0.5606,
+          "win_rate": 1.0,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "0.5-1R",
+          "mfe_range": "5R+",
+          "count": 7,
+          "avg_r": 6.112185714285714,
+          "win_rate": 1.0,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "1-2R",
+          "mfe_range": "0-1R",
+          "count": 8,
+          "avg_r": -1.209425,
+          "win_rate": 0.0,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "1-2R",
+          "mfe_range": "1-2R",
+          "count": 9,
+          "avg_r": -0.8189444444444445,
+          "win_rate": 0.1111111111111111,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "1-2R",
+          "mfe_range": "2-5R",
+          "count": 11,
+          "avg_r": 0.0014090909090909256,
+          "win_rate": 0.36363636363636365,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "1-2R",
+          "mfe_range": "5R+",
+          "count": 3,
+          "avg_r": 15.851533333333334,
+          "win_rate": 1.0,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "2R+",
+          "mfe_range": "0-1R",
+          "count": 18,
+          "avg_r": -1.719438888888889,
+          "win_rate": 0.05555555555555555,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "2R+",
+          "mfe_range": "1-2R",
+          "count": 4,
+          "avg_r": -1.5783749999999999,
+          "win_rate": 0.0,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        },
+        {
+          "mae_range": "2R+",
+          "mfe_range": "2-5R",
+          "count": 7,
+          "avg_r": 0.3449999999999999,
+          "win_rate": 0.7142857142857143,
+          "interpretation": "2D range bucket for MAE/MFE scatter; high-MAE/low-MFE buckets are the most dangerous."
+        }
+      ],
+      "decision": {
+        "decision": "mixed_profile",
+        "zone_share": {
+          "mixed_high_mae_decent_mfe": 0.3258426966292135,
+          "danger_high_mae_low_mfe": 0.29213483146067415,
+          "optimal_low_mae_high_mfe": 0.16853932584269662,
+          "middle": 0.15730337078651685,
+          "recovered_high_mae_winner": 0.056179775280898875
+        },
+        "winner_mae_p90_r": 2.32166,
+        "mfe_p50_r": 1.9915,
+        "mfe_p75_r": 4.0291,
+        "interpretation": "Scatter zones separate good entries, recovered-but-ugly winners, low-opportunity trades, and bad entries.",
+        "suggestion": "Scatter is mixed. Tune stops and filters in a small local grid, then compare zone shares rather than only Sharpe. Winning trades needed up to 2.32R adverse movement; either widen volatility stops or improve entry timing. Prefer volatility-based stops over round-number stops."
+      },
+      "chart_svg": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/70-charts/70-mfe_mae_scatter_combo_73.svg",
+      "chart_json": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/70-charts/70-mfe_mae_scatter_combo_73.json",
+      "interpretation": "Scatter zones separate good entries, recovered-but-ugly winners, low-opportunity trades, and bad entries.",
+      "suggestion": "Scatter is mixed. Tune stops and filters in a small local grid, then compare zone shares rather than only Sharpe. Winning trades needed up to 2.32R adverse movement; either widen volatility stops or improve entry timing. Prefer volatility-based stops over round-number stops."
+    },
+    "mfe_mae_exit_optimization": {
+      "available": true,
+      "winner_mae_p90_r": 2.32166,
+      "suggested_sl_r": 2.32,
+      "mfe_median_r": 1.9915,
+      "mfe_p75_r": 4.0291,
+      "suggested_tp_r": 1.99,
+      "suggested_trail_activation_r": 4.03,
+      "exit_efficiency_avg": -1.047760227272727,
+      "interpretation": "This converts the actual trade excursion distribution into concrete stop/TP/trail starting points for the next grid.",
+      "suggestion": "Exit efficiency is poor; test faster trailing exits, breakeven activation near median MFE, and partial profit-taking around the MFE median."
+    },
+    "exit_reason_distribution": {
+      "stop_loss": 38,
+      "trailing_stop": 24,
+      "tp_or_signal": 15,
+      "signal_reversal": 12
+    },
+    "regime_at_entry_distribution": {
+      "bull": 49,
+      "bear": 40
+    },
+    "adx_at_entry": {
+      "count": 89,
+      "sum": 2723.5099999999998,
+      "avg": 30.601235955056175,
+      "median": 27.48,
+      "p25": 22.0,
+      "p75": 35.96,
+      "p90": 47.176,
+      "p95": 53.58999999999996,
+      "min": 13.55,
+      "max": 70.53
+    },
+    "atr_pct_at_entry": {
+      "count": 89,
+      "sum": 1.441161,
+      "avg": 0.0161928202247191,
+      "median": 0.016032,
+      "p25": 0.012119,
+      "p75": 0.019049,
+      "p90": 0.023258,
+      "p95": 0.02516139999999999,
+      "min": 0.006164,
+      "max": 0.035467
+    },
+    "volume_percentile_at_entry": {
+      "count": 89,
+      "sum": 64.9,
+      "avg": 0.7292134831460675,
+      "median": 0.76,
+      "p25": 0.6,
+      "p75": 0.88,
+      "p90": 0.9640000000000001,
+      "p95": 0.98,
+      "min": 0.12,
+      "max": 1.0
+    },
+    "adx_atr_volume_buckets": [
+      {
+        "adx_bucket": "ADX15-20",
+        "atr_pct_bucket": "ATR%0.5-1",
+        "n_trades": 1,
+        "win_rate": 1.0,
+        "avg_r": 7.988,
+        "profit_factor": null,
+        "avg_mfe_r": 11.804,
+        "avg_mae_r": -1.349
+      },
+      {
+        "adx_bucket": "ADX15-20",
+        "atr_pct_bucket": "ATR%1-1.5",
+        "n_trades": 4,
+        "win_rate": 0.5,
+        "avg_r": 4.36,
+        "profit_factor": 7.702,
+        "avg_mfe_r": 7.157,
+        "avg_mae_r": -1.846
+      },
+      {
+        "adx_bucket": "ADX15-20",
+        "atr_pct_bucket": "ATR%1.5-2.5",
+        "n_trades": 8,
+        "win_rate": 0.375,
+        "avg_r": 0.599,
+        "profit_factor": 1.489,
+        "avg_mfe_r": 3.157,
+        "avg_mae_r": -2.474
+      },
+      {
+        "adx_bucket": "ADX15-20",
+        "atr_pct_bucket": "ATR%>2.5",
+        "n_trades": 1,
+        "win_rate": 1.0,
+        "avg_r": 2.042,
+        "profit_factor": null,
+        "avg_mfe_r": 3.507,
+        "avg_mae_r": -0.483
+      },
+      {
+        "adx_bucket": "ADX20-25",
+        "atr_pct_bucket": "ATR%0.5-1",
+        "n_trades": 3,
+        "win_rate": 0.0,
+        "avg_r": -1.208,
+        "profit_factor": 0.0,
+        "avg_mfe_r": 1.251,
+        "avg_mae_r": -2.458
+      },
+      {
+        "adx_bucket": "ADX20-25",
+        "atr_pct_bucket": "ATR%1-1.5",
+        "n_trades": 12,
+        "win_rate": 0.5,
+        "avg_r": 0.617,
+        "profit_factor": 1.996,
+        "avg_mfe_r": 3.13,
+        "avg_mae_r": -1.909
+      },
+      {
+        "adx_bucket": "ADX20-25",
+        "atr_pct_bucket": "ATR%1.5-2.5",
+        "n_trades": 5,
+        "win_rate": 0.2,
+        "avg_r": -0.276,
+        "profit_factor": 0.642,
+        "avg_mfe_r": 2.669,
+        "avg_mae_r": -1.667
+      },
+      {
+        "adx_bucket": "ADX25-30",
+        "atr_pct_bucket": "ATR%0.5-1",
+        "n_trades": 1,
+        "win_rate": 1.0,
+        "avg_r": 12.526,
+        "profit_factor": null,
+        "avg_mfe_r": 20.451,
+        "avg_mae_r": -0.303
+      },
+      {
+        "adx_bucket": "ADX25-30",
+        "atr_pct_bucket": "ATR%1-1.5",
+        "n_trades": 4,
+        "win_rate": 0.5,
+        "avg_r": 1.684,
+        "profit_factor": 3.623,
+        "avg_mfe_r": 4.601,
+        "avg_mae_r": -2.427
+      },
+      {
+        "adx_bucket": "ADX25-30",
+        "atr_pct_bucket": "ATR%1.5-2.5",
+        "n_trades": 13,
+        "win_rate": 0.385,
+        "avg_r": 0.0,
+        "profit_factor": 1.0,
+        "avg_mfe_r": 2.072,
+        "avg_mae_r": -1.813
+      },
+      {
+        "adx_bucket": "ADX<15",
+        "atr_pct_bucket": "ATR%1-1.5",
+        "n_trades": 1,
+        "win_rate": 0.0,
+        "avg_r": -1.385,
+        "profit_factor": 0.0,
+        "avg_mfe_r": 1.03,
+        "avg_mae_r": -1.994
+      },
+      {
+        "adx_bucket": "ADX>30",
+        "atr_pct_bucket": "ATR%0.5-1",
+        "n_trades": 6,
+        "win_rate": 0.667,
+        "avg_r": 5.986,
+        "profit_factor": 13.754,
+        "avg_mfe_r": 9.558,
+        "avg_mae_r": -2.266
+      },
+      {
+        "adx_bucket": "ADX>30",
+        "atr_pct_bucket": "ATR%1-1.5",
+        "n_trades": 7,
+        "win_rate": 0.429,
+        "avg_r": 0.64,
+        "profit_factor": 1.978,
+        "avg_mfe_r": 2.692,
+        "avg_mae_r": -1.002
+      },
+      {
+        "adx_bucket": "ADX>30",
+        "atr_pct_bucket": "ATR%1.5-2.5",
+        "n_trades": 19,
+        "win_rate": 0.526,
+        "avg_r": 0.636,
+        "profit_factor": 1.84,
+        "avg_mfe_r": 3.364,
+        "avg_mae_r": -1.742
+      },
+      {
+        "adx_bucket": "ADX>30",
+        "atr_pct_bucket": "ATR%>2.5",
+        "n_trades": 4,
+        "win_rate": 0.0,
+        "avg_r": -1.321,
+        "profit_factor": 0.0,
+        "avg_mfe_r": 1.45,
+        "avg_mae_r": -1.913
+      }
+    ],
+    "adx_atr_volume_bucket_interpretation": "Buckets show which ADX/ATR% market states generated better R-multiples; use them to justify adding or removing regime filters.",
+    "adx_atr_volume_bucket_suggestion": "Prefer filters only when a bucket has enough trades and materially better avg_r/profit_factor than the full sample.",
+    "cost_estimates": {
+      "fees_total": {
+        "count": 89,
+        "sum": 71.52737585555467,
+        "avg": 0.8036783803994907,
+        "median": 0.8024504126856353,
+        "p25": 0.7933055212885505,
+        "p75": 0.8132415864772671,
+        "p90": 0.8242101862707787,
+        "p95": 0.8377918352700091,
+        "min": 0.7115652291633587,
+        "max": 0.8828809885159061,
+        "unit": "USDT",
+        "total_usdt": 71.52737585555467
+      },
+      "funding_paid_or_received": {
+        "available": true,
+        "unit": "USDT; positive means paid, negative means received",
+        "total_paid_or_received_usdt": 1.4977976743404167,
+        "gross_paid_usdt": 5.475610343465051,
+        "gross_received_usdt": -3.977812669124634,
+        "payment_distribution_usdt": {
+          "count": 89,
+          "sum": 1.4977976743404167,
+          "avg": 0.016829187352139514,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "p90": 0.09289184461030825,
+          "p95": 0.3274556568807731,
+          "min": -0.914381829920187,
+          "max": 1.4979729419846972,
+          "unit": "USDT",
+          "total_usdt": 1.4977976743404167
+        },
+        "event_count_distribution": {
+          "count": 89,
+          "sum": 159.0,
+          "avg": 1.7865168539325842,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "p90": 8.0,
+          "p95": 9.599999999999994,
+          "min": 0.0,
+          "max": 16.0
+        },
+        "event_count_definition": "Number of funding settlement timestamps that occurred while each trade was open.",
+        "rate_sum_distribution": {
+          "count": 89,
+          "sum": 0.00603361,
+          "avg": 6.779337078651685e-5,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "p90": 0.00027947000000000003,
+          "p95": 0.0004709799999999993,
+          "min": -0.00041086,
+          "max": 0.0014273500000000002
+        },
+        "rate_sum_definition": "Sum of fractional funding rates encountered by each trade; 0.0001 means 0.01% for one event.",
+        "interpretation": "Per-trade funding is allocated from settlement events that happened while the trade was open. Amounts are USDT, not percentages.",
+        "suggestion": "Funding drag is modest here; keep it enabled for every perp run."
+      },
+      "slippage_estimate": {
+        "available": true,
+        "unit": "USDT estimate; VBT slippage is already reflected in fill prices/PnL",
+        "configured_rate_distribution": {
+          "count": 89,
+          "sum": 0.026699999999999998,
+          "avg": 0.0003,
+          "median": 0.0003,
+          "p25": 0.0003,
+          "p75": 0.0003,
+          "p90": 0.0003,
+          "p95": 0.0003,
+          "min": 0.0003,
+          "max": 0.0003
+        },
+        "entry_slippage": {
+          "count": 89,
+          "sum": 26.70081,
+          "avg": 0.3000091011235955,
+          "median": 0.3000899999999999,
+          "p25": 0.29991,
+          "p75": 0.30008999999999997,
+          "p90": 0.30008999999999997,
+          "p95": 0.30008999999999997,
+          "min": 0.29990999999999995,
+          "max": 0.30008999999999997,
+          "unit": "USDT",
+          "total_usdt": 26.70081
+        },
+        "exit_slippage": {
+          "count": 89,
+          "sum": 26.944721891665996,
+          "avg": 0.30274968417602244,
+          "median": 0.3019278095142265,
+          "p25": 0.29506914096641274,
+          "p75": 0.3100211898579502,
+          "p90": 0.318067639703084,
+          "p95": 0.3282538764525068,
+          "min": 0.23376392187251904,
+          "max": 0.3620707413869296,
+          "unit": "USDT",
+          "total_usdt": 26.944721891665996
+        },
+        "total_slippage": {
+          "count": 89,
+          "sum": 53.645531891665996,
+          "avg": 0.6027587852996179,
+          "median": 0.6018378095142265,
+          "p25": 0.5949791409664127,
+          "p75": 0.6099311898579503,
+          "p90": 0.6181576397030839,
+          "p95": 0.6283438764525068,
+          "min": 0.533673921872519,
+          "max": 0.6621607413869295,
+          "unit": "USDT",
+          "total_usdt": 53.645531891665996
+        },
+        "interpretation": "Slippage estimates are not extra costs to subtract again; they explain the cost already modelled in VBT fills.",
+        "suggestion": "Current configured slippage is captured per trade; stress it in PROVE before trusting small edges."
+      },
+      "interpretation": "Fees are taken from VBT trade records when available.",
+      "suggestion": "Compare fee, funding, and slippage totals against gross PnL; fragile alphas often disappear after realistic costs."
+    },
+    "execution_context": {
+      "available": true,
+      "sample_size": 25,
+      "sample_matches": [
+        {
+          "entry_time": "2021-06-08T04:00:00+00:00",
+          "exit_time": "2021-06-09T08:00:00+00:00",
+          "entry_bar": {
+            "long_entry": false,
+            "short_entry": true,
+            "long_exit": true,
+            "short_exit": false,
+            "entry_allowed": true,
+            "primary_signal": true,
+            "supporting_alpha_passed": true,
+            "supporting_alpha_available": true,
+            "strategy_regime_passed": true,
+            "strategy_regime_available": true,
+            "exit_reason": "signal_reversal",
+            "long_stop_level": 29410.519301691216,
+            "short_stop_level": 36185.30069830879,
+            "long_tp_level": null,
+            "short_tp_level": null,
+            "position_state": -1.0,
+            "funding_rate_event": 0.0,
+            "funding_notional_usdt_estimate": 1000.0,
+            "funding_paid_or_received_estimate": -0.0,
+            "configured_slippage_rate": 0.0003,
+            "entry_slippage_rate": 0.0003,
+            "exit_slippage_rate": 0.0003
+          },
+          "exit_bar": {
+            "long_entry": false,
+            "short_entry": false,
+            "long_exit": false,
+            "short_exit": true,
+            "entry_allowed": true,
+            "primary_signal": false,
+            "supporting_alpha_passed": false,
+            "supporting_alpha_available": true,
+            "strategy_regime_passed": true,
+            "strategy_regime_available": true,
+            "exit_reason": "",
+            "long_stop_level": 30376.44064664134,
+            "short_stop_level": 37910.559353358665,
+            "long_tp_level": null,
+            "short_tp_level": null,
+            "position_state": 0.0,
+            "funding_rate_event": 0.0,
+            "funding_notional_usdt_estimate": 0.0,
+            "funding_paid_or_received_estimate": 0.0,
+            "configured_slippage_rate": 0.0003,
+            "entry_slippage_rate": 0.0,
+            "exit_slippage_rate": 0.0003
+          }
+        },
+        {
+          "entry_time": "2021-08-06T20:00:00+00:00",
+          "exit_time": "2021-08-12T08:00:00+00:00",
+          "entry_bar": {
+            "long_entry": true,
+            "short_entry": false,
+            "long_exit": false,
+            "short_exit": true,
+            "entry_allowed": true,
+            "primary_signal": true,
+            "supporting_alpha_passed": true,
+            "supporting_alpha_available": true,
+            "strategy_regime_passed": true,
+            "strategy_regime_available": true,
+            "exit_reason": "signal_reversal",
+            "long_stop_level": 39475.246170149396,
+            "short_stop_level": 46348.9338298506,
+            "long_tp_level": null,
+            "short_tp_level": null,
+            "position_state": 1.0,
+            "funding_rate_event": 0.0,
+            "funding_notional_usdt_estimate": 1000.0,
+            "funding_paid_or_received_estimate": 0.0,
+            "configured_slippage_rate": 0.0003,
+            "entry_slippage_rate": 0.0003,
+            "exit_slippage_rate": 0.0003
+          },
+          "exit_bar": {
+            "long_entry": false,
+            "short_entry": false,
+            "long_exit": true,
+            "short_exit": false,
+            "entry_allowed": true,
+            "primary_signal": false,
+            "supporting_alpha_passed": false,
+            "supporting_alpha_available": true,
+            "strategy_regime_passed": true,
+            "strategy_regime_available": true,
+            "exit_reason": "",
+            "long_stop_level": 42175.5176711931,
+            "short_stop_level": 48284.4823288069,
+            "long_tp_level": null,
+            "short_tp_level": null,
+            "position_state": 0.0,
+            "funding_rate_event": 0.0,
+            "funding_notional_usdt_estimate": 0.0,
+            "funding_paid_or_received_estimate": 0.0,
+            "configured_slippage_rate": 0.0003,
+            "entry_slippage_rate": 0.0,
+            "exit_slippage_rate": 0.0003
+          }
+        }
+      ],
+      "interpretation": "Rows come from the exact boolean arrays sent to VBT for this combo.",
+      "suggestion": "Use this to debug signal timing before changing strategy rules."
+    }
+  },
+  "near_miss_classification": {
+    "near_miss_type": "B_strong_perf_high_pbo",
+    "reason": "Strong Sharpe 0.97 but PBO 0.50 (statistical concern)",
+    "gates_passed": 4,
+    "gates_total": 6,
+    "blockers": ["pbo_ok", "dsr_ok"],
+    "gates_detail": {
+      "sharpe_ok": true,
+      "pbo_ok": false,
+      "dsr_ok": false,
+      "pf_ok": true,
+      "stability_ok": true,
+      "nb_ok": true
+    }
+  },
+  "interpretation": "Promising research row, but it still needs plateau, PROVE, and Nautilus validation.",
+  "suggestion": "Run a focused local grid around this combo and compare against adjacent parameter values.",
+  "channel_period": 55,
+  "exit_period": 15,
+  "vol_mult": 1.3,
+  "sharpe_ratio": 0.9728416628707521,
+  "total_return": 0.09577184452139553,
+  "max_drawdown": -0.021039400399751607,
+  "calmar_ratio": 4.552023475085641,
+  "n_trades": 89,
+  "win_rate": 0.43820224719101125,
+  "avg_hold_bars": 14.337078651685394,
+  "profit_factor": 1.8488768766361563,
+  "_combo_idx": 73,
+  "exit_mode": "signal_be_trail",
+  "exit_label": "signal_be_trail",
+  "cycle_stability": 1.0
+}

@@ -41,6 +41,7 @@ struct Params {
     double exit_sl_mult = 2.0, exit_trail_mult = 3.0;
     int exit_time_bars = 0;
     double exit_be_r_mult = 1.0;
+    int exit_lookback = 12;
 };
 
 struct GridResult {
@@ -110,88 +111,173 @@ public:
 };
 
 // ── Base Strategy ──────────────────────────────────────────────────────
-// KEY FIX: Check risk exits (chandelier/SL/trail) BEFORE signal exits.
-// In v3, signal exits fired first, making all 3 exit modes identical.
-// Now: risk exit → signal exit → signal entry, all on same bar.
+// Alignment with Trader7:
+// 1. All signals are delayed 1 bar (pending mechanism: signal at bar N → fill at bar N+1 close)
+// 2. ATR is shifted by 1 bar (use prev bar's ATR for stop computation)
+// 3. Hard SL uses ATR frozen at entry time (not current ATR)
+// 4. Chandelier trail anchor capped to exit_lookback bars (Trader7 default=12)
+// 5. In chandelier modes, signal exits are suppressed (only risk exits fire)
+// 6. Risk exits checked before signal generation on each bar
 class BaseStrategy : public Strategy {
 public:
     BaseStrategy(SubscriberId sid, SymbolId sym, const SymbolRegistry& reg, const Params& p,
                  SizingMode sizing = SizingMode::FixedNotional)
         : Strategy(sid, sym, reg), p_(p), exitAtr_(p.exit_atr_period), sizing_(sizing) {}
 
+    void setDebug(bool d) { debug_ = d; }
+
 protected:
     void onSymbolBar(SymbolContext& ctx, const BarEvent& ev) override {
-        double h = ev.bar.high.toDouble(), l = ev.bar.low.toDouble(), c = ev.bar.close.toDouble();
+        // Trader7 alignment: bar.close = open price (for fills), bar.open = real close
+        // The executor fills at bar.close (=open), strategy uses real OHLC
+        double c = ev.bar.open.toDouble();   // REAL close (stored in open field)
+        double h = ev.bar.high.toDouble();
+        double l = ev.bar.low.toDouble();
+        double fillPrice = ev.bar.close.toDouble();  // REAL open (stored in close field)
+        SymbolId sym = symbol();
+
+        // ── STEP 1: Execute PENDING actions from previous bar's signals ──
+        // Implements 1-bar shift: signal detected bar N → fills at bar N+1 open
+        if (pendingRiskExit_ && posLive_) {
+            emitClosePosition(sym);
+            if (debug_) fmt::print(stderr, "bar={} EXIT {} @ open={:.2f} reason=risk\n", barIdx_, exitSide_==1?"LONG":"SHRT", fillPrice);
+            side_ = 0; barsInTrade_ = 0; beAct_ = false; trail_ = 0; posLive_ = false; exitSide_ = 0;
+            highWindow_.clear(); lowWindow_.clear();
+        } else if (pendingSignalExit_ && posLive_) {
+            emitClosePosition(sym);
+            if (debug_) fmt::print(stderr, "bar={} EXIT {} @ open={:.2f} reason=signal\n", barIdx_, exitSide_==1?"LONG":"SHRT", fillPrice);
+            side_ = 0; barsInTrade_ = 0; beAct_ = false; trail_ = 0; posLive_ = false; exitSide_ = 0;
+            highWindow_.clear(); lowWindow_.clear();
+        }
+        if (pendingEntry_ != 0 && !posLive_) {
+            if (pendingEntry_ == 1) {
+                emitMarketBuy(sym, qtyForTrade(fillPrice, sizing_));
+                entryPrice_ = fillPrice; highSince_ = fillPrice; lowSince_ = fillPrice;
+                barsInTrade_ = 0; side_ = 1; beAct_ = false; trail_ = 0; posLive_ = true;
+                atrAtEntry_ = prevAtr_;
+                hardSlLong_ = atrAtEntry_ > 0 ? entryPrice_ - p_.exit_sl_mult * atrAtEntry_ : 0;
+                hardSlShort_ = atrAtEntry_ > 0 ? entryPrice_ + p_.exit_sl_mult * atrAtEntry_ : 1e18;
+                if (debug_) fmt::print(stderr, "bar={} ENTRY LONG @ open={:.2f} qty={:.4f} atr@entry={:.2f} hardSl={:.2f}\n",
+                    barIdx_, fillPrice, INITIAL_CAPITAL / fillPrice, atrAtEntry_, hardSlLong_);
+                exitSide_ = 1;
+            } else {
+                emitMarketSell(sym, qtyForTrade(fillPrice, sizing_));
+                entryPrice_ = fillPrice; highSince_ = fillPrice; lowSince_ = fillPrice;
+                barsInTrade_ = 0; side_ = -1; beAct_ = false; trail_ = 0; posLive_ = true;
+                atrAtEntry_ = prevAtr_;
+                hardSlLong_ = atrAtEntry_ > 0 ? entryPrice_ - p_.exit_sl_mult * atrAtEntry_ : 0;
+                hardSlShort_ = atrAtEntry_ > 0 ? entryPrice_ + p_.exit_sl_mult * atrAtEntry_ : 1e18;
+                if (debug_) fmt::print(stderr, "bar={} ENTRY SHRT @ open={:.2f} qty={:.4f} atr@entry={:.2f} hardSl={:.2f}\n",
+                    barIdx_, fillPrice, INITIAL_CAPITAL / fillPrice, atrAtEntry_, hardSlShort_);
+                exitSide_ = -1;
+            }
+            highWindow_.clear(); lowWindow_.clear();
+        }
+        pendingEntry_ = 0;
+        pendingSignalExit_ = false;
+        pendingRiskExit_ = false;
+        barIdx_++;
+
+        // ── STEP 2: Update indicators ──
+        // Capture ATR BEFORE update (shifted by 1 bar, matching Trader7's atr.shift(1))
+        double useAtr = exitAtr_.ready() ? exitAtr_.value() : 0;
         closes_.push_back(c); highs_.push_back(h); lows_.push_back(l);
         exitAtr_.update(h, l, c);
-        SymbolId sym = symbol();
-        Quantity pos = position(sym);
+        prevAtr_ = useAtr;
 
-        // ── STEP 1: If in position, check risk exit FIRST ──
-        if (pos.raw() != 0 && exitAtr_.ready()) {
-            checkRiskExit(sym, c, h, l, exitAtr_.value());
-            pos = position(sym); // refresh after potential close
+        // ── STEP 3: Check risk exit conditions → set pending for NEXT bar ──
+        if (side_ != 0 && exitAtr_.ready()) {
+            checkRiskExit(h, l, prevAtr_);
         }
 
-        // ── STEP 2: Generate signal and execute entries/exits ──
+        // ── STEP 4: Generate signals → stored as pending for NEXT bar ──
         onBarImpl(h, l, c);
     }
 
     virtual void onBarImpl(double h, double l, double c) = 0;
 
-    void enterLong(SymbolId sym, double price) {
-        emitMarketBuy(sym, qtyForTrade(price, sizing_));
+    void enterLong(SymbolId, double price) {
+        pendingEntry_ = 1;
+        pendingSignalExit_ = false;
+        pendingRiskExit_ = false;
+        // Update side_ immediately so strategy logic works on subsequent bars
         entryPrice_ = price; highSince_ = price; lowSince_ = price;
-        barsInTrade_ = 0; side_ = 1; beAct_ = false; trail_ = 0;
+        side_ = 1;
     }
-    void enterShort(SymbolId sym, double price) {
-        emitMarketSell(sym, qtyForTrade(price, sizing_));
+    void enterShort(SymbolId, double price) {
+        pendingEntry_ = -1;
+        pendingSignalExit_ = false;
+        pendingRiskExit_ = false;
         entryPrice_ = price; highSince_ = price; lowSince_ = price;
-        barsInTrade_ = 0; side_ = -1; beAct_ = false; trail_ = 0;
+        side_ = -1;
+    }
+    void requestExit() {
+        pendingSignalExit_ = true;
     }
 
-    void checkRiskExit(SymbolId sym, double c, double h, double l, double atr) {
+    // Returns true if signal exits are allowed for this exit mode
+    bool signalExitsAllowed() const {
+        return p_.exit_mode == ExitMode::SignalBETrail;
+    }
+
+    void checkRiskExit(double h, double l, double atr) {
         if (atr <= 0) return;
-        double ir = p_.exit_sl_mult * atr;
         barsInTrade_++;
 
         if (side_ == 1) {
+            // Compute anchor BEFORE including current bar (Trader7: anchor excludes bar i)
+            double anchor = highWindow_.empty() ? highSince_ :
+                *std::max_element(highWindow_.begin(), highWindow_.end());
             highSince_ = std::max(highSince_, h);
+            highWindow_.push_back(h);
+            if (p_.exit_lookback > 0 && int(highWindow_.size()) > p_.exit_lookback)
+                highWindow_.pop_front();
+
             if (p_.exit_mode == ExitMode::Chandelier || p_.exit_mode == ExitMode::ChandelierTimeStop) {
-                double trail_level = highSince_ - p_.exit_trail_mult * atr;
-                double hard_sl = entryPrice_ - ir;
-                double level = std::max(trail_level, hard_sl);
-                if (l <= level) { emitClosePosition(sym); side_ = 0; return; }
+                double trail_level = anchor - p_.exit_trail_mult * atr;
+                double level = std::max(trail_level, hardSlLong_);
+                if (debug_ && barsInTrade_ <= 3) fmt::print(stderr, "bar={} CHAN_LONG bits={} anchor={:.2f} trail={:.2f} hardSl={:.2f} level={:.2f} low={:.2f} {}\n",
+                    barIdx_, barsInTrade_, anchor, trail_level, hardSlLong_, level, l, l<=level?"EXIT":"hold");
+                if (l <= level) { pendingRiskExit_ = true; side_ = 0; return; }
                 if (p_.exit_mode == ExitMode::ChandelierTimeStop && p_.exit_time_bars > 0 && barsInTrade_ >= p_.exit_time_bars) {
-                    emitClosePosition(sym); side_ = 0; return;
+                    pendingRiskExit_ = true; side_ = 0; return;
                 }
             }
             if (p_.exit_mode == ExitMode::SignalBETrail) {
+                double ir = p_.exit_sl_mult * atr;
                 if (!beAct_ && (h - entryPrice_) >= p_.exit_be_r_mult * ir) { beAct_ = true; trail_ = entryPrice_; }
                 if (beAct_) {
                     trail_ = std::max(trail_, h - p_.exit_trail_mult * atr);
-                    if (l <= trail_) { emitClosePosition(sym); side_ = 0; return; }
+                    if (l <= trail_) { pendingRiskExit_ = true; side_ = 0; return; }
                 }
-                if (l <= entryPrice_ - ir) { emitClosePosition(sym); side_ = 0; return; }
+                if (l <= hardSlLong_) { pendingRiskExit_ = true; side_ = 0; return; }
             }
         } else if (side_ == -1) {
+            double anchor = lowWindow_.empty() ? lowSince_ :
+                *std::min_element(lowWindow_.begin(), lowWindow_.end());
             lowSince_ = std::min(lowSince_, l);
+            lowWindow_.push_back(l);
+            if (p_.exit_lookback > 0 && int(lowWindow_.size()) > p_.exit_lookback)
+                lowWindow_.pop_front();
+
             if (p_.exit_mode == ExitMode::Chandelier || p_.exit_mode == ExitMode::ChandelierTimeStop) {
-                double trail_level = lowSince_ + p_.exit_trail_mult * atr;
-                double hard_sl = entryPrice_ + ir;
-                double level = std::min(trail_level, hard_sl);
-                if (h >= level) { emitClosePosition(sym); side_ = 0; return; }
+                double trail_level = anchor + p_.exit_trail_mult * atr;
+                double level = std::min(trail_level, hardSlShort_);
+                if (debug_ && barsInTrade_ <= 3) fmt::print(stderr, "bar={} CHAN_SHRT bits={} anchor={:.2f} trail={:.2f} hardSl={:.2f} level={:.2f} high={:.2f} {}\n",
+                    barIdx_, barsInTrade_, anchor, trail_level, hardSlShort_, level, h, h>=level?"EXIT":"hold");
+                if (h >= level) { pendingRiskExit_ = true; side_ = 0; return; }
                 if (p_.exit_mode == ExitMode::ChandelierTimeStop && p_.exit_time_bars > 0 && barsInTrade_ >= p_.exit_time_bars) {
-                    emitClosePosition(sym); side_ = 0; return;
+                    pendingRiskExit_ = true; side_ = 0; return;
                 }
             }
             if (p_.exit_mode == ExitMode::SignalBETrail) {
+                double ir = p_.exit_sl_mult * atr;
                 if (!beAct_ && (entryPrice_ - l) >= p_.exit_be_r_mult * ir) { beAct_ = true; trail_ = entryPrice_; }
                 if (beAct_) {
                     trail_ = std::min(trail_, l + p_.exit_trail_mult * atr);
-                    if (h >= trail_) { emitClosePosition(sym); side_ = 0; return; }
+                    if (h >= trail_) { pendingRiskExit_ = true; side_ = 0; return; }
                 }
-                if (h >= entryPrice_ + ir) { emitClosePosition(sym); side_ = 0; return; }
+                if (h >= hardSlShort_) { pendingRiskExit_ = true; side_ = 0; return; }
             }
         }
     }
@@ -200,9 +286,17 @@ protected:
     StreamAtr exitAtr_;
     SizingMode sizing_;
     std::vector<double> closes_, highs_, lows_;
+    std::deque<double> highWindow_, lowWindow_;
     bool beAct_ = false;
     int side_ = 0, barsInTrade_ = 0;
+    bool posLive_ = false;
     double entryPrice_ = 0, highSince_ = 0, lowSince_ = 1e18, trail_ = 0;
+    double prevAtr_ = 0, atrAtEntry_ = 0, hardSlLong_ = 0, hardSlShort_ = 1e18;
+    int pendingEntry_ = 0;
+    bool pendingSignalExit_ = false, pendingRiskExit_ = false;
+    bool debug_ = false;
+    int barIdx_ = 0;
+    int exitSide_ = 0;  // Tracks side for debug display (side_ cleared before EXIT print)
 };
 
 // ── Strategies ─────────────────────────────────────────────────────────
@@ -217,8 +311,8 @@ public:
         SymbolId sym = symbol();
         if (side_ == 0 && c > pu) enterLong(sym, c);
         else if (side_ == 0 && c < pl) enterShort(sym, c);
-        else if (side_ == 1 && c < pl) emitClosePosition(sym);
-        else if (side_ == -1 && c > pu) emitClosePosition(sym);
+        else if (signalExitsAllowed() && side_ == 1 && c < pl) requestExit();
+        else if (signalExitsAllowed() && side_ == -1 && c > pu) requestExit();
     }
 };
 class DualMomStrat final : public BaseStrategy {
@@ -232,12 +326,12 @@ public:
         SymbolId sym = symbol();
         if (side_ == 0 && m > 0 && mp <= 0) enterLong(sym, c);
         else if (side_ == 0 && m < 0 && mp >= 0) enterShort(sym, c);
-        else if (side_ == 1 && m <= 0) emitClosePosition(sym);
-        else if (side_ == -1 && m >= 0) emitClosePosition(sym);
+        else if (signalExitsAllowed() && side_ == 1 && m <= 0) requestExit();
+        else if (signalExitsAllowed() && side_ == -1 && m >= 0) requestExit();
     }
 };
 class EmaCrossStrat final : public BaseStrategy {
-    StreamEma fast_, slow_; bool prevAbove_ = false;
+    StreamEma fast_, slow_; bool prevAbove_ = false; bool prevAboveValid_ = false;
 public:
     EmaCrossStrat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz = SizingMode::FixedNotional)
         : BaseStrategy(sid, s, r, p, sz), fast_(p.signal_p1), slow_(p.signal_p2) {}
@@ -246,11 +340,13 @@ public:
         if (!fast_.ready() || !slow_.ready()) return;
         bool above = fast_.value() > slow_.value();
         SymbolId sym = symbol();
-        if (side_ == 0 && above && !prevAbove_) enterLong(sym, c);
-        else if (side_ == 0 && !above && prevAbove_) enterShort(sym, c);
-        else if (side_ == 1 && !above) emitClosePosition(sym);
-        else if (side_ == -1 && above) emitClosePosition(sym);
-        prevAbove_ = above;
+        if (prevAboveValid_) {
+            if (side_ == 0 && above && !prevAbove_) enterLong(sym, c);
+            else if (side_ == 0 && !above && prevAbove_) enterShort(sym, c);
+            else if (signalExitsAllowed() && side_ == 1 && !above) requestExit();
+            else if (signalExitsAllowed() && side_ == -1 && above) requestExit();
+        }
+        prevAbove_ = above; prevAboveValid_ = true;
     }
 };
 class KeltnerBrkStrat final : public BaseStrategy {
@@ -265,8 +361,8 @@ public:
         SymbolId sym = symbol();
         if (side_ == 0 && c > u) enterLong(sym, c);
         else if (side_ == 0 && c < lo) enterShort(sym, c);
-        else if (side_ == 1 && c < mid) emitClosePosition(sym);
-        else if (side_ == -1 && c > mid) emitClosePosition(sym);
+        else if (signalExitsAllowed() && side_ == 1 && c < mid) requestExit();
+        else if (signalExitsAllowed() && side_ == -1 && c > mid) requestExit();
     }
 };
 class SupertrendStrat final : public BaseStrategy {
@@ -286,8 +382,8 @@ public:
         SymbolId sym = symbol();
         if (d == 1 && prevDir_ == -1 && side_ == 0) enterLong(sym, c);
         else if (d == -1 && prevDir_ == 1 && side_ == 0) enterShort(sym, c);
-        else if (side_ == 1 && d == -1) emitClosePosition(sym);
-        else if (side_ == -1 && d == 1) emitClosePosition(sym);
+        else if (signalExitsAllowed() && side_ == 1 && d == -1) requestExit();
+        else if (signalExitsAllowed() && side_ == -1 && d == 1) requestExit();
         prevC_ = c; prevDir_ = d;
     }
 };
@@ -307,8 +403,8 @@ public:
         SymbolId sym = symbol();
         if (vol < p_.signal_p3 && side_ == 0 && m > 0 && prevMom_ <= 0) enterLong(sym, c);
         else if (vol < p_.signal_p3 && side_ == 0 && m < 0 && prevMom_ >= 0) enterShort(sym, c);
-        else if (side_ == 1 && m <= 0) emitClosePosition(sym);
-        else if (side_ == -1 && m >= 0) emitClosePosition(sym);
+        else if (signalExitsAllowed() && side_ == 1 && m <= 0) requestExit();
+        else if (signalExitsAllowed() && side_ == -1 && m >= 0) requestExit();
         prevMom_ = m;
     }
 };
@@ -324,8 +420,8 @@ public:
         SymbolId sym = symbol();
         if (side_ == 0 && rv < os && c > sv) enterLong(sym, c);
         else if (side_ == 0 && rv > ob && c < sv) enterShort(sym, c);
-        else if (side_ == 1 && (rv > ob || c < sv)) emitClosePosition(sym);
-        else if (side_ == -1 && (rv < os || c > sv)) emitClosePosition(sym);
+        else if (signalExitsAllowed() && side_ == 1 && (rv > ob || c < sv)) requestExit();
+        else if (signalExitsAllowed() && side_ == -1 && (rv < os || c > sv)) requestExit();
     }
 };
 class RsiBbMrStrat final : public BaseStrategy {
@@ -341,8 +437,33 @@ public:
         SymbolId sym = symbol();
         if (side_ == 0 && rv < 30 && c < lo) enterLong(sym, c);
         else if (side_ == 0 && rv > 70 && c > hi) enterShort(sym, c);
-        else if (side_ == 1 && c >= mid) emitClosePosition(sym);
-        else if (side_ == -1 && c <= mid) emitClosePosition(sym);
+        else if (signalExitsAllowed() && side_ == 1 && c >= mid) requestExit();
+        else if (signalExitsAllowed() && side_ == -1 && c <= mid) requestExit();
+    }
+};
+class SmaCrossStrat final : public BaseStrategy {
+    StreamSma fast_, slow_; bool prevAbove_ = false; bool prevAboveValid_ = false;
+public:
+    SmaCrossStrat(SubscriberId sid, SymbolId s, const SymbolRegistry& r, const Params& p, SizingMode sz = SizingMode::FixedNotional)
+        : BaseStrategy(sid, s, r, p, sz), fast_(p.signal_p1), slow_(p.signal_p2 > 0 ? p.signal_p2 : p.signal_p1 * 2) {}
+    void onBarImpl(double, double, double c) override {
+        fast_.update(c); slow_.update(c);
+        if (!fast_.ready() || !slow_.ready()) return;
+        bool above = fast_.value() > slow_.value();
+        SymbolId sym = symbol();
+        if (prevAboveValid_) {
+            if (side_ == 0 && above && !prevAbove_) {
+                if (debug_) fmt::print(stderr, "bar={} CROSS_UP fast={:.2f} slow={:.2f} → pending_entry=LONG\n", barIdx_, fast_.value(), slow_.value());
+                enterLong(sym, c);
+            }
+            else if (side_ == 0 && !above && prevAbove_) {
+                if (debug_) fmt::print(stderr, "bar={} CROSS_DN fast={:.2f} slow={:.2f} → pending_entry=SHRT\n", barIdx_, fast_.value(), slow_.value());
+                enterShort(sym, c);
+            }
+            else if (signalExitsAllowed() && side_ == 1 && !above) requestExit();
+            else if (signalExitsAllowed() && side_ == -1 && above) requestExit();
+        }
+        prevAbove_ = above; prevAboveValid_ = true;
     }
 };
 
@@ -358,6 +479,7 @@ std::vector<std::pair<std::string, Factory>> allStrats() {
         {"tsmom", [](auto sid, auto s, auto& r, auto& p, auto sz) { return std::make_unique<TsmomStrat>(sid, s, r, p, sz); }},
         {"rsi2", [](auto sid, auto s, auto& r, auto& p, auto sz) { return std::make_unique<Rsi2Strat>(sid, s, r, p, sz); }},
         {"rsi_bb_mr", [](auto sid, auto s, auto& r, auto& p, auto sz) { return std::make_unique<RsiBbMrStrat>(sid, s, r, p, sz); }},
+        {"sma_cross", [](auto sid, auto s, auto& r, auto& p, auto sz) { return std::make_unique<SmaCrossStrat>(sid, s, r, p, sz); }},
     };
 }
 struct GridConfig { std::string name; std::vector<int> p1; std::vector<int> p2; std::vector<double> p3; };
@@ -368,8 +490,10 @@ std::vector<BarEvent> csvToBarEvents(const std::vector<CsvBar>& bars, SymbolId s
     for (const auto& b : bars) {
         BarEvent ev; ev.symbol = sym; ev.barType = BarType::Time;
         ev.barTypeParam = 4 * 3600ULL * 1'000'000'000ULL;
-        ev.bar.open = Price::fromDouble(b.open); ev.bar.high = Price::fromDouble(b.high);
-        ev.bar.low = Price::fromDouble(b.low); ev.bar.close = Price::fromDouble(b.close);
+        // Trader7 alignment: swap open↔close so FLOX fills at open price.
+        // bar.close = real open (fills here), bar.open = real close (strategy reads)
+        ev.bar.open = Price::fromDouble(b.close); ev.bar.high = Price::fromDouble(b.high);
+        ev.bar.low = Price::fromDouble(b.low); ev.bar.close = Price::fromDouble(b.open);
         ev.bar.volume = Volume::fromDouble(b.volume);
         ev.bar.startTime = TimePoint{} + std::chrono::nanoseconds(b.timestamp_ms * 1'000'000LL - 14'400'000'000'000LL);
         ev.bar.endTime = TimePoint{} + std::chrono::nanoseconds(b.timestamp_ms * 1'000'000LL);
@@ -384,12 +508,14 @@ struct RunMetrics {
     std::vector<double> barReturns;
 };
 RunMetrics runSingle(const Factory& fac, SymbolId sid, const SymbolRegistry& reg,
-                     const Params& p, const std::vector<BarEvent>& events, SizingMode sizing) {
+                     const Params& p, const std::vector<BarEvent>& events, SizingMode sizing, bool debug = false) {
     RunMetrics rm;
     try {
         auto strat = fac(1, sid, reg, p, sizing);
+        strat->setDebug(debug);
         PositionTracker posTracker(1);
         BacktestConfig cfg; cfg.initialCapital = INITIAL_CAPITAL; cfg.feeRate = FEE_RATE;
+        cfg.metricsAnnualizationFactor = 6.0 * 365.0;  // 4H bars: 6 per day × 365 days
         BacktestRunner runner(cfg);
         runner.setStrategy(strat.get());
         runner.addExecutionListener(&posTracker);
@@ -497,6 +623,7 @@ int main(int argc, char** argv) {
     std::string data_dir = "data", tf = "4h", out_dir = "results", sym_filter = "";
     int max_sym = 0, years_back = 0, min_trades = 30, wf_folds = 5, wf_min_is = 5, wf_min_oos = 3;
     SizingMode sizingMode = SizingMode::FixedNotional;
+    bool debug_mode = false;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--data-dir" && i+1 < argc) data_dir = argv[++i];
@@ -508,6 +635,7 @@ int main(int argc, char** argv) {
         else if (a == "--min-trades" && i+1 < argc) min_trades = std::stoi(argv[++i]);
         else if (a == "--wf-folds" && i+1 < argc) wf_folds = std::stoi(argv[++i]);
         else if (a == "--symbol" && i+1 < argc) sym_filter = argv[++i];
+        else if (a == "--debug") debug_mode = true;
     }
     fs::create_directories(out_dir);
     auto csvs = findCsvFiles(data_dir, tf);
@@ -523,12 +651,13 @@ int main(int argc, char** argv) {
         {"tsmom",           {10,15,20,30,40,50},      {15,20,30}, {0.15,0.20,0.30}},
         {"rsi2",            {2,3,4,5},                {5,10,20,50}, {5.0,10.0,15.0,20.0}},
         {"rsi_bb_mr",       {2,5,10,14},              {15,20,25}, {1.5,2.0,2.5}},
+        {"sma_cross",       {5,10,20},                 {20,40,50}, {0}},
     };
 
     FILE* csvf = std::fopen((out_dir + "/grid_summary.csv").c_str(), "w");
     fmt::print(csvf, "symbol,strategy,exit_mode,p1,p2,p3,atr_per,sl_mult,trail_mult,sharpe,trades,return_pct,dd_pct,win_rate,plateau,neighbors,plateau_ratio,rel_variance,wf_sharpe,wf_oos_is_ratio,wf_passed,wrc_p,wrc_sig,no_lookahead\n");
     FILE* dumpf = std::fopen((out_dir + "/grid_all_combos.csv").c_str(), "w");
-    fmt::print(dumpf, "symbol,strategy,exit_mode,p1,p2,p3,atr_per,sl_mult,trail_mult,sharpe,trades,return_pct,dd_pct,win_rate\n");
+    fmt::print(dumpf, "symbol,strategy,exit_mode,p1,p2,p3,atr_per,sl_mult,trail_mult,lookback,sharpe,trades,return_pct,dd_pct,win_rate\n");
 
     SymbolRegistry registry;
     struct SymData { std::string name; SymbolId sid; std::vector<CsvBar> bars; std::vector<BarEvent> events; };
@@ -555,6 +684,27 @@ int main(int argc, char** argv) {
     if (max_sym > 0 && int(symData.size()) > max_sym) symData.resize(max_sym);
     fmt::print("Symbols: {}\n\n", symData.size());
 
+    // ── Debug mode: run 3 parity configs ──
+    if (debug_mode && !symData.empty()) {
+        auto& sd = symData[0];
+        Factory fac = [](auto sid, auto s, auto& r, auto& p, auto sz) { return std::make_unique<SmaCrossStrat>(sid, s, r, p, sz); };
+        struct TestConfig { const char* label; double trail; double sl; int lb; };
+        TestConfig configs[] = {
+            {"trail=2.0 sl=1.2 lb=12", 2.0, 1.2, 12},
+            {"trail=3.0 sl=2.0 lb=8",   3.0, 2.0, 8},
+            {"trail=4.0 sl=2.0 lb=0",   4.0, 2.0, 0},
+        };
+        for (auto& cfg : configs) {
+            Params gp; gp.symbol = sd.name; gp.signal_p1 = 10; gp.signal_p2 = 40;
+            gp.exit_mode = ExitMode::Chandelier; gp.exit_atr_period = 14;
+            gp.exit_sl_mult = cfg.sl; gp.exit_trail_mult = cfg.trail; gp.exit_lookback = cfg.lb;
+            fmt::print("DEBUG: {} → ", cfg.label);
+            auto rm = runSingle(fac, sd.sid, registry, gp, sd.events, sizingMode, false);
+            fmt::print("trades={} return={:.2f} sharpe={:.3f}\n", rm.trades, rm.totalReturn, rm.sharpe);
+        }
+        return 0;
+    }
+
     int total_combos = 0, total_promoted = 0;
     for (const auto& sd : symData) {
         for (const auto& [sname, fac] : strats) {
@@ -564,8 +714,9 @@ int main(int argc, char** argv) {
             for (auto em : emodes) {
                 std::vector<GridResult> results;
                 for (int p1 : gc->p1) for (int p2 : gc->p2) for (double p3 : gc->p3)
-                for (int ea : {10,14,21}) for (double sl : {0.8,1.0,1.2,1.5,2.0})
-                for (double trail : {1.8,2.5,3.0,3.5,4.0}) {
+                for (int ea : {14}) for (double sl : {0.8,1.0,1.2,1.5,2.0})
+                for (double trail : {1.8,2.0,2.2,2.5,3.0,3.5,4.0})
+                for (int lb : {0,6,8,10,12}) {
                     total_combos++;
                     Params gp; gp.symbol = sd.name; gp.signal_p1 = p1;
                     gp.signal_p2 = p2 > 0 ? p2 : p1; gp.signal_p3 = p3 == 0 ? 2.0 : p3;
@@ -573,11 +724,12 @@ int main(int argc, char** argv) {
                     gp.exit_trail_mult = trail;
                     gp.exit_time_bars = (em == ExitMode::ChandelierTimeStop) ? 40 : 0;
                     gp.exit_be_r_mult = 1.0;
+                    gp.exit_lookback = (em == ExitMode::Chandelier || em == ExitMode::ChandelierTimeStop) ? lb : 0;
                     auto rm = runSingle(fac, sd.sid, registry, gp, sd.events, sizingMode);
                     std::string ems = em == ExitMode::Chandelier ? "chan" : em == ExitMode::ChandelierTimeStop ? "chan_ts" : "sig_be";
                     if (std::isfinite(rm.sharpe))
-                        fmt::print(dumpf, "{},{},{},{},{},{:.1f},{},{:.1f},{:.1f},{:.3f},{},{:.2f},{:.2f},{:.2f}\n",
-                            sd.name, sname, ems, p1, gp.signal_p2, gp.signal_p3, ea, sl, trail, rm.sharpe, rm.trades, rm.totalReturn, rm.maxDrawdownPct, rm.winRate);
+                        fmt::print(dumpf, "{},{},{},{},{},{:.1f},{},{:.1f},{:.1f},{},{:.3f},{},{:.2f},{:.2f},{:.2f}\n",
+                            sd.name, sname, ems, p1, gp.signal_p2, gp.signal_p3, ea, sl, trail, lb, rm.sharpe, rm.trades, rm.totalReturn, rm.maxDrawdownPct, rm.winRate);
                     if (rm.trades >= size_t(min_trades) && std::isfinite(rm.sharpe)) {
                         results.push_back({gp, rm.sharpe, rm.trades, rm.totalReturn, rm.maxDrawdownPct, rm.winRate});
                     }

@@ -1,0 +1,2268 @@
+{
+  "schema_version": "analysis_context_v1",
+  "manifest": {
+    "config_file": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/00-config_resolved.json",
+    "config_hash": "de8b44a9c607",
+    "created_at_utc": "2026-04-27T20:03:42.972199+00:00",
+    "data": {
+      "BTC": {
+        "columns": [
+          "open",
+          "high",
+          "low",
+          "close",
+          "volume"
+        ],
+        "end": "2026-04-27T20:00:00+00:00",
+        "rows": 10961,
+        "start": "2021-04-27T04:00:00+00:00"
+      }
+    }
+  },
+  "run_config": {
+    "created_at_utc": "2026-04-27T20:06:04.087295+00:00",
+    "run_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607",
+    "config_hash": "de8b44a9c607",
+    "strategy": "donchian",
+    "strategy_family": "trend",
+    "strategy_description": "Donchian channel breakout with volume confirmation and regime gating",
+    "coin": "BTC",
+    "coins": [
+      "BTC"
+    ],
+    "tf": "4h",
+    "timeframes": [
+      "4h"
+    ],
+    "data_start": "2021-04-27T04:00:00+00:00",
+    "data_end": "2026-04-27T20:00:00+00:00",
+    "years_back": 1,
+    "used_sizing": {
+      "mode": "fixed_notional",
+      "starting_capital_usdt": 10000.0,
+      "fixed_notional_usd": 1000.0,
+      "leverage": 1.0,
+      "active_rule": "Use a fixed USDT notional per trade before leverage."
+    },
+    "used_costs": {
+      "apply_funding": true,
+      "funding_bars_per_8h": 2,
+      "funding_rate_per_8h": 0.0001,
+      "maker_rate": 0.0002,
+      "slippage_rate": 0.0003,
+      "slippage_tiers": [
+        0.0003,
+        0.0008,
+        0.0015
+      ],
+      "taker_rate": 0.0004,
+      "use_taker": true,
+      "taker_rate_pct": 0.0004,
+      "maker_rate_pct": 0.0002,
+      "funding_rate_per_8h_pct": 0.0001,
+      "slippage_rate_pct": 0.0003,
+      "slippage_tiers_pct": [
+        0.0003,
+        0.0008,
+        0.0015
+      ],
+      "unit_convention": "Fields ending in _pct are fractional percentages: 0.01 means 1%, 1.0 means 100%. Monetary fields explicitly include _usd or _usdt."
+    },
+    "strategy_constraints": [
+      {
+        "id": "constraint_1",
+        "expression": "lambda p: p[\"exit_period\"] < p[\"channel_period\"],",
+        "description": "exit_period must be smaller than channel_period so the exit reacts faster than the entry breakout."
+      },
+      {
+        "id": "constraint_2",
+        "expression": "lambda p: p[\"exit_period\"] <= p[\"channel_period\"] // 2 + 2,",
+        "description": "exit_period must be meaningfully faster than channel_period; otherwise the strategy exits too slowly for this Donchian design."
+      }
+    ],
+    "used_strategy_params": {
+      "channel_period": [
+        10,
+        15,
+        20,
+        30,
+        40,
+        55
+      ],
+      "exit_period": [
+        5,
+        8,
+        10,
+        15,
+        20
+      ],
+      "vol_mult": [
+        0.0,
+        1.3,
+        1.5,
+        2.0
+      ]
+    },
+    "used_exit": {
+      "exit_mode": "signal_be_trail",
+      "exit_label": "signal_be_trail",
+      "exit_params": {}
+    },
+    "available_params_summary": {
+      "strategy_params": [
+        {
+          "channel_period": "Bars used to define the Donchian breakout high/low."
+        },
+        {
+          "exit_period": "Shorter channel period used by the strategy's own signal exit."
+        },
+        {
+          "vol_mult": "Volume surge multiplier used as breakout confirmation."
+        }
+      ],
+      "exit_modes": [
+        {
+          "chandelier": "Position-aware volatility trailing exit from the best price reached since entry."
+        },
+        {
+          "chandelier_ema": "Chandelier trail plus EMA recross exit for failed breakouts."
+        },
+        {
+          "chandelier_time": "Chandelier trail plus maximum holding-time stop."
+        },
+        {
+          "chandelier_full": "Chandelier trail plus EMA failed-breakout exit plus maximum holding-time stop."
+        },
+        {
+          "signal_be_trail": "Strategy signal exit plus ATR stop, breakeven trigger, and trailing stop."
+        },
+        {
+          "signal": "Exit only when the strategy emits the opposite or close signal."
+        },
+        {
+          "trail": "ATR trailing stop without Chandelier highest-high/lowest-low tracking."
+        },
+        {
+          "bracket": "Fixed ATR stop-loss and take-profit bracket."
+        },
+        {
+          "bar_close_sl_tp": "Bracket-like SL/TP evaluated on bar close for conservative next-bar execution."
+        }
+      ],
+      "exit_params": [
+        {
+          "trail_atr_period": "ATR lookback used to estimate current volatility for stops."
+        },
+        {
+          "trail_atr_mult": "ATR multiple used as the trailing-stop distance."
+        },
+        {
+          "sl_atr_mult": "Initial hard stop distance measured in ATR."
+        },
+        {
+          "chandelier_lookback": "Bars used to track the highest high or lowest low for Chandelier exits."
+        },
+        {
+          "be_trigger_atr": "Profit in ATR required before moving the stop to breakeven."
+        },
+        {
+          "tp_atr_mult": "Take-profit distance measured in ATR for bracket-style exits."
+        },
+        {
+          "ema_exit_period": "EMA period used by Chandelier+EMA modes to detect failed breakouts."
+        },
+        {
+          "time_stop_bars": "Maximum bars to keep a position open before forcing an exit."
+        },
+        {
+          "cooldown_bars": "Bars to wait after a stop before allowing a fresh entry."
+        }
+      ]
+    }
+  },
+  "artifact_files": {
+    "available_params": "81-available_params.json",
+    "automated_diagnosis": "82-automated_diagnosis.json",
+    "ai_prompt": "83-ai_prompt_full_review.md",
+    "next_run_plan": "84-next_run_plan.json",
+    "suggestions": "85-analysis_suggestions.md"
+  },
+  "available_params_ref": {
+    "file": "81-available_params.json",
+    "why_separate": "Reusable registry data is split out so repeated AI chats can attach it once and then attach only run-specific context files."
+  },
+  "grid_sweep": {
+    "summary": {
+      "total_combinations": 120,
+      "valid_combinations": 80,
+      "rows": 80,
+      "candidate_count": 0,
+      "best_sharpe": 1.0199076455949971,
+      "best_calmar": 4.552023475085641,
+      "median_sharpe_all": 0.6570977733619106,
+      "sharpe_90th_percentile": 0.9103362254103471,
+      "sharpe_std_dev": 0.24953712400860836,
+      "median_trades": 101.5,
+      "param_names": [
+        "channel_period",
+        "exit_period",
+        "vol_mult"
+      ],
+      "param_ranges": {
+        "channel_period": {
+          "values": [
+            10,
+            15,
+            20,
+            30,
+            40,
+            55
+          ],
+          "min": 10,
+          "max": 55,
+          "count": 6
+        },
+        "exit_period": {
+          "values": [
+            5,
+            8,
+            10,
+            15,
+            20
+          ],
+          "min": 5,
+          "max": 20,
+          "count": 5
+        },
+        "vol_mult": {
+          "values": [
+            0.0,
+            1.3,
+            1.5,
+            2.0
+          ],
+          "min": 0.0,
+          "max": 2.0,
+          "count": 4
+        }
+      },
+      "used_grid_param_values": {
+        "channel_period": [
+          10,
+          15,
+          20,
+          30,
+          40,
+          55
+        ],
+        "exit_period": [
+          5,
+          8,
+          10,
+          15,
+          20
+        ],
+        "vol_mult": [
+          0.0,
+          1.3,
+          1.5,
+          2.0
+        ]
+      },
+      "min_trades_threshold": 50,
+      "combos_above_min_trades": 80,
+      "out_of_sample_gap_days": 0,
+      "top_results_count": 5,
+      "interpretation": "Research-grade VBT sweep; robust plateau validation is required before native Nautilus or live deployment.",
+      "next_action": "Run per_param_robustness + plateau_width_analysis, then refine only robust neighborhoods.",
+      "suggestion": "Run per_param_robustness + plateau_width_analysis, then refine only robust neighborhoods."
+    },
+    "per_param_analysis": {
+      "channel_period": {
+        "values": [
+          10,
+          15,
+          20,
+          30,
+          40,
+          55
+        ],
+        "score_metrics": {
+          "mean_sharpe": [
+            0.3161095635350708,
+            0.45891190728654496,
+            0.6311175504602177,
+            0.6990071298370087,
+            0.5979456074239571,
+            0.6575892712482789
+          ],
+          "median_sharpe": [
+            0.27793393963625607,
+            0.44016295165574015,
+            0.6200660194725244,
+            0.7459788521933944,
+            0.6526019981976083,
+            0.6973549989552195
+          ],
+          "p25_sharpe": [
+            0.2054716619419304,
+            0.24661073140194115,
+            0.43994617563535776,
+            0.5824442563798423,
+            0.49481284670989145,
+            0.5214520968331666
+          ],
+          "p75_sharpe": [
+            0.3885718412293965,
+            0.5900467453805747,
+            0.8181016405143694,
+            0.8265820488201163,
+            0.7607901803610573,
+            0.8290411787294212
+          ],
+          "max_sharpe": [
+            0.5491648460670818,
+            0.904110387811958,
+            0.9710442840917481,
+            0.9843789055127843,
+            0.908716658360281,
+            1.0199076455949971
+          ],
+          "min_sharpe": [
+            0.15940552880068917,
+            0.18821715990892968,
+            0.2750399318958692,
+            0.2723024028732025,
+            0.10478322684350774,
+            0.06757135897898317
+          ],
+          "sharpe_std": [
+            0.1715692977478011,
+            0.2497612390647575,
+            0.22768941909180085,
+            0.20846272161438315,
+            0.23878916838979541,
+            0.2755483266634219
+          ],
+          "count_valid": [
+            4,
+            8,
+            12,
+            16,
+            20,
+            20
+          ]
+        },
+        "robustness_metrics": {
+          "plateau_width_1step": 4,
+          "plateau_width_2step": 4,
+          "dropoff_after_best": -0.09070048194536742,
+          "boundary_pressure": "upper",
+          "stability_score": 0.4410796256671078
+        },
+        "trade_quality": {
+          "median_trades": [
+            155.0,
+            135.5,
+            122.0,
+            104.5,
+            95.5,
+            88.5
+          ],
+          "median_win_rate": [
+            0.3704409363091998,
+            0.3732080536912752,
+            0.4017012511443393,
+            0.42432598039215685,
+            0.4102254428341385,
+            0.4246359930110658
+          ],
+          "median_profit_factor": [
+            1.1383228647959274,
+            1.24092168075541,
+            1.4184301033964837,
+            1.5258481034246056,
+            1.4800978151996018,
+            1.6246631906316245
+          ]
+        },
+        "mean_scores": [
+          0.3161095635350708,
+          0.45891190728654496,
+          0.6311175504602177,
+          0.6990071298370087,
+          0.5979456074239571,
+          0.6575892712482789
+        ],
+        "best_value": 55,
+        "best_at_lower_boundary": false,
+        "best_at_upper_boundary": true,
+        "score_spread": 0.38289756630193794,
+        "direction_hint": "higher_values_help",
+        "classification": "upper_boundary_pressure",
+        "recommendation": "Best channel_period is at the upper boundary (55); test higher values while watching trade count decay.",
+        "table": [
+          {
+            "channel_period": 10,
+            "mean_score": 0.3161095635350708,
+            "median_score": 0.27793393963625607,
+            "p25_score": 0.2054716619419304,
+            "p75_score": 0.3885718412293965,
+            "max_score": 0.5491648460670818,
+            "min_score": 0.15940552880068917,
+            "score_std": 0.1715692977478011,
+            "median_trades": 155.0,
+            "median_win_rate": 0.3704409363091998,
+            "median_profit_factor": 1.1383228647959274,
+            "count": 4
+          },
+          {
+            "channel_period": 15,
+            "mean_score": 0.45891190728654496,
+            "median_score": 0.44016295165574015,
+            "p25_score": 0.24661073140194115,
+            "p75_score": 0.5900467453805747,
+            "max_score": 0.904110387811958,
+            "min_score": 0.18821715990892968,
+            "score_std": 0.2497612390647575,
+            "median_trades": 135.5,
+            "median_win_rate": 0.3732080536912752,
+            "median_profit_factor": 1.24092168075541,
+            "count": 8
+          },
+          {
+            "channel_period": 20,
+            "mean_score": 0.6311175504602177,
+            "median_score": 0.6200660194725244,
+            "p25_score": 0.43994617563535776,
+            "p75_score": 0.8181016405143694,
+            "max_score": 0.9710442840917481,
+            "min_score": 0.2750399318958692,
+            "score_std": 0.22768941909180085,
+            "median_trades": 122.0,
+            "median_win_rate": 0.4017012511443393,
+            "median_profit_factor": 1.4184301033964837,
+            "count": 12
+          },
+          {
+            "channel_period": 30,
+            "mean_score": 0.6990071298370087,
+            "median_score": 0.7459788521933944,
+            "p25_score": 0.5824442563798423,
+            "p75_score": 0.8265820488201163,
+            "max_score": 0.9843789055127843,
+            "min_score": 0.2723024028732025,
+            "score_std": 0.20846272161438315,
+            "median_trades": 104.5,
+            "median_win_rate": 0.42432598039215685,
+            "median_profit_factor": 1.5258481034246056,
+            "count": 16
+          },
+          {
+            "channel_period": 40,
+            "mean_score": 0.5979456074239571,
+            "median_score": 0.6526019981976083,
+            "p25_score": 0.49481284670989145,
+            "p75_score": 0.7607901803610573,
+            "max_score": 0.908716658360281,
+            "min_score": 0.10478322684350774,
+            "score_std": 0.23878916838979541,
+            "median_trades": 95.5,
+            "median_win_rate": 0.4102254428341385,
+            "median_profit_factor": 1.4800978151996018,
+            "count": 20
+          },
+          {
+            "channel_period": 55,
+            "mean_score": 0.6575892712482789,
+            "median_score": 0.6973549989552195,
+            "p25_score": 0.5214520968331666,
+            "p75_score": 0.8290411787294212,
+            "max_score": 1.0199076455949971,
+            "min_score": 0.06757135897898317,
+            "score_std": 0.2755483266634219,
+            "median_trades": 88.5,
+            "median_win_rate": 0.4246359930110658,
+            "median_profit_factor": 1.6246631906316245,
+            "count": 20
+          }
+        ]
+      },
+      "exit_period": {
+        "values": [
+          5,
+          8,
+          10,
+          15,
+          20
+        ],
+        "score_metrics": {
+          "mean_sharpe": [
+            0.44708643280845844,
+            0.6914728779002788,
+            0.6284236323214739,
+            0.7248428032352857,
+            0.6864415084270659
+          ],
+          "median_sharpe": [
+            0.5233948166885898,
+            0.8010025441480308,
+            0.6878195767111522,
+            0.7592496209628388,
+            0.6915154063560307
+          ],
+          "p25_sharpe": [
+            0.25943356206882123,
+            0.47040735357995134,
+            0.5330647381820668,
+            0.6432149599933329,
+            0.5938040657670669
+          ],
+          "p75_sharpe": [
+            0.6082762538148803,
+            0.9127655759854459,
+            0.8125723943189724,
+            0.7939548690070009,
+            0.802567574067114
+          ],
+          "max_sharpe": [
+            0.8183498317883986,
+            1.0199076455949971,
+            0.8870079777671289,
+            0.9728416628707521,
+            0.9650266728988732
+          ],
+          "min_sharpe": [
+            0.06757135897898317,
+            0.14050130978551328,
+            0.1474359172186847,
+            0.4256922509787214,
+            0.43335175752824767
+          ],
+          "sharpe_std": [
+            0.21680448235070132,
+            0.28850272875001376,
+            0.23560630817799655,
+            0.16115779941344813,
+            0.1774574178762234
+          ],
+          "count_valid": [
+            24,
+            20,
+            16,
+            12,
+            8
+          ]
+        },
+        "robustness_metrics": {
+          "plateau_width_1step": 4,
+          "plateau_width_2step": 4,
+          "dropoff_after_best": -0.22230495258482308,
+          "boundary_pressure": "none",
+          "stability_score": 0.5522557021039171
+        },
+        "trade_quality": {
+          "median_trades": [
+            120.0,
+            105.5,
+            99.0,
+            92.5,
+            85.5
+          ],
+          "median_win_rate": [
+            0.38306719893546237,
+            0.4213106295149639,
+            0.4167481264255458,
+            0.4269563008130081,
+            0.40994771601541
+          ],
+          "median_profit_factor": [
+            1.3609281529544002,
+            1.5568384389114298,
+            1.5372797068913027,
+            1.627687581317431,
+            1.6296251762753657
+          ]
+        },
+        "mean_scores": [
+          0.44708643280845844,
+          0.6914728779002788,
+          0.6284236323214739,
+          0.7248428032352857,
+          0.6864415084270659
+        ],
+        "best_value": 8,
+        "best_at_lower_boundary": false,
+        "best_at_upper_boundary": false,
+        "score_spread": 0.27775637042682727,
+        "direction_hint": "higher_values_help",
+        "classification": "interior_or_mixed",
+        "recommendation": "exit_period has a useful plateau; refine around 8 instead of expanding the full range.",
+        "table": [
+          {
+            "exit_period": 5,
+            "mean_score": 0.44708643280845844,
+            "median_score": 0.5233948166885898,
+            "p25_score": 0.25943356206882123,
+            "p75_score": 0.6082762538148803,
+            "max_score": 0.8183498317883986,
+            "min_score": 0.06757135897898317,
+            "score_std": 0.21680448235070132,
+            "median_trades": 120.0,
+            "median_win_rate": 0.38306719893546237,
+            "median_profit_factor": 1.3609281529544002,
+            "count": 24
+          },
+          {
+            "exit_period": 8,
+            "mean_score": 0.6914728779002788,
+            "median_score": 0.8010025441480308,
+            "p25_score": 0.47040735357995134,
+            "p75_score": 0.9127655759854459,
+            "max_score": 1.0199076455949971,
+            "min_score": 0.14050130978551328,
+            "score_std": 0.28850272875001376,
+            "median_trades": 105.5,
+            "median_win_rate": 0.4213106295149639,
+            "median_profit_factor": 1.5568384389114298,
+            "count": 20
+          },
+          {
+            "exit_period": 10,
+            "mean_score": 0.6284236323214739,
+            "median_score": 0.6878195767111522,
+            "p25_score": 0.5330647381820668,
+            "p75_score": 0.8125723943189724,
+            "max_score": 0.8870079777671289,
+            "min_score": 0.1474359172186847,
+            "score_std": 0.23560630817799655,
+            "median_trades": 99.0,
+            "median_win_rate": 0.4167481264255458,
+            "median_profit_factor": 1.5372797068913027,
+            "count": 16
+          },
+          {
+            "exit_period": 15,
+            "mean_score": 0.7248428032352857,
+            "median_score": 0.7592496209628388,
+            "p25_score": 0.6432149599933329,
+            "p75_score": 0.7939548690070009,
+            "max_score": 0.9728416628707521,
+            "min_score": 0.4256922509787214,
+            "score_std": 0.16115779941344813,
+            "median_trades": 92.5,
+            "median_win_rate": 0.4269563008130081,
+            "median_profit_factor": 1.627687581317431,
+            "count": 12
+          },
+          {
+            "exit_period": 20,
+            "mean_score": 0.6864415084270659,
+            "median_score": 0.6915154063560307,
+            "p25_score": 0.5938040657670669,
+            "p75_score": 0.802567574067114,
+            "max_score": 0.9650266728988732,
+            "min_score": 0.43335175752824767,
+            "score_std": 0.1774574178762234,
+            "median_trades": 85.5,
+            "median_win_rate": 0.40994771601541,
+            "median_profit_factor": 1.6296251762753657,
+            "count": 8
+          }
+        ]
+      },
+      "vol_mult": {
+        "values": [
+          0.0,
+          1.3,
+          1.5,
+          2.0
+        ],
+        "score_metrics": {
+          "mean_sharpe": [
+            0.2983495429153986,
+            0.7947475411499398,
+            0.6095432365016017,
+            0.7375574678726655
+          ],
+          "median_sharpe": [
+            0.2736711673845359,
+            0.8174640220292745,
+            0.6249576924797877,
+            0.7373619422648499
+          ],
+          "p25_sharpe": [
+            0.15644418338277533,
+            0.734778404669648,
+            0.5465779141008554,
+            0.6157970845695114
+          ],
+          "p75_sharpe": [
+            0.427607127616103,
+            0.9281392932117583,
+            0.7218653774915469,
+            0.8258149187331166
+          ],
+          "max_sharpe": [
+            0.6527672970144036,
+            1.0199076455949971,
+            0.8269736052420992,
+            0.9710442840917481
+          ],
+          "min_sharpe": [
+            0.06757135897898317,
+            0.3350408396168347,
+            0.2073577289020039,
+            0.5314897569400735
+          ],
+          "sharpe_std": [
+            0.15862111865308565,
+            0.1835178002325984,
+            0.17093997868810923,
+            0.1372259548111162
+          ],
+          "count_valid": [
+            20,
+            20,
+            20,
+            20
+          ]
+        },
+        "robustness_metrics": {
+          "plateau_width_1step": 1,
+          "plateau_width_2step": 1,
+          "dropoff_after_best": -0.42881686799348395,
+          "boundary_pressure": "none",
+          "stability_score": 0.23653749074131813
+        },
+        "trade_quality": {
+          "median_trades": [
+            185.0,
+            104.5,
+            97.5,
+            66.5
+          ],
+          "median_win_rate": [
+            0.3382112965205032,
+            0.42144212523719166,
+            0.40688728216536896,
+            0.44209069618905683
+          ],
+          "median_profit_factor": [
+            1.11302599335398,
+            1.5981316243346937,
+            1.4441307018096934,
+            1.7226059242843808
+          ]
+        },
+        "mean_scores": [
+          0.2983495429153986,
+          0.7947475411499398,
+          0.6095432365016017,
+          0.7375574678726655
+        ],
+        "best_value": 1.3,
+        "best_at_lower_boundary": false,
+        "best_at_upper_boundary": false,
+        "score_spread": 0.4963979982345412,
+        "direction_hint": "higher_values_help",
+        "classification": "interior_or_mixed",
+        "recommendation": "vol_mult improves toward higher values but plateau is narrow; add intermediate and slightly higher values.",
+        "table": [
+          {
+            "vol_mult": 0.0,
+            "mean_score": 0.2983495429153986,
+            "median_score": 0.2736711673845359,
+            "p25_score": 0.15644418338277533,
+            "p75_score": 0.427607127616103,
+            "max_score": 0.6527672970144036,
+            "min_score": 0.06757135897898317,
+            "score_std": 0.15862111865308565,
+            "median_trades": 185.0,
+            "median_win_rate": 0.3382112965205032,
+            "median_profit_factor": 1.11302599335398,
+            "count": 20
+          },
+          {
+            "vol_mult": 1.3,
+            "mean_score": 0.7947475411499398,
+            "median_score": 0.8174640220292745,
+            "p25_score": 0.734778404669648,
+            "p75_score": 0.9281392932117583,
+            "max_score": 1.0199076455949971,
+            "min_score": 0.3350408396168347,
+            "score_std": 0.1835178002325984,
+            "median_trades": 104.5,
+            "median_win_rate": 0.42144212523719166,
+            "median_profit_factor": 1.5981316243346937,
+            "count": 20
+          },
+          {
+            "vol_mult": 1.5,
+            "mean_score": 0.6095432365016017,
+            "median_score": 0.6249576924797877,
+            "p25_score": 0.5465779141008554,
+            "p75_score": 0.7218653774915469,
+            "max_score": 0.8269736052420992,
+            "min_score": 0.2073577289020039,
+            "score_std": 0.17093997868810923,
+            "median_trades": 97.5,
+            "median_win_rate": 0.40688728216536896,
+            "median_profit_factor": 1.4441307018096934,
+            "count": 20
+          },
+          {
+            "vol_mult": 2.0,
+            "mean_score": 0.7375574678726655,
+            "median_score": 0.7373619422648499,
+            "p25_score": 0.6157970845695114,
+            "p75_score": 0.8258149187331166,
+            "max_score": 0.9710442840917481,
+            "min_score": 0.5314897569400735,
+            "score_std": 0.1372259548111162,
+            "median_trades": 66.5,
+            "median_win_rate": 0.44209069618905683,
+            "median_profit_factor": 1.7226059242843808,
+            "count": 20
+          }
+        ]
+      }
+    },
+    "top_results_explanation": "Robust-ranked top rows. Rows passing 5/6 gates are preferred; if none pass, best near-misses are shown with explicit gate failures.",
+   
+    "candidate_rejection_analysis": {
+      "available": true,
+      "reasons": {
+        "too_few_trades": 0,
+        "non_positive_return": 0,
+        "weak_sharpe": 13,
+        "large_drawdown": 0
+      },
+      "interpretation": "Counts are approximate hard-gate blockers over the grid rows.",
+      "suggestion": "Fix the blocker with the largest count before expanding the grid size."
+    },
+    "final_strategy_scorecard": {
+      "score": 0.55,
+      "recommendation": "REFINE_SWEEP",
+      "weights": {
+        "peak_sharpe": 0.15,
+        "median_sharpe": 0.2,
+        "plateau_coverage": 0.25,
+        "cost_resilience": 0.2,
+        "oos_stability": 0.2
+      },
+      "component_scores": {
+        "peak_sharpe": 1.0,
+        "median_sharpe": 1.0,
+        "plateau_coverage": 0.0,
+        "cost_resilience": 1.0,
+        "oos_stability": 0.0
+      },
+      "interpretation": "Final score rewards broad robustness more than peak performance.",
+      "suggestion": "Only DEPLOY_NATIVE candidates should move to native Nautilus validation; REFINE_SWEEP candidates need a narrower robust grid."
+    }
+  },
+  "surface_analysis": {
+    "plateau_found": true,
+    "plateaus": [
+      {
+        "param_name": "channel_period",
+        "param_values": [
+          10,
+          15,
+          20,
+          30,
+          40,
+          55
+        ],
+        "mean_sharpe": 0.5601135049651798,
+        "width": 6,
+        "bounds": [
+          10,
+          55
+        ],
+        "center": 28.333333333333332
+      },
+      {
+        "param_name": "exit_period",
+        "param_values": [
+          5,
+          8,
+          10,
+          15,
+          20
+        ],
+        "mean_sharpe": 0.6356534509385126,
+        "width": 5,
+        "bounds": [
+          5,
+          20
+        ],
+        "center": 11.6
+      },
+      {
+        "param_name": "vol_mult",
+        "param_values": [
+          1.3,
+          1.5,
+          2.0
+        ],
+        "mean_sharpe": 0.7139494151747355,
+        "width": 3,
+        "bounds": [
+          1.3,
+          2.0
+        ],
+        "center": 1.5999999999999999
+      }
+    ],
+    "best_combo": {
+      "channel_period": 55,
+      "exit_period": 8,
+      "vol_mult": 1.3,
+      "sharpe_ratio": 1.0199076455949971,
+      "total_return": 0.08331518420682116,
+      "max_drawdown": -0.020371096074585093,
+      "calmar_ratio": 4.089872430122446,
+      "n_trades": 95,
+      "win_rate": 0.45263157894736844,
+      "avg_hold_bars": 9.063157894736841,
+      "profit_factor": 1.7945758307371926,
+      "_combo_idx": 65,
+      "exit_mode": "signal_be_trail",
+      "exit_label": "signal_be_trail",
+      "cycle_stability": 1.0
+    },
+    "interpretation": "Plateaus show whether performance is stable across neighboring parameter values.",
+    "suggestion": "Prefer broad plateaus over isolated best points; densify if plateau width is narrow.",
+    "plateau_analysis": {
+      "channel_period": {
+        "best_plateau": {
+          "center": 30,
+          "bounds": [
+            20,
+            55
+          ],
+          "width_in_steps": 4,
+          "avg_sharpe_in_plateau": 0.6464148897423656,
+          "sharpe_std_in_plateau": 0.036993548213800145,
+          "neighbor_avg": 0.45891190728654496,
+          "consistency_ratio": 0.6565196372082097,
+          "is_robust": false,
+          "warning": null
+        },
+        "all_plateaus": [
+          {
+            "center": 30,
+            "bounds": [
+              20,
+              55
+            ],
+            "width_in_steps": 4,
+            "avg_sharpe_in_plateau": 0.6464148897423656,
+            "sharpe_std_in_plateau": 0.036993548213800145,
+            "neighbor_avg": 0.45891190728654496,
+            "consistency_ratio": 0.6565196372082097,
+            "is_robust": false,
+            "warning": null
+          }
+        ],
+        "recommendation": "channel_period has boundary/narrow-plateau risk; expand or insert intermediate values before trusting it."
+      },
+      "exit_period": {
+        "best_plateau": {
+          "center": 15,
+          "bounds": [
+            8,
+            20
+          ],
+          "width_in_steps": 4,
+          "avg_sharpe_in_plateau": 0.682795205471026,
+          "sharpe_std_in_plateau": 0.03468741114777345,
+          "neighbor_avg": 0.44708643280845844,
+          "consistency_ratio": 0.6168046793220807,
+          "is_robust": false,
+          "warning": null
+        },
+        "all_plateaus": [
+          {
+            "center": 15,
+            "bounds": [
+              8,
+              20
+            ],
+            "width_in_steps": 4,
+            "avg_sharpe_in_plateau": 0.682795205471026,
+            "sharpe_std_in_plateau": 0.03468741114777345,
+            "neighbor_avg": 0.44708643280845844,
+            "consistency_ratio": 0.6168046793220807,
+            "is_robust": false,
+            "warning": null
+          }
+        ],
+        "recommendation": "exit_period has boundary/narrow-plateau risk; expand or insert intermediate values before trusting it."
+      },
+      "vol_mult": {
+        "best_plateau": {
+          "center": 1.3,
+          "bounds": [
+            1.3,
+            1.3
+          ],
+          "width_in_steps": 1,
+          "avg_sharpe_in_plateau": 0.7947475411499398,
+          "sharpe_std_in_plateau": 0.0,
+          "neighbor_avg": 0.45394638970850015,
+          "consistency_ratio": 0.571183132006516,
+          "is_robust": false,
+          "warning": "Narrow plateau; add intermediate values before trusting this parameter."
+        },
+        "all_plateaus": [
+          {
+            "center": 1.3,
+            "bounds": [
+              1.3,
+              1.3
+            ],
+            "width_in_steps": 1,
+            "avg_sharpe_in_plateau": 0.7947475411499398,
+            "sharpe_std_in_plateau": 0.0,
+            "neighbor_avg": 0.45394638970850015,
+            "consistency_ratio": 0.571183132006516,
+            "is_robust": false,
+            "warning": "Narrow plateau; add intermediate values before trusting this parameter."
+          },
+          {
+            "center": 2.0,
+            "bounds": [
+              2.0,
+              2.0
+            ],
+            "width_in_steps": 1,
+            "avg_sharpe_in_plateau": 0.7375574678726655,
+            "sharpe_std_in_plateau": 0.0,
+            "neighbor_avg": 0.6095432365016017,
+            "consistency_ratio": 0.8264349058246337,
+            "is_robust": false,
+            "warning": "Narrow plateau; add intermediate values before trusting this parameter."
+          }
+        ],
+        "recommendation": "vol_mult has boundary/narrow-plateau risk; expand or insert intermediate values before trusting it."
+      },
+      "global_robustness_score": 0.6148358161789355,
+      "robust_param_count": 0,
+      "robust_param_fraction": 0.0,
+      "next_sweep_focus": {
+        "channel_period": [
+          10,
+          15,
+          20,
+          30,
+          40,
+          55
+        ],
+        "exit_period": [
+          5,
+          8,
+          10,
+          15,
+          20
+        ],
+        "vol_mult": [
+          0.0,
+          1.3,
+          1.5,
+          2.0
+        ]
+      },
+      "interpretation": "0 of 3 parameters show robust marginal plateaus.",
+      "suggestion": "Continue only around broad plateaus; reject isolated bright cells unless OOS/cost tests also pass."
+    }
+  },
+  "regime_aware_plateaus": {
+    "available": true,
+    "method": "full_grid_rescore_by_trade_regime_bucket",
+    "param_names": [
+      "channel_period",
+      "exit_period",
+      "vol_mult"
+    ],
+    "segment_count": 18,
+    "segments": [
+      {
+        "axis": "direction",
+        "bucket": "bear",
+        "rows": 80,
+        "total_trades": 4544,
+        "top_score": 0.3906394736842104,
+        "median_score": 0.03761355555555556,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                20,
+                55
+              ],
+              "width": 4,
+              "mean_score": 0.0705597031599297,
+              "center": 36.25
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                8,
+                20
+              ],
+              "width": 4,
+              "mean_score": 0.1020169013076819,
+              "center": 13.25
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                1.3,
+                1.5
+              ],
+              "width": 2,
+              "mean_score": 0.13860952100655882,
+              "center": 1.4
+            }
+          ],
+          "best_combo": {
+            "channel_period": 55,
+            "exit_period": 20,
+            "vol_mult": 1.3,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 38,
+            "avg_r": 0.3906394736842104,
+            "median_r": -1.1058,
+            "total_pnl": 85.79629089809154,
+            "win_rate": 0.2894736842105263,
+            "profit_factor": 1.1118401058530387,
+            "trade_confidence": 1,
+            "segmented_score": 0.3906394736842104
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_direction/31-bucket_bear",
+        "decision": {
+          "best_segmented_score": 0.3906394736842104,
+          "median_segmented_score": 0.03761355555555556,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for direction=bear; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "direction",
+        "bucket": "bull",
+        "rows": 80,
+        "total_trades": 5055,
+        "top_score": 2.421653125,
+        "median_score": 1.1099502331002329,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 1.0703295808972546,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 1.298110770418804,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 1.1730887107178773,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 40,
+            "exit_period": 20,
+            "vol_mult": 2,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 32,
+            "avg_r": 2.421653125,
+            "median_r": 0.524,
+            "total_pnl": 707.6536368469119,
+            "win_rate": 0.59375,
+            "profit_factor": 3.4526867418960956,
+            "trade_confidence": 1,
+            "segmented_score": 2.421653125
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_direction/31-bucket_bull",
+        "decision": {
+          "best_segmented_score": 2.421653125,
+          "median_segmented_score": 1.1099502331002329,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for direction=bull; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "momentum",
+        "bucket": "negative",
+        "rows": 80,
+        "total_trades": 1382,
+        "top_score": 0.4542533333333334,
+        "median_score": 0.11905666666666666,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                20,
+                55
+              ],
+              "width": 4,
+              "mean_score": 0.14342706919335146,
+              "center": 36.25
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                8,
+                20
+              ],
+              "width": 4,
+              "mean_score": 0.20691135125484955,
+              "center": 13.25
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                1.3,
+                2.0
+              ],
+              "width": 3,
+              "mean_score": 0.16687194444444445,
+              "center": 1.5999999999999999
+            }
+          ],
+          "best_combo": {
+            "channel_period": 55,
+            "exit_period": 8,
+            "vol_mult": 2,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 3,
+            "avg_r": 4.542533333333334,
+            "median_r": 1.3826,
+            "total_pnl": 270.88344744756097,
+            "win_rate": 0.6666666666666666,
+            "profit_factor": 49.41462157954728,
+            "trade_confidence": 0.1,
+            "segmented_score": 0.4542533333333334
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_momentum/31-bucket_negative",
+        "decision": {
+          "best_segmented_score": 0.4542533333333334,
+          "median_segmented_score": 0.11905666666666666,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for momentum=negative; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "momentum",
+        "bucket": "positive",
+        "rows": 80,
+        "total_trades": 2105,
+        "top_score": 0.8902233333333334,
+        "median_score": 0.4489583333333333,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 0.3926664783266305,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 0.34601744115947675,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 0.37671789102116754,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 30,
+            "exit_period": 8,
+            "vol_mult": 1.3,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 24,
+            "avg_r": 1.1127791666666667,
+            "median_r": 0.11465,
+            "total_pnl": 334.6933002649484,
+            "win_rate": 0.5416666666666666,
+            "profit_factor": 2.4955158224918335,
+            "trade_confidence": 0.8,
+            "segmented_score": 0.8902233333333334
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_momentum/31-bucket_positive",
+        "decision": {
+          "best_segmented_score": 0.8902233333333334,
+          "median_segmented_score": 0.4489583333333333,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for momentum=positive; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "momentum",
+        "bucket": "strong_negative",
+        "rows": 80,
+        "total_trades": 2969,
+        "top_score": 0.24539444444444442,
+        "median_score": 0.0007675837320573991,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                15
+              ],
+              "width": 2,
+              "mean_score": 0.015226137900406875,
+              "center": 12.5
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                1.3,
+                1.5
+              ],
+              "width": 2,
+              "mean_score": 0.0887625471094307,
+              "center": 1.4
+            }
+          ],
+          "best_combo": {
+            "channel_period": 55,
+            "exit_period": 5,
+            "vol_mult": 1.3,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 36,
+            "avg_r": 0.24539444444444442,
+            "median_r": -0.45315000000000005,
+            "total_pnl": 40.31326943483453,
+            "win_rate": 0.3611111111111111,
+            "profit_factor": 1.0834471640239267,
+            "trade_confidence": 1,
+            "segmented_score": 0.24539444444444442
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_momentum/31-bucket_strong_negative",
+        "decision": {
+          "best_segmented_score": 0.24539444444444442,
+          "median_segmented_score": 0.0007675837320573991,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for momentum=strong_negative; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "momentum",
+        "bucket": "strong_positive",
+        "rows": 80,
+        "total_trades": 2861,
+        "top_score": 2.6594233333333337,
+        "median_score": 1.3916833333333332,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 1.2503408750798486,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 1.5987521691594933,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 1.401679577043753,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 40,
+            "exit_period": 20,
+            "vol_mult": 2,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 24,
+            "avg_r": 3.324279166666667,
+            "median_r": 0.5865499999999999,
+            "total_pnl": 733.5349959317741,
+            "win_rate": 0.625,
+            "profit_factor": 4.49718163167868,
+            "trade_confidence": 0.8,
+            "segmented_score": 2.6594233333333337
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_momentum/31-bucket_strong_positive",
+        "decision": {
+          "best_segmented_score": 2.6594233333333337,
+          "median_segmented_score": 1.3916833333333332,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for momentum=strong_positive; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "momentum",
+        "bucket": "weak",
+        "rows": 35,
+        "total_trades": 282,
+        "top_score": 0.6226842105263157,
+        "median_score": -0.008386666666666666,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                20
+              ],
+              "width": 3,
+              "mean_score": 0.16705812961486202,
+              "center": 15.0
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                10
+              ],
+              "width": 3,
+              "mean_score": 0.12206862178172705,
+              "center": 7.666666666666667
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                1.5
+              ],
+              "width": 3,
+              "mean_score": 0.14983469236221866,
+              "center": 0.9333333333333332
+            }
+          ],
+          "best_combo": {
+            "channel_period": 15,
+            "exit_period": 8,
+            "vol_mult": 0,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 38,
+            "avg_r": 0.6226842105263157,
+            "median_r": -0.61725,
+            "total_pnl": 336.69629313348787,
+            "win_rate": 0.3157894736842105,
+            "profit_factor": 1.8884491269612604,
+            "trade_confidence": 1,
+            "segmented_score": 0.6226842105263157
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_momentum/31-bucket_weak",
+        "decision": {
+          "best_segmented_score": 0.6226842105263157,
+          "median_segmented_score": -0.008386666666666666,
+          "grid_rows": 35,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for momentum=weak; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "trend_strength",
+        "bucket": "choppy",
+        "rows": 80,
+        "total_trades": 2318,
+        "top_score": 1.2742766666666667,
+        "median_score": 0.7879800000000001,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 0.7086857581293464,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 0.8273424102578362,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 0.7743699817913132,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 55,
+            "exit_period": 20,
+            "vol_mult": 2,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 11,
+            "avg_r": 3.4753000000000003,
+            "median_r": -0.8588,
+            "total_pnl": 508.5541764258792,
+            "win_rate": 0.45454545454545453,
+            "profit_factor": 4.251899850534612,
+            "trade_confidence": 0.36666666666666664,
+            "segmented_score": 1.2742766666666667
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_trend_strength/31-bucket_choppy",
+        "decision": {
+          "best_segmented_score": 1.2742766666666667,
+          "median_segmented_score": 0.7879800000000001,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for trend_strength=choppy; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "trend_strength",
+        "bucket": "parabolic",
+        "rows": 80,
+        "total_trades": 1805,
+        "top_score": 1.4401133333333334,
+        "median_score": 0.8152957657657656,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 0.762250581389868,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 0.9688560261131911,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 0.8612583775145215,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 30,
+            "exit_period": 15,
+            "vol_mult": 1.3,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 14,
+            "avg_r": 3.085957142857143,
+            "median_r": 0.34385,
+            "total_pnl": 326.8935431458689,
+            "win_rate": 0.5714285714285714,
+            "profit_factor": 2.83555228975962,
+            "trade_confidence": 0.4666666666666667,
+            "segmented_score": 1.4401133333333334
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_trend_strength/31-bucket_parabolic",
+        "decision": {
+          "best_segmented_score": 1.4401133333333334,
+          "median_segmented_score": 0.8152957657657656,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Plateau exists mainly in parabolic conditions; treat this as a separate parabolic-breakout variant and size it more conservatively."
+        }
+      },
+      {
+        "axis": "trend_strength",
+        "bucket": "strong_trend",
+        "rows": 80,
+        "total_trades": 3055,
+        "top_score": 0.17002571428571425,
+        "median_score": -0.13346333333333332,
+        "topology": {
+          "plateau_found": false,
+          "plateaus": [],
+          "best_combo": {
+            "channel_period": 30,
+            "exit_period": 15,
+            "vol_mult": 1.3,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 35,
+            "avg_r": 0.17002571428571425,
+            "median_r": -0.8212,
+            "total_pnl": 29.573380446220273,
+            "win_rate": 0.37142857142857144,
+            "profit_factor": 1.0584777488708348,
+            "trade_confidence": 1,
+            "segmented_score": 0.17002571428571425
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_trend_strength/31-bucket_strong_trend",
+        "decision": {
+          "best_segmented_score": 0.17002571428571425,
+          "median_segmented_score": -0.13346333333333332,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "No stable plateau was found for trend_strength=strong_trend; avoid adding a hard filter for this bucket from this run alone."
+        }
+      },
+      {
+        "axis": "trend_strength",
+        "bucket": "weak_trend",
+        "rows": 80,
+        "total_trades": 2421,
+        "top_score": 1.0015526315789474,
+        "median_score": 0.5649933333333333,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 0.46064624046842967,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 0.5197877301689762,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 0.503935143329699,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 55,
+            "exit_period": 20,
+            "vol_mult": 0,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 38,
+            "avg_r": 1.0015526315789474,
+            "median_r": -0.37795,
+            "total_pnl": 424.8406218054058,
+            "win_rate": 0.3684210526315789,
+            "profit_factor": 2.0360834152219804,
+            "trade_confidence": 1,
+            "segmented_score": 1.0015526315789474
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_trend_strength/31-bucket_weak_trend",
+        "decision": {
+          "best_segmented_score": 1.0015526315789474,
+          "median_segmented_score": 0.5649933333333333,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for trend_strength=weak_trend; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "volatility_level",
+        "bucket": "extreme",
+        "rows": 80,
+        "total_trades": 1843,
+        "top_score": 0.8153266666666665,
+        "median_score": 0.32900833333333335,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 0.25730498187428,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 0.26107191145776765,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                1.3,
+                2.0
+              ],
+              "width": 3,
+              "mean_score": 0.34779444444444435,
+              "center": 1.5999999999999999
+            }
+          ],
+          "best_combo": {
+            "channel_period": 30,
+            "exit_period": 8,
+            "vol_mult": 1.3,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 23,
+            "avg_r": 1.063469565217391,
+            "median_r": -0.0878,
+            "total_pnl": 294.6735205914331,
+            "win_rate": 0.43478260869565216,
+            "profit_factor": 2.02461366544015,
+            "trade_confidence": 0.7666666666666667,
+            "segmented_score": 0.8153266666666665
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_volatility_level/31-bucket_extreme",
+        "decision": {
+          "best_segmented_score": 0.8153266666666665,
+          "median_segmented_score": 0.32900833333333335,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Extreme-vol plateau exists; validate with slippage/funding stress and consider lower size because tails dominate this bucket."
+        }
+      },
+      {
+        "axis": "volatility_level",
+        "bucket": "high",
+        "rows": 80,
+        "total_trades": 1824,
+        "top_score": 1.91119,
+        "median_score": 0.942818817966903,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 0.6278685207001974,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 0.9680489554433489,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 0.7941110434988088,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 55,
+            "exit_period": 20,
+            "vol_mult": 0,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 24,
+            "avg_r": 2.3889875,
+            "median_r": -0.029949999999999997,
+            "total_pnl": 623.9486627272847,
+            "win_rate": 0.5,
+            "profit_factor": 3.8269421636894356,
+            "trade_confidence": 0.8,
+            "segmented_score": 1.91119
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_volatility_level/31-bucket_high",
+        "decision": {
+          "best_segmented_score": 1.91119,
+          "median_segmented_score": 0.942818817966903,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for volatility_level=high; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "volatility_level",
+        "bucket": "low",
+        "rows": 80,
+        "total_trades": 2538,
+        "top_score": 0.90673,
+        "median_score": 0.4036533333333334,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 0.396722009256248,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 0.3710579291733178,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 0.3855571557864918,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 20,
+            "exit_period": 8,
+            "vol_mult": 1.3,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 29,
+            "avg_r": 0.937996551724138,
+            "median_r": -0.3721,
+            "total_pnl": 265.7326150810584,
+            "win_rate": 0.4482758620689655,
+            "profit_factor": 2.131397349870252,
+            "trade_confidence": 0.9666666666666667,
+            "segmented_score": 0.90673
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_volatility_level/31-bucket_low",
+        "decision": {
+          "best_segmented_score": 0.90673,
+          "median_segmented_score": 0.4036533333333334,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for volatility_level=low; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "volatility_level",
+        "bucket": "normal",
+        "rows": 80,
+        "total_trades": 3394,
+        "top_score": 1.019674285714286,
+        "median_score": 0.4726516666666667,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 0.44804590125706945,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 0.5159456939331513,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 0.4895273643514372,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 55,
+            "exit_period": 20,
+            "vol_mult": 1.3,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 35,
+            "avg_r": 1.019674285714286,
+            "median_r": -0.348,
+            "total_pnl": 321.66182426432965,
+            "win_rate": 0.42857142857142855,
+            "profit_factor": 1.7244449412267306,
+            "trade_confidence": 1,
+            "segmented_score": 1.019674285714286
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_volatility_level/31-bucket_normal",
+        "decision": {
+          "best_segmented_score": 1.019674285714286,
+          "median_segmented_score": 0.4726516666666667,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for volatility_level=normal; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "volatility_regime",
+        "bucket": "contraction",
+        "rows": 80,
+        "total_trades": 4833,
+        "top_score": 1.8619463414634145,
+        "median_score": 0.7630225,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 0.7624666309396102,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 1.0012641010080792,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 0.869399398332572,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 55,
+            "exit_period": 20,
+            "vol_mult": 1.5,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 41,
+            "avg_r": 1.8619463414634145,
+            "median_r": -0.9307,
+            "total_pnl": 633.241345706855,
+            "win_rate": 0.4146341463414634,
+            "profit_factor": 2.103759220295601,
+            "trade_confidence": 1,
+            "segmented_score": 1.8619463414634145
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_volatility_regime/31-bucket_contraction",
+        "decision": {
+          "best_segmented_score": 1.8619463414634145,
+          "median_segmented_score": 0.7630225,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for volatility_regime=contraction; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "volatility_regime",
+        "bucket": "expansion",
+        "rows": 80,
+        "total_trades": 2605,
+        "top_score": 0.3986571428571428,
+        "median_score": -0.062406666666666694,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "exit_period",
+              "bounds": [
+                8,
+                10
+              ],
+              "width": 2,
+              "mean_score": 0.032320947790317675,
+              "center": 9.0
+            }
+          ],
+          "best_combo": {
+            "channel_period": 55,
+            "exit_period": 15,
+            "vol_mult": 0,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 35,
+            "avg_r": 0.3986571428571428,
+            "median_r": -0.5248,
+            "total_pnl": 119.15568770123437,
+            "win_rate": 0.37142857142857144,
+            "profit_factor": 1.2611615580212512,
+            "trade_confidence": 1,
+            "segmented_score": 0.3986571428571428
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_volatility_regime/31-bucket_expansion",
+        "decision": {
+          "best_segmented_score": 0.3986571428571428,
+          "median_segmented_score": -0.062406666666666694,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for volatility_regime=expansion; test this as a typed regime filter in the next focused grid."
+        }
+      },
+      {
+        "axis": "volatility_regime",
+        "bucket": "normal",
+        "rows": 80,
+        "total_trades": 2161,
+        "top_score": 1.2913733333333337,
+        "median_score": 0.6971004166666664,
+        "topology": {
+          "plateau_found": true,
+          "plateaus": [
+            {
+              "param": "channel_period",
+              "bounds": [
+                10,
+                55
+              ],
+              "width": 6,
+              "mean_score": 0.6679121093989228,
+              "center": 28.333333333333332
+            },
+            {
+              "param": "exit_period",
+              "bounds": [
+                5,
+                20
+              ],
+              "width": 5,
+              "mean_score": 0.7129188008234288,
+              "center": 11.6
+            },
+            {
+              "param": "vol_mult",
+              "bounds": [
+                0.0,
+                2.0
+              ],
+              "width": 4,
+              "mean_score": 0.6853748972652791,
+              "center": 1.2
+            }
+          ],
+          "best_combo": {
+            "channel_period": 20,
+            "exit_period": 8,
+            "vol_mult": 1.3,
+            "axis": null,
+            "bucket": null,
+            "n_trades": 25,
+            "avg_r": 1.5496480000000004,
+            "median_r": 0.1694,
+            "total_pnl": 556.0094288860711,
+            "win_rate": 0.52,
+            "profit_factor": 3.2499332194341664,
+            "trade_confidence": 0.8333333333333334,
+            "segmented_score": 1.2913733333333337
+          }
+        },
+        "artifact_dir": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segments/31-axis_volatility_regime/31-bucket_normal",
+        "decision": {
+          "best_segmented_score": 1.2913733333333337,
+          "median_segmented_score": 0.6971004166666664,
+          "grid_rows": 80,
+          "interpretation": "Segmented score is avg R multiplied by a trade-count confidence cap, so tiny samples are penalized.",
+          "suggestion": "Segment has a positive plateau for volatility_regime=normal; test this as a typed regime filter in the next focused grid."
+        }
+      }
+    ],
+    "segments_truncated": false,
+    "artifact_file": "results/runs/20260427T200342Z_donchian_BTC_4h_signal_be_trail_de8b44a9c607/30-surface/31-regime_segmented_regrid.json",
+    "interpretation": "Every grid combo was re-scored separately inside each regime bucket using persisted trades; plateau detection then ran per segment.",
+    "suggestion": "Segmented re-grid found the clearest trend-strength plateau in parabolic regimes; treat this as a parabolic-breakout variant, not broad trend following."
+  },
+  "trade_diagnostics": {
+    "available": true,
+    "top_combo_count": 5,
+    "avg_top_combo_r_multiple": 0.9313249427900759,
+   "combo_summaries": [],
+    "interpretation": "This is a compact duplicate of trade diagnostics for the same top combos, grouped under a global trade_diagnostics key for readers who want trade behavior without scanning grid_sweep.top_results.",
+    "suggestion": "Use grid_sweep.top_results when you need params plus metrics; use trade_diagnostics.combo_summaries when you only need the aggregated trade behavior view."
+  },
+  "regime_formula_reference": {
+    "direction_regime": "bull if close > EMA200 and EMA200 slope > 0; bear if close < EMA200 and slope < 0; otherwise chop; shifted 1 bar to avoid look-ahead.",
+    "direction_confidence": "min(abs(close-EMA200)/EMA200, abs(EMA200 slope / close) * 1000) / 0.03, clipped to 0..1 and shifted 1 bar.",
+    "vol_state": "ATR% rolling mean is compared with rolling quantile thresholds: <=35th percentile contraction, >=65th percentile expansion, otherwise normal; shifted 1 bar.",
+    "vol_state_confidence": "Distance from contraction/expansion thresholds; normal confidence is highest near the midpoint between thresholds.",
+    "trend_strength": "ADX <20 choppy, 20-25 weak trend, 25-40 strong trend, >=40 parabolic; shifted 1 bar.",
+    "trend_strength_confidence": "Distance from the nearest ADX threshold divided by 10, clipped to 0..1.",
+    "vol_level": "ATR percentile rank over rolling window: <30 low, 30-70 normal, 70-90 high, >=90 extreme; shifted 1 bar.",
+    "vol_level_confidence": "Distance from the nearest ATR-rank boundary divided by 0.20, clipped to 0..1.",
+    "momentum_regime": "Volatility-normalized lookback return z-score: weak around zero, positive/negative beyond +/-0.25, strong beyond +/-1.0; shifted 1 bar.",
+    "momentum_confidence": "Absolute momentum z-score clipped to 0..2 and divided by 2.",
+    "correlation_or_risk": "Single-symbol runs report unknown with zero confidence; multi-asset panels should add BTC dominance, basket correlation, and alt/BTC ratios.",
+    "confidence_note": "Direction, trend strength, volatility level, volatility regime, and momentum include confidence; risk/correlation confidence is zero in single-symbol runs."
+  },
+  "prove_summary": [],
+  "missing_artifacts": [],
+  "ai_analysis_metadata": {
+    "document_purpose": "Complete local and AI-readable context for strategy tuning decisions.",
+    "safety_note": "Research guidance only. Do not trade live until PROVE and native Nautilus gates pass."
+  },
+  "automated_diagnosis": [
+    {
+      "id": "no_candidates",
+      "severity": "high",
+      "message": "No candidates survived ranking/gates.",
+      "suggestion": "Inspect min_trades, Sharpe, return, and drawdown gates; widen the grid only after confirming trades exist."
+    },
+    {
+      "id": "param_at_upper_boundary",
+      "severity": "medium",
+      "param": "channel_period",
+      "message": "Best result for channel_period sits at the upper tested value.",
+      "suggestion": "Extend channel_period upward in the next grid and include the current best value again as an anchor."
+    }
+  ]
+}
